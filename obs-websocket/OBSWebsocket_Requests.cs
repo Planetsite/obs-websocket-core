@@ -1266,7 +1266,8 @@ namespace OBSWebsocketDotNet
         /// <param name="save">Save to disk</param>
         public void SetStreamingSettings(StreamingService service, bool save)
         {
-            var jsonSettings = JsonConvert.SerializeObject(service.Settings);
+            //var jsonSettings = JsonConvert.SerializeObject(service.Settings);
+            var jsonSettings = JObject.FromObject(service.Settings);
 
             var requestFields = new JObject();
             requestFields.Add("type", service.Type);
@@ -1282,8 +1283,7 @@ namespace OBSWebsocketDotNet
         public StreamingService GetStreamSettings()
         {
             var response = SendRequest("GetStreamSettings");
-
-            return JsonConvert.DeserializeObject<StreamingService>(response.ToString());
+            return response.ToObject<StreamingService>();
         }
 
         /// <summary>

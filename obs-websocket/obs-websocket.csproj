@@ -3,10 +3,10 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <RootNamespace>obs_websocket</RootNamespace>
-    <Version>4.8.0.2</Version>
+    <Version>4.8.0.3</Version>
     <Copyright>Copyright © Stéphane Lepin 2020</Copyright>
-    <AssemblyVersion>4.8.0.2</AssemblyVersion>
-    <FileVersion>4.8.0.2</FileVersion>
+    <AssemblyVersion>4.8.0.3</AssemblyVersion>
+    <FileVersion>4.8.0.3</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>

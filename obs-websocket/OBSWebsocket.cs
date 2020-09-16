@@ -435,7 +435,8 @@ namespace OBSWebsocketDotNet
             } while (true);
             // Send the message and wait for a response
             // (received and notified by the websocket response handler)
-            WSConnection.Send(body.ToString());
+            string bodyAsString = body.ToString();
+            WSConnection.Send(bodyAsString);
             tcs.Task.Wait();
 
             if (tcs.Task.IsCanceled)

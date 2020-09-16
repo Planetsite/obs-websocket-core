@@ -16,7 +16,7 @@ namespace OBSWebsocketDotNet.Types
         /// <summary>
         /// Streaming service settings (JSON data)
         /// </summary>
-        [JsonProperty(PropertyName = "source")]
+        //[JsonProperty(PropertyName = "source")]
         public StreamingServiceSettings Settings { set; get; }
     }
 }
