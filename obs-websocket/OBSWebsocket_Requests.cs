@@ -761,17 +761,19 @@ namespace OBSWebsocketDotNet
         /// <summary>
         /// Start streaming. Will trigger an error if streaming is already active
         /// </summary>
-        public void StartStreaming()
+        public StandardResponse StartStreaming()
         {
-            SendRequest("StartStreaming");
+            var response = SendRequest("StartStreaming");
+            return response.ToObject<StandardResponse>();
         }
 
         /// <summary>
         /// Stop streaming. Will trigger an error if streaming is not active.
         /// </summary>
-        public void StopStreaming()
+        public StandardResponse StopStreaming()
         {
-            SendRequest("StopStreaming");
+            var response = SendRequest("StopStreaming");
+            return response.ToObject<StandardResponse>();
         }
 
         /// <summary>
@@ -1264,7 +1266,7 @@ namespace OBSWebsocketDotNet
         /// </summary>
         /// <param name="service">Service settings</param>
         /// <param name="save">Save to disk</param>
-        public void SetStreamingSettings(StreamingService service, bool save)
+        public JObject SetStreamingSettings(StreamingService service, bool save)
         {
             //var jsonSettings = JsonConvert.SerializeObject(service.Settings);
             var jsonSettings = JObject.FromObject(service.Settings);
@@ -1273,7 +1275,8 @@ namespace OBSWebsocketDotNet
             requestFields.Add("type", service.Type);
             requestFields.Add("settings", jsonSettings);
             requestFields.Add("save", save);
-            SendRequest("SetStreamSettings", requestFields);
+            var response = SendRequest("SetStreamSettings", requestFields);
+            return response;
         }
 
         /// <summary>

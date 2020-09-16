@@ -27,7 +27,7 @@ namespace OBSWebsocketDotNet.Types
         public bool IsLocalFile;
 
         /// <summary>
-        /// File to load in embedded browser 
+        /// File to load in embedded browser
         /// </summary>
         [JsonProperty(PropertyName = "local_file")]
         public string LocalFile;
