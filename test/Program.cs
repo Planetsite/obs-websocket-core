@@ -25,9 +25,9 @@ namespace test
 
             try
             {
-                var xxx = so.StartStreaming();
-                so.SetStreamingSettings(newsett, true);
                 var saved = so.GetStreamSettings();
+                so.SetStreamingSettings(newsett, true);
+                var xxx = so.StartStreaming();
             }
             catch(Exception testErr)
             {

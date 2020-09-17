@@ -5,7 +5,7 @@ namespace OBSWebsocketDotNet.Types
     /// <summary>
     /// Streaming settings
     /// </summary>
-    public class StreamingService
+    public class StreamingService : StandardResponse
     {
         /// <summary>
         /// Type of streaming service

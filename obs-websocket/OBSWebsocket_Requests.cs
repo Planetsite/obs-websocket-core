@@ -456,17 +456,19 @@ namespace OBSWebsocketDotNet
         /// <summary>
         /// Start/Stop the streaming output
         /// </summary>
-        public void ToggleStreaming()
+        public StandardResponse ToggleStreaming()
         {
-            SendRequest("StartStopStreaming");
+            var response = SendRequest("StartStopStreaming");
+            return response.ToObject<StandardResponse>();
         }
 
         /// <summary>
         /// Start/Stop the recording output
         /// </summary>
-        public void ToggleRecording()
+        public StandardResponse ToggleRecording()
         {
-            SendRequest("StartStopRecording");
+            var response = SendRequest("StartStopRecording");
+            return response.ToObject<StandardResponse>();
         }
 
         /// <summary>
@@ -476,8 +478,7 @@ namespace OBSWebsocketDotNet
         public OutputStatus GetStreamingStatus()
         {
             JObject response = SendRequest("GetStreamingStatus");
-            var outputStatus = new OutputStatus(response);
-            return outputStatus;
+            return new OutputStatus(response);
         }
 
         /// <summary>
@@ -779,49 +780,55 @@ namespace OBSWebsocketDotNet
         /// <summary>
         /// Toggle Streaming
         /// </summary>
-        public void StartStopStreaming()
+        public StandardResponse StartStopStreaming()
         {
-            SendRequest("StartStopStreaming");
+            var response = SendRequest("StartStopStreaming");
+            return response.ToObject<StandardResponse>();
         }
 
         /// <summary>
         /// Start recording. Will trigger an error if recording is already active.
         /// </summary>
-        public void StartRecording()
+        public StandardResponse StartRecording()
         {
-            SendRequest("StartRecording");
+            var response = SendRequest("StartRecording");
+            return response.ToObject<StandardResponse>();
         }
 
         /// <summary>
         /// Stop recording. Will trigger an error if recording is not active.
         /// </summary>
-        public void StopRecording()
+        public StandardResponse StopRecording()
         {
-            SendRequest("StopRecording");
+            var response = SendRequest("StopRecording");
+            return response.ToObject<StandardResponse>();
         }
 
         /// <summary>
         /// Toggle recording
         /// </summary>
-        public void StartStopRecording()
+        public StandardResponse StartStopRecording()
         {
-            SendRequest("StartStopRecording");
+            var response = SendRequest("StartStopRecording");
+            return response.ToObject<StandardResponse>();
         }
 
         /// <summary>
         /// Pause the current recording. Returns an error if recording is not active or already paused.
         /// </summary>
-        public void PauseRecording()
+        public StandardResponse PauseRecording()
         {
-            SendRequest("PauseRecording");
+            var response = SendRequest("PauseRecording");
+            return response.ToObject<StandardResponse>();
         }
 
         /// <summary>
         /// Resume/unpause the current recording (if paused). Returns an error if recording is not active or not paused.
         /// </summary>
-        public void ResumeRecording()
+        public StandardResponse ResumeRecording()
         {
-            SendRequest("ResumeRecording");
+            var response = SendRequest("ResumeRecording");
+            return response.ToObject<StandardResponse>();
         }
 
         /// <summary>
@@ -1275,8 +1282,7 @@ namespace OBSWebsocketDotNet
             requestFields.Add("type", service.Type);
             requestFields.Add("settings", jsonSettings);
             requestFields.Add("save", save);
-            var response = SendRequest("SetStreamSettings", requestFields);
-            return response;
+            return SendRequest("SetStreamSettings", requestFields);
         }
 
         /// <summary>
@@ -1294,17 +1300,19 @@ namespace OBSWebsocketDotNet
         /// </summary>
         /// <param name="service">Service settings</param>
         /// <param name="save">Save to disk</param>
-        public void SetStreamSettings(StreamingService service, bool save)
+        public StandardResponse SetStreamSettings(StreamingService service, bool save)
         {
-            SetStreamingSettings(service, save);
+            var response = SetStreamingSettings(service, save);
+            return response.ToObject<StandardResponse>();
         }
 
         /// <summary>
         /// Save current Streaming settings to disk
         /// </summary>
-        public void SaveStreamSettings()
+        public StandardResponse SaveStreamSettings()
         {
-            SendRequest("SaveStreamSettings");
+            var response = SendRequest("SaveStreamSettings");
+            return response.ToObject<StandardResponse>();
         }
 
         /// <summary>
