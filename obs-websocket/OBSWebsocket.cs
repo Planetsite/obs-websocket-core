@@ -363,8 +363,6 @@ namespace OBSWebsocketDotNet
             }
         }
 
-
-
         // This callback handles incoming JSON messages and determines if it's
         // a request response or an event ("Update" in obs-websocket terminology)
         private void WebsocketMessageHandler(object sender, MessageEventArgs e)
@@ -412,10 +410,10 @@ namespace OBSWebsocketDotNet
             // Add optional fields if provided
             if (additionalFields != null)
             {
-                var mergeSettings = new JsonMergeSettings
-                {
-                    MergeArrayHandling = MergeArrayHandling.Union
-                };
+                //var mergeSettings = new JsonMergeSettings
+                //{
+                //    MergeArrayHandling = MergeArrayHandling.Union
+                //};
 
                 body.Merge(additionalFields);
             }
