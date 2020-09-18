@@ -2146,10 +2146,7 @@ namespace WebSocketSharp
                   catch (Exception ex)
                   {
                       _logger.Error(ex.ToString());
-                      error(
-                  "An error has occurred during the callback for an async send.",
-                  ex
-                );
+                      error("An error has occurred during the callback for an async send.", ex);
                   }
               },
               null
@@ -2362,36 +2359,34 @@ namespace WebSocketSharp
             _receivingExited = new ManualResetEvent(false);
 
             Action receive = null;
-            receive =
-              () =>
-                WebSocketFrame.ReadFrameAsync(
-                  _stream,
-                  false,
-                  frame =>
-                  {
-                      if (!processReceivedFrame(frame) || _readyState == WebSocketState.Closed)
-                      {
-                          var exited = _receivingExited;
-                          if (exited != null)
-                              exited.Set();
+            receive = () => WebSocketFrame.ReadFrameAsync(
+                _stream,
+                false,
+                frame =>
+                {
+                    if (!processReceivedFrame(frame) || _readyState == WebSocketState.Closed)
+                    {
+                        var exited = _receivingExited;
+                        if (exited != null)
+                            exited.Set();
 
-                          return;
-                      }
+                        return;
+                    }
 
-                // Receive next asap because the Ping or Close needs a response to it.
-                receive();
+                    // Receive next asap because the Ping or Close needs a response to it.
+                    receive();
 
-                      if (_inMessage || !HasMessage || _readyState != WebSocketState.Open)
-                          return;
+                    if (_inMessage || !HasMessage || _readyState != WebSocketState.Open)
+                        return;
 
-                      message();
-                  },
-                  ex =>
-                  {
-                      _logger.Fatal(ex.ToString());
-                      fatal("An exception has occurred while receiving.", ex);
-                  }
-                );
+                    message();
+                },
+                ex =>
+                {
+                    _logger.Fatal(ex.ToString());
+                    fatal("An exception has occurred while receiving.", ex);
+                }
+            );
 
             receive();
         }

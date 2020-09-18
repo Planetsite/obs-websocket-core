@@ -193,7 +193,7 @@ namespace OBSWebsocketDotNet
         {
             var requestFields = new JObject();
             requestFields.Add("sceneName", sceneName);
-            
+
             JObject response = SendRequest("GetSceneTransitionOverride", requestFields);
             return response.ToObject<TransitionOverrideInfo>();
         }
@@ -1008,7 +1008,7 @@ namespace OBSWebsocketDotNet
             var requestFields = new JObject();
             requestFields.Add("source", sourceName);
 
-            var response = SendRequest("GetMute");
+            var response = SendRequest("GetMute", requestFields);
             return (bool)response["muted"];
         }
 
