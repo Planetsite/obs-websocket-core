@@ -59,7 +59,7 @@ namespace WebSocketSharp.Server
         /// </summary>
         protected WebSocketBehavior()
         {
-            _startTime = DateTime.MaxValue;
+            StartTime = DateTime.MaxValue;
         }
 
         #endregion
@@ -81,7 +81,7 @@ namespace WebSocketSharp.Server
         {
             get
             {
-                return _context != null ? _context.Headers : null;
+                return Context != null ? Context.Headers : null;
             }
         }
 
@@ -124,7 +124,7 @@ namespace WebSocketSharp.Server
         {
             get
             {
-                return _context != null ? _context.QueryString : null;
+                return Context != null ? Context.QueryString : null;
             }
         }
 
@@ -140,13 +140,7 @@ namespace WebSocketSharp.Server
         ///   <see langword="null"/> if the session has not started yet.
         ///   </para>
         /// </value>
-        protected WebSocketSessionManager Sessions
-        {
-            get
-            {
-                return _sessions;
-            }
-        }
+        protected WebSocketSessionManager Sessions { get; private set; }
 
         #endregion
 
@@ -189,13 +183,7 @@ namespace WebSocketSharp.Server
         ///   <see langword="null"/> if the session has not started yet.
         ///   </para>
         /// </value>
-        public WebSocketContext Context
-        {
-            get
-            {
-                return _context;
-            }
-        }
+        public WebSocketContext Context { get; private set; }
 
         /// <summary>
         /// Gets or sets the delegate used to validate the HTTP cookies included in
@@ -225,18 +213,7 @@ namespace WebSocketSharp.Server
         ///   The default value is <see langword="null"/>.
         ///   </para>
         /// </value>
-        public Func<CookieCollection, CookieCollection, bool> CookiesValidator
-        {
-            get
-            {
-                return _cookiesValidator;
-            }
-
-            set
-            {
-                _cookiesValidator = value;
-            }
-        }
+        public Func<CookieCollection, CookieCollection, bool> CookiesValidator { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the WebSocket instance for
@@ -281,13 +258,7 @@ namespace WebSocketSharp.Server
         ///   <see langword="null"/> if the session has not started yet.
         ///   </para>
         /// </value>
-        public string ID
-        {
-            get
-            {
-                return _id;
-            }
-        }
+        public string ID { get; private set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether the service ignores
@@ -303,18 +274,7 @@ namespace WebSocketSharp.Server
         ///   The default value is <c>false</c>.
         ///   </para>
         /// </value>
-        public bool IgnoreExtensions
-        {
-            get
-            {
-                return _ignoreExtensions;
-            }
-
-            set
-            {
-                _ignoreExtensions = value;
-            }
-        }
+        public bool IgnoreExtensions { get; set; }
 
         /// <summary>
         /// Gets or sets the delegate used to validate the Origin header included in
@@ -341,18 +301,7 @@ namespace WebSocketSharp.Server
         ///   The default value is <see langword="null"/>.
         ///   </para>
         /// </value>
-        public Func<string, bool> OriginValidator
-        {
-            get
-            {
-                return _originValidator;
-            }
-
-            set
-            {
-                _originValidator = value;
-            }
-        }
+        public Func<string, bool> OriginValidator { get; set; }
 
         /// <summary>
         /// Gets or sets the name of the WebSocket subprotocol for the service.
@@ -418,13 +367,7 @@ namespace WebSocketSharp.Server
         ///   <see cref="DateTime.MaxValue"/> if the session has not started yet.
         ///   </para>
         /// </value>
-        public DateTime StartTime
-        {
-            get
-            {
-                return _startTime;
-            }
-        }
+        public DateTime StartTime { get; private set; }
 
         #endregion
 
@@ -432,17 +375,17 @@ namespace WebSocketSharp.Server
 
         private string checkHandshakeRequest(WebSocketContext context)
         {
-            if (_originValidator != null)
+            if (OriginValidator != null)
             {
-                if (!_originValidator(context.Origin))
+                if (!OriginValidator(context.Origin))
                     return "It includes no Origin header or an invalid one.";
             }
 
-            if (_cookiesValidator != null)
+            if (CookiesValidator != null)
             {
                 var req = context.CookieCollection;
                 var res = context.WebSocket.CookieCollection;
-                if (!_cookiesValidator(req, res))
+                if (!CookiesValidator(req, res))
                     return "It includes no cookie or an invalid one.";
             }
 
@@ -451,10 +394,10 @@ namespace WebSocketSharp.Server
 
         private void onClose(object sender, CloseEventArgs e)
         {
-            if (_id == null)
+            if (ID == null)
                 return;
 
-            _sessions.Remove(_id);
+            Sessions.Remove(ID);
             OnClose(e);
         }
 
@@ -470,14 +413,14 @@ namespace WebSocketSharp.Server
 
         private void onOpen(object sender, EventArgs e)
         {
-            _id = _sessions.Add(this);
-            if (_id == null)
+            ID = Sessions.Add(this);
+            if (ID == null)
             {
                 _websocket.Close(CloseStatusCode.Away);
                 return;
             }
 
-            _startTime = DateTime.Now;
+            StartTime = DateTime.Now;
             OnOpen();
         }
 
@@ -495,13 +438,13 @@ namespace WebSocketSharp.Server
                 return;
             }
 
-            _context = context;
-            _sessions = sessions;
+            Context = context;
+            Sessions = sessions;
 
             _websocket = context.WebSocket;
             _websocket.CustomHandshakeRequestChecker = checkHandshakeRequest;
             _websocket.EmitOnPing = _emitOnPing;
-            _websocket.IgnoreExtensions = _ignoreExtensions;
+            _websocket.IgnoreExtensions = IgnoreExtensions;
             _websocket.Protocol = _protocol;
 
             var waitTime = sessions.WaitTime;
@@ -668,171 +611,6 @@ namespace WebSocketSharp.Server
             }
 
             _websocket.Close(code, reason);
-        }
-
-        /// <summary>
-        /// Closes the WebSocket connection for a session asynchronously.
-        /// </summary>
-        /// <remarks>
-        ///   <para>
-        ///   This method does not wait for the close to be complete.
-        ///   </para>
-        ///   <para>
-        ///   This method does nothing if the current state of the connection is
-        ///   Closing or Closed.
-        ///   </para>
-        /// </remarks>
-        /// <exception cref="InvalidOperationException">
-        /// The session has not started yet.
-        /// </exception>
-        protected void CloseAsync()
-        {
-            if (_websocket == null)
-            {
-                var msg = "The session has not started yet.";
-                throw new InvalidOperationException(msg);
-            }
-
-            _websocket.CloseAsync();
-        }
-
-        /// <summary>
-        /// Closes the WebSocket connection for a session asynchronously with
-        /// the specified code and reason.
-        /// </summary>
-        /// <remarks>
-        ///   <para>
-        ///   This method does not wait for the close to be complete.
-        ///   </para>
-        ///   <para>
-        ///   This method does nothing if the current state of the connection is
-        ///   Closing or Closed.
-        ///   </para>
-        /// </remarks>
-        /// <param name="code">
-        ///   <para>
-        ///   A <see cref="ushort"/> that represents the status code indicating
-        ///   the reason for the close.
-        ///   </para>
-        ///   <para>
-        ///   The status codes are defined in
-        ///   <see href="http://tools.ietf.org/html/rfc6455#section-7.4">
-        ///   Section 7.4</see> of RFC 6455.
-        ///   </para>
-        /// </param>
-        /// <param name="reason">
-        ///   <para>
-        ///   A <see cref="string"/> that represents the reason for the close.
-        ///   </para>
-        ///   <para>
-        ///   The size must be 123 bytes or less in UTF-8.
-        ///   </para>
-        /// </param>
-        /// <exception cref="InvalidOperationException">
-        /// The session has not started yet.
-        /// </exception>
-        /// <exception cref="ArgumentOutOfRangeException">
-        ///   <para>
-        ///   <paramref name="code"/> is less than 1000 or greater than 4999.
-        ///   </para>
-        ///   <para>
-        ///   -or-
-        ///   </para>
-        ///   <para>
-        ///   The size of <paramref name="reason"/> is greater than 123 bytes.
-        ///   </para>
-        /// </exception>
-        /// <exception cref="ArgumentException">
-        ///   <para>
-        ///   <paramref name="code"/> is 1010 (mandatory extension).
-        ///   </para>
-        ///   <para>
-        ///   -or-
-        ///   </para>
-        ///   <para>
-        ///   <paramref name="code"/> is 1005 (no status) and there is reason.
-        ///   </para>
-        ///   <para>
-        ///   -or-
-        ///   </para>
-        ///   <para>
-        ///   <paramref name="reason"/> could not be UTF-8-encoded.
-        ///   </para>
-        /// </exception>
-        protected void CloseAsync(ushort code, string reason)
-        {
-            if (_websocket == null)
-            {
-                var msg = "The session has not started yet.";
-                throw new InvalidOperationException(msg);
-            }
-
-            _websocket.CloseAsync(code, reason);
-        }
-
-        /// <summary>
-        /// Closes the WebSocket connection for a session asynchronously with
-        /// the specified code and reason.
-        /// </summary>
-        /// <remarks>
-        ///   <para>
-        ///   This method does not wait for the close to be complete.
-        ///   </para>
-        ///   <para>
-        ///   This method does nothing if the current state of the connection is
-        ///   Closing or Closed.
-        ///   </para>
-        /// </remarks>
-        /// <param name="code">
-        ///   <para>
-        ///   One of the <see cref="CloseStatusCode"/> enum values.
-        ///   </para>
-        ///   <para>
-        ///   It represents the status code indicating the reason for the close.
-        ///   </para>
-        /// </param>
-        /// <param name="reason">
-        ///   <para>
-        ///   A <see cref="string"/> that represents the reason for the close.
-        ///   </para>
-        ///   <para>
-        ///   The size must be 123 bytes or less in UTF-8.
-        ///   </para>
-        /// </param>
-        /// <exception cref="InvalidOperationException">
-        /// The session has not started yet.
-        /// </exception>
-        /// <exception cref="ArgumentException">
-        ///   <para>
-        ///   <paramref name="code"/> is
-        ///   <see cref="CloseStatusCode.MandatoryExtension"/>.
-        ///   </para>
-        ///   <para>
-        ///   -or-
-        ///   </para>
-        ///   <para>
-        ///   <paramref name="code"/> is
-        ///   <see cref="CloseStatusCode.NoStatus"/> and there is reason.
-        ///   </para>
-        ///   <para>
-        ///   -or-
-        ///   </para>
-        ///   <para>
-        ///   <paramref name="reason"/> could not be UTF-8-encoded.
-        ///   </para>
-        /// </exception>
-        /// <exception cref="ArgumentOutOfRangeException">
-        /// The size of <paramref name="reason"/> is greater than 123 bytes.
-        /// </exception>
-        protected void CloseAsync(CloseStatusCode code, string reason)
-        {
-            if (_websocket == null)
-            {
-                var msg = "The session has not started yet.";
-                throw new InvalidOperationException(msg);
-            }
-
-            _websocket.CloseAsync(code, reason);
         }
 
         /// <summary>

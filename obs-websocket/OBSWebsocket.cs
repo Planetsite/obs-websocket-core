@@ -318,7 +318,7 @@ namespace OBSWebsocketDotNet
         /// </summary>
         /// <param name="url">Server URL in standard URL format</param>
         /// <param name="password">Server password</param>
-        public void Connect(string url, string password)
+        public async Task ConnectAsync(string url, string password)
         {
             if (WSConnection != null && WSConnection.IsAlive)
                 Disconnect();
@@ -331,7 +331,7 @@ namespace OBSWebsocketDotNet
                 if (Disconnected != null)
                     Disconnected(this, e);
             };
-            WSConnection.Connect();
+            await WSConnection.ConnectAsync();
 
             if (!WSConnection.IsAlive)
                 return;
