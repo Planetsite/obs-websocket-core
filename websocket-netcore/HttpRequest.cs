@@ -148,7 +148,7 @@ namespace WebSocketSharp
             var buff = ToByteArray();
             await stream.WriteAsync(buff, 0, buff.Length);
 
-            return Read<HttpResponse>(stream, HttpResponse.Parse, millisecondsTimeout);
+            return await ReadAsync(stream, HttpResponse.Parse, millisecondsTimeout);
         }
 
         internal static HttpRequest Parse(string[] headerParts)
@@ -165,9 +165,9 @@ namespace WebSocketSharp
               requestLine[0], requestLine[1], new Version(requestLine[2].Substring(5)), headers);
         }
 
-        internal static HttpRequest Read(Stream stream, int millisecondsTimeout)
+        internal static async Task<HttpRequest> ReadAsync(Stream stream, int millisecondsTimeout)
         {
-            return Read<HttpRequest>(stream, Parse, millisecondsTimeout);
+            return await ReadAsync(stream, Parse, millisecondsTimeout);
         }
 
         #endregion

@@ -929,7 +929,7 @@ namespace WebSocketSharp.Server
         return;
       }
 
-      host.StartSession (context);
+      host.StartSessionAsync (context);
     }
 
     private void receiveRequest ()
@@ -952,7 +952,7 @@ namespace WebSocketSharp.Server
                 _log.Fatal (ex.Message);
                 _log.Debug (ex.ToString ());
 
-                ctx.Connection.Close (true);
+                ctx.Connection.CloseAsync (true);
               }
             }
           );
@@ -970,7 +970,7 @@ namespace WebSocketSharp.Server
           _log.Debug (ex.ToString ());
 
           if (ctx != null)
-            ctx.Connection.Close (true);
+            ctx.Connection.CloseAsync (true);
 
           break;
         }

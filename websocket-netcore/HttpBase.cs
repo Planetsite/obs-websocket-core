@@ -32,6 +32,7 @@ using System.Collections.Specialized;
 using System.IO;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using WebSocketSharp.Net;
 
 namespace WebSocketSharp
@@ -93,7 +94,7 @@ namespace WebSocketSharp
 
         #region Private Methods
 
-        private static byte[] readEntityBody(Stream stream, string length)
+        private static async Task<byte[]> readEntityBody(Stream stream, string length)
         {
             long len;
             if (!Int64.TryParse(length, out len))
@@ -103,10 +104,12 @@ namespace WebSocketSharp
                 throw new ArgumentOutOfRangeException("length", "Less than zero.");
 
             return len > 1024
-                   ? stream.ReadBytes(len, 1024)
-                   : len > 0
-                     ? stream.ReadBytes((int)len)
-                     : null;
+                ? await Ext.ExtReadBytesAsync(stream, (int)len)
+                : len > 0
+
+                ? await Ext.ExtReadBytesAsync(stream, (int)len)
+                : null
+            ;
         }
 
         private static string[] readHeaders(Stream stream, int maxLength)
@@ -148,19 +151,20 @@ namespace WebSocketSharp
 
         #region Protected Methods
 
-        protected static T Read<T>(Stream stream, Func<string[], T> parser, int millisecondsTimeout)
+        protected static async Task<T> ReadAsync<T>(Stream stream, Func<string[], T> parser, int millisecondsTimeout)
           where T : HttpBase
         {
             var timeout = false;
             var timer = new Timer(
-              state =>
-              {
-                  timeout = true;
-                  stream.Close();
-              },
-              null,
-              millisecondsTimeout,
-              -1);
+                state =>
+                {
+                    timeout = true;
+                    stream.Close();
+                },
+                null,
+                millisecondsTimeout,
+                -1
+            );
 
             T http = null;
             Exception exception = null;
@@ -169,7 +173,7 @@ namespace WebSocketSharp
                 http = parser(readHeaders(stream, _headersMaxLength));
                 var contentLen = http.Headers["Content-Length"];
                 if (contentLen != null && contentLen.Length > 0)
-                    http.EntityBodyData = readEntityBody(stream, contentLen);
+                    http.EntityBodyData = await readEntityBody(stream, contentLen);
             }
             catch (Exception ex)
             {
@@ -182,10 +186,12 @@ namespace WebSocketSharp
             }
 
             var msg = timeout
-                      ? "A timeout has occurred while reading an HTTP request/response."
-                      : exception != null
-                        ? "An exception has occurred while reading an HTTP request/response."
-                        : null;
+                ? "A timeout has occurred while reading an HTTP request/response."
+                : exception != null
+
+                ? "An exception has occurred while reading an HTTP request/response."
+                : null
+            ;
 
             if (msg != null)
                 throw new WebSocketException(msg, exception);

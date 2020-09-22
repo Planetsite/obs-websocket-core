@@ -52,6 +52,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading.Tasks;
 using WebSocketSharp.Net;
 
 namespace WebSocketSharp
@@ -317,67 +318,20 @@ namespace WebSocketSharp
             return dest;
         }
 
-        internal static void CopyTo(
-          this Stream source, Stream destination, int bufferLength
+        internal static async Task CopyToAsync(
+            Stream source, Stream destination, int bufferLength,
+            Action completed, Action<Exception> error
         )
         {
             var buff = new byte[bufferLength];
-            var nread = 0;
+            int count;
 
-            while (true)
+            do
             {
-                nread = source.Read(buff, 0, bufferLength);
-                if (nread <= 0)
-                    break;
+                count = await source.ReadAsync(buff, 0, bufferLength);
+                await destination.WriteAsync(buff);
+            } while (count > 0);
 
-                destination.Write(buff, 0, nread);
-            }
-        }
-
-        internal static void CopyToAsync(
-          this Stream source,
-          Stream destination,
-          int bufferLength,
-          Action completed,
-          Action<Exception> error
-        )
-        {
-            var buff = new byte[bufferLength];
-
-            AsyncCallback callback = null;
-            callback =
-              ar =>
-              {
-                  try
-                  {
-                      var nread = source.EndRead(ar);
-                      if (nread <= 0)
-                      {
-                          if (completed != null)
-                              completed();
-
-                          return;
-                      }
-
-                      destination.Write(buff, 0, nread);
-                      source.BeginRead(buff, 0, bufferLength, callback, null);
-                  }
-                  catch (Exception ex)
-                  {
-                      if (error != null)
-                          error(ex);
-                  }
-              };
-
-            try
-            {
-                source.BeginRead(buff, 0, bufferLength, callback, null);
-            }
-            catch (Exception ex)
-            {
-                if (error != null)
-                    error(ex);
-            }
         }
 
         internal static byte[] Decompress(this byte[] data, CompressionMethod method)
@@ -411,16 +365,9 @@ namespace WebSocketSharp
             eventHandler(sender, e);
         }
 
-        internal static void Emit<TEventArgs>(
-          this EventHandler<TEventArgs> eventHandler, object sender, TEventArgs e
-        )
-          where TEventArgs : EventArgs
-        {
-            if (eventHandler == null)
-                return;
-
-            eventHandler(sender, e);
-        }
+        internal static void Emit<TEventArgs>(this EventHandler<TEventArgs> eventHandler, object sender, TEventArgs e)
+          where TEventArgs : EventArgs =>
+            eventHandler?.Invoke(sender, e);
 
         /// <summary>
         /// Determines whether the specified <see cref="int"/> equals the specified <see cref="char"/>,
@@ -750,16 +697,16 @@ namespace WebSocketSharp
             return String.Format("\"{0}\"", value.Replace("\"", "\\\""));
         }
 
-        internal static byte[] ReadBytes(this Stream stream, int length)
+        internal static async Task<byte[]> ExtReadBytesAsync(Stream stream, int length)
         {
             var buff = new byte[length];
-            var offset = 0;
-            var retry = 0;
-            var nread = 0;
+            int offset = 0;
+            int retry = 0;
+            int nread;
 
             while (length > 0)
             {
-                nread = stream.Read(buff, offset, length);
+                nread = await stream.ReadAsync(buff, offset, length);
                 if (nread <= 0)
                 {
                     if (retry < _retry)
@@ -780,198 +727,20 @@ namespace WebSocketSharp
             return buff;
         }
 
-        internal static byte[] ReadBytes(
-          this Stream stream, long length, int bufferLength
-        )
-        {
-            using (var dest = new MemoryStream())
-            {
-                var buff = new byte[bufferLength];
-                var retry = 0;
-                var nread = 0;
-
-                while (length > 0)
-                {
-                    if (length < bufferLength)
-                        bufferLength = (int)length;
-
-                    nread = stream.Read(buff, 0, bufferLength);
-                    if (nread <= 0)
-                    {
-                        if (retry < _retry)
-                        {
-                            retry++;
-                            continue;
-                        }
-
-                        break;
-                    }
-
-                    retry = 0;
-
-                    dest.Write(buff, 0, nread);
-                    length -= nread;
-                }
-
-                dest.Close();
-                return dest.ToArray();
-            }
-        }
-
-        internal static void ReadBytesAsync(
-          this Stream stream,
-          int length,
-          Action<byte[]> completed,
-          Action<Exception> error
-        )
+        internal static async Task<byte[]> ExtReadBytesRetryAsync(Stream stream, int length)
         {
             var buff = new byte[length];
-            var offset = 0;
-            var retry = 0;
+            int offset = 0;
+            int retry = _retry;
 
-            AsyncCallback callback = null;
-            callback =
-              ar =>
-              {
-                  try
-                  {
-                      var nread = stream.EndRead(ar);
-                      if (nread <= 0)
-                      {
-                          if (retry < _retry)
-                          {
-                              retry++;
-                              stream.BeginRead(buff, offset, length, callback, null);
-
-                              return;
-                          }
-
-                          if (completed != null)
-                              completed(buff.SubArray(0, offset));
-
-                          return;
-                      }
-
-                      if (nread == length)
-                      {
-                          if (completed != null)
-                              completed(buff);
-
-                          return;
-                      }
-
-                      retry = 0;
-
-                      offset += nread;
-                      length -= nread;
-
-                      stream.BeginRead(buff, offset, length, callback, null);
-                  }
-                  catch (Exception ex)
-                  {
-                      if (error != null)
-                          error(ex);
-                  }
-              };
-
-            try
+            do
             {
-                stream.BeginRead(buff, offset, length, callback, null);
-            }
-            catch (Exception ex)
-            {
-                if (error != null)
-                    error(ex);
-            }
-        }
+                int nread = await stream.ReadAsync(buff, offset, length);
+                length -= nread;
+                offset += nread;
+            } while (length > 0 && retry > 0);
 
-        internal static void ReadBytesAsync(
-          this Stream stream,
-          long length,
-          int bufferLength,
-          Action<byte[]> completed,
-          Action<Exception> error
-        )
-        {
-            var dest = new MemoryStream();
-            var buff = new byte[bufferLength];
-            var retry = 0;
-
-            Action<long> read = null;
-            read =
-              len =>
-              {
-                  if (len < bufferLength)
-                      bufferLength = (int)len;
-
-                  stream.BeginRead(
-              buff,
-              0,
-              bufferLength,
-              ar =>
-                  {
-                      try
-                      {
-                          var nread = stream.EndRead(ar);
-                          if (nread <= 0)
-                          {
-                              if (retry < _retry)
-                              {
-                                  retry++;
-                                  read(len);
-
-                                  return;
-                              }
-
-                              if (completed != null)
-                              {
-                                  dest.Close();
-                                  completed(dest.ToArray());
-                              }
-
-                              dest.Dispose();
-                              return;
-                          }
-
-                          dest.Write(buff, 0, nread);
-
-                          if (nread == len)
-                          {
-                              if (completed != null)
-                              {
-                                  dest.Close();
-                                  completed(dest.ToArray());
-                              }
-
-                              dest.Dispose();
-                              return;
-                          }
-
-                          retry = 0;
-
-                          read(len - nread);
-                      }
-                      catch (Exception ex)
-                      {
-                          dest.Dispose();
-                          if (error != null)
-                              error(ex);
-                      }
-                  },
-              null
-            );
-              };
-
-            try
-            {
-                read(length);
-            }
-            catch (Exception ex)
-            {
-                dest.Dispose();
-                if (error != null)
-                    error(ex);
-            }
+            return buff;
         }
 
         internal static T[] Reverse<T>(this T[] array)
@@ -1325,40 +1094,10 @@ namespace WebSocketSharp
             return HttpUtility.UrlEncode(value, encoding);
         }
 
-        internal static void WriteBytes(
-          this Stream stream, byte[] bytes, int bufferLength
-        )
+        internal static async Task WriteBytesAsync(this Stream stream, byte[] bytes, int bufferLength)
         {
             using (var src = new MemoryStream(bytes))
-                src.CopyTo(stream, bufferLength);
-        }
-
-        internal static void WriteBytesAsync(
-          this Stream stream,
-          byte[] bytes,
-          int bufferLength,
-          Action completed,
-          Action<Exception> error
-        )
-        {
-            var src = new MemoryStream(bytes);
-            src.CopyToAsync(
-              stream,
-              bufferLength,
-              () =>
-              {
-                  if (completed != null)
-                      completed();
-
-                  src.Dispose();
-              },
-              ex =>
-              {
-                  src.Dispose();
-                  if (error != null)
-                      error(ex);
-              }
-            );
+                await src.CopyToAsync(stream, bufferLength);
         }
 
         #endregion
@@ -2323,7 +2062,7 @@ namespace WebSocketSharp
             if (len <= Int32.MaxValue)
                 output.Write(content, 0, (int)len);
             else
-                output.WriteBytes(content, 1024);
+                output.WriteBytesAsync(content, 1024);
 
             output.Close();
         }

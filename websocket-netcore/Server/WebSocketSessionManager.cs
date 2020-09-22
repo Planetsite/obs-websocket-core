@@ -27,11 +27,10 @@
 #endregion
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading;
+using System.Threading.Tasks;
 
 namespace WebSocketSharp.Server
 {
@@ -53,7 +52,7 @@ namespace WebSocketSharp.Server
         private volatile ServerState _state;
         private volatile bool _sweeping;
         private System.Timers.Timer _sweepTimer;
-        private object _sync;
+        //private object _sync;
         private TimeSpan _waitTime;
 
         #endregion
@@ -68,7 +67,7 @@ namespace WebSocketSharp.Server
             _forSweep = new object();
             _sessions = new Dictionary<string, IWebSocketSession>();
             _state = ServerState.Ready;
-            _sync = ((ICollection)_sessions).SyncRoot;
+            //_sync = ((ICollection)_sessions).SyncRoot;
             _waitTime = TimeSpan.FromSeconds(1);
 
             setSweepTimer(60000);
@@ -102,15 +101,12 @@ namespace WebSocketSharp.Server
         ///   the collection of the IDs for the active sessions.
         ///   </para>
         /// </value>
-        public IEnumerable<string> ActiveIDs
+        public async IAsyncEnumerable<string> GetActiveIDs()
         {
-            get
+            foreach (var res in await broadpingAsync(WebSocketFrame.EmptyPingBytes))
             {
-                foreach (var res in broadping(WebSocketFrame.EmptyPingBytes))
-                {
-                    if (res.Value)
-                        yield return res.Key;
-                }
+                if (res.Value)
+                    yield return res.Key;
             }
         }
 
@@ -124,7 +120,7 @@ namespace WebSocketSharp.Server
         {
             get
             {
-                lock (_sync)
+                //lock (_sync)
                     return _sessions.Count;
             }
         }
@@ -148,7 +144,7 @@ namespace WebSocketSharp.Server
                 if (_state != ServerState.Start)
                     return Enumerable.Empty<string>();
 
-                lock (_sync)
+                //lock (_sync)
                 {
                     if (_state != ServerState.Start)
                         return Enumerable.Empty<string>();
@@ -170,15 +166,12 @@ namespace WebSocketSharp.Server
         ///   the collection of the IDs for the inactive sessions.
         ///   </para>
         /// </value>
-        public IEnumerable<string> InactiveIDs
+        public async IAsyncEnumerable<string> GetInactiveIDs()
         {
-            get
+            foreach (var res in await broadpingAsync(WebSocketFrame.EmptyPingBytes))
             {
-                foreach (var res in broadping(WebSocketFrame.EmptyPingBytes))
-                {
-                    if (!res.Value)
-                        yield return res.Key;
-                }
+                if (!res.Value)
+                    yield return res.Key;
             }
         }
 
@@ -249,7 +242,7 @@ namespace WebSocketSharp.Server
                     return;
                 }
 
-                lock (_sync)
+                //lock (_sync)
                 {
                     if (!canSet(out msg))
                     {
@@ -281,7 +274,7 @@ namespace WebSocketSharp.Server
                 if (_state != ServerState.Start)
                     return Enumerable.Empty<IWebSocketSession>();
 
-                lock (_sync)
+                //lock (_sync)
                 {
                     if (_state != ServerState.Start)
                         return Enumerable.Empty<IWebSocketSession>();
@@ -324,7 +317,7 @@ namespace WebSocketSharp.Server
                     return;
                 }
 
-                lock (_sync)
+                //lock (_sync)
                 {
                     if (!canSet(out msg))
                     {
@@ -341,7 +334,7 @@ namespace WebSocketSharp.Server
 
         #region Private Methods
 
-        private void broadcast(Opcode opcode, byte[] data, Action completed)
+        private async Task broadcastAsync(Opcode opcode, byte[] data, Action completed)
         {
             var cache = new Dictionary<CompressionMethod, byte[]>();
 
@@ -355,7 +348,7 @@ namespace WebSocketSharp.Server
                         break;
                     }
 
-                    session.Context.WebSocket.Send(opcode, data, cache);
+                    await session.Context.WebSocket.SendAsync(opcode, data, cache);
                 }
 
                 if (completed != null)
@@ -372,7 +365,7 @@ namespace WebSocketSharp.Server
             }
         }
 
-        private void broadcast(Opcode opcode, Stream stream, Action completed)
+        private async Task broadcastAsync(Opcode opcode, Stream stream, Action completed)
         {
             var cache = new Dictionary<CompressionMethod, Stream>();
 
@@ -386,7 +379,7 @@ namespace WebSocketSharp.Server
                         break;
                     }
 
-                    session.Context.WebSocket.Send(opcode, stream, cache);
+                    await session.Context.WebSocket.SendAsync(opcode, stream, cache);
                 }
 
                 if (completed != null)
@@ -406,21 +399,7 @@ namespace WebSocketSharp.Server
             }
         }
 
-        private void broadcastAsync(Opcode opcode, byte[] data, Action completed)
-        {
-            ThreadPool.QueueUserWorkItem(
-              state => broadcast(opcode, data, completed)
-            );
-        }
-
-        private void broadcastAsync(Opcode opcode, Stream stream, Action completed)
-        {
-            ThreadPool.QueueUserWorkItem(
-              state => broadcast(opcode, stream, completed)
-            );
-        }
-
-        private Dictionary<string, bool> broadping(byte[] frameAsBytes)
+        private async Task<Dictionary<string, bool>> broadpingAsync(byte[] frameAsBytes)
         {
             var ret = new Dictionary<string, bool>();
 
@@ -432,7 +411,7 @@ namespace WebSocketSharp.Server
                     break;
                 }
 
-                var res = session.Context.WebSocket.Ping(frameAsBytes, _waitTime);
+                var res = await session.Context.WebSocket.PingAsync(frameAsBytes, _waitTime);
                 ret.Add(session.ID, res);
             }
 
@@ -466,22 +445,22 @@ namespace WebSocketSharp.Server
         private void setSweepTimer(double interval)
         {
             _sweepTimer = new System.Timers.Timer(interval);
-            _sweepTimer.Elapsed += (sender, e) => Sweep();
+            _sweepTimer.Elapsed += (sender, e) => SweepAsync();
         }
 
-        private void stop(PayloadData payloadData, bool send)
+        private async Task stopAsync(PayloadData payloadData, bool send)
         {
             var bytes = send
-                        ? WebSocketFrame.CreateCloseFrame(payloadData, false).ToArray()
-                        : null;
+                ? WebSocketFrame.CreateCloseFrame(payloadData, false).ToArray()
+                : null;
 
-            lock (_sync)
+            //lock (_sync)
             {
                 _state = ServerState.ShuttingDown;
 
                 _sweepTimer.Enabled = false;
                 foreach (var session in _sessions.Values.ToList())
-                    session.Context.WebSocket.Close(payloadData, bytes);
+                    await session.Context.WebSocket.CloseAsync(payloadData, bytes);
 
                 _state = ServerState.Stop;
             }
@@ -494,7 +473,7 @@ namespace WebSocketSharp.Server
             if (_state != ServerState.Start)
                 return false;
 
-            lock (_sync)
+            //lock (_sync)
             {
                 if (_state != ServerState.Start)
                     return false;
@@ -509,7 +488,7 @@ namespace WebSocketSharp.Server
 
         internal string Add(IWebSocketSession session)
         {
-            lock (_sync)
+            //lock (_sync)
             {
                 if (_state != ServerState.Start)
                     return null;
@@ -521,9 +500,7 @@ namespace WebSocketSharp.Server
             }
         }
 
-        internal void Broadcast(
-          Opcode opcode, byte[] data, Dictionary<CompressionMethod, byte[]> cache
-        )
+        internal async Task BroadcastAsync(Opcode opcode, byte[] data, Dictionary<CompressionMethod, byte[]> cache)
         {
             foreach (var session in Sessions)
             {
@@ -533,13 +510,11 @@ namespace WebSocketSharp.Server
                     break;
                 }
 
-                session.Context.WebSocket.Send(opcode, data, cache);
+                await session.Context.WebSocket.SendAsync(opcode, data, cache);
             }
         }
 
-        internal void Broadcast(
-          Opcode opcode, Stream stream, Dictionary<CompressionMethod, Stream> cache
-        )
+        internal async Task BroadcastAsync(Opcode opcode, Stream stream, Dictionary<CompressionMethod, Stream> cache)
         {
             foreach (var session in Sessions)
             {
@@ -549,13 +524,11 @@ namespace WebSocketSharp.Server
                     break;
                 }
 
-                session.Context.WebSocket.Send(opcode, stream, cache);
+                await session.Context.WebSocket.SendAsync(opcode, stream, cache);
             }
         }
 
-        internal Dictionary<string, bool> Broadping(
-          byte[] frameAsBytes, TimeSpan timeout
-        )
+        internal async Task<Dictionary<string, bool>> BroadpingAsync(byte[] frameAsBytes, TimeSpan timeout)
         {
             var ret = new Dictionary<string, bool>();
 
@@ -567,7 +540,7 @@ namespace WebSocketSharp.Server
                     break;
                 }
 
-                var res = session.Context.WebSocket.Ping(frameAsBytes, timeout);
+                var res = await session.Context.WebSocket.PingAsync(frameAsBytes, timeout);
                 ret.Add(session.ID, res);
             }
 
@@ -576,13 +549,13 @@ namespace WebSocketSharp.Server
 
         internal bool Remove(string id)
         {
-            lock (_sync)
+            //lock (_sync)
                 return _sessions.Remove(id);
         }
 
         internal void Start()
         {
-            lock (_sync)
+            //lock (_sync)
             {
                 _sweepTimer.Enabled = _clean;
                 _state = ServerState.Start;
@@ -593,11 +566,11 @@ namespace WebSocketSharp.Server
         {
             if (code == 1005)
             { // == no status
-                stop(PayloadData.Empty, true);
+                stopAsync(PayloadData.Empty, true);
                 return;
             }
 
-            stop(new PayloadData(code, reason), !code.IsReserved());
+            stopAsync(new PayloadData(code, reason), !code.IsReserved());
         }
 
         #endregion
@@ -616,7 +589,7 @@ namespace WebSocketSharp.Server
         /// <exception cref="ArgumentNullException">
         /// <paramref name="data"/> is <see langword="null"/>.
         /// </exception>
-        public void Broadcast(byte[] data)
+        public async Task BroadcastAsync(byte[] data)
         {
             if (_state != ServerState.Start)
             {
@@ -628,9 +601,9 @@ namespace WebSocketSharp.Server
                 throw new ArgumentNullException("data");
 
             if (data.LongLength <= WebSocket.FragmentLength)
-                broadcast(Opcode.Binary, data, null);
+                await broadcastAsync(Opcode.Binary, data, null);
             else
-                broadcast(Opcode.Binary, new MemoryStream(data), null);
+                await broadcastAsync(Opcode.Binary, new MemoryStream(data), null);
         }
 
         /// <summary>
@@ -648,7 +621,7 @@ namespace WebSocketSharp.Server
         /// <exception cref="ArgumentException">
         /// <paramref name="data"/> could not be UTF-8-encoded.
         /// </exception>
-        public void Broadcast(string data)
+        public async Task BroadcastAsync(string data)
         {
             if (_state != ServerState.Start)
             {
@@ -667,9 +640,9 @@ namespace WebSocketSharp.Server
             }
 
             if (bytes.LongLength <= WebSocket.FragmentLength)
-                broadcast(Opcode.Text, bytes, null);
+                await broadcastAsync(Opcode.Text, bytes, null);
             else
-                broadcast(Opcode.Text, new MemoryStream(bytes), null);
+                await broadcastAsync(Opcode.Text, new MemoryStream(bytes), null);
         }
 
         /// <summary>
@@ -708,7 +681,7 @@ namespace WebSocketSharp.Server
         ///   No data could be read from <paramref name="stream"/>.
         ///   </para>
         /// </exception>
-        public void Broadcast(Stream stream, int length)
+        public async Task BroadcastAsync(Stream stream, int length)
         {
             if (_state != ServerState.Start)
             {
@@ -731,7 +704,7 @@ namespace WebSocketSharp.Server
                 throw new ArgumentException(msg, "length");
             }
 
-            var bytes = stream.ReadBytes(length);
+            var bytes = await Ext.ExtReadBytesAsync(stream, length);
 
             var len = bytes.Length;
             if (len == 0)
@@ -751,9 +724,9 @@ namespace WebSocketSharp.Server
             }
 
             if (len <= WebSocket.FragmentLength)
-                broadcast(Opcode.Binary, bytes, null);
+                await broadcastAsync(Opcode.Binary, bytes, null);
             else
-                broadcast(Opcode.Binary, new MemoryStream(bytes), null);
+                await broadcastAsync(Opcode.Binary, new MemoryStream(bytes), null);
         }
 
         /// <summary>
@@ -900,7 +873,7 @@ namespace WebSocketSharp.Server
         ///   No data could be read from <paramref name="stream"/>.
         ///   </para>
         /// </exception>
-        public void BroadcastAsync(Stream stream, int length, Action completed)
+        public async Task BroadcastAsync(Stream stream, int length, Action completed)
         {
             if (_state != ServerState.Start)
             {
@@ -923,7 +896,7 @@ namespace WebSocketSharp.Server
                 throw new ArgumentException(msg, "length");
             }
 
-            var bytes = stream.ReadBytes(length);
+            var bytes = await Ext.ExtReadBytesAsync(stream, length);
 
             var len = bytes.Length;
             if (len == 0)
@@ -934,18 +907,13 @@ namespace WebSocketSharp.Server
 
             if (len < length)
             {
-                _log.Warn(
-                  String.Format(
-                    "Only {0} byte(s) of data could be read from the stream.",
-                    len
-                  )
-                );
+                _log.Warn($"Only {len} byte(s) of data could be read from the stream.");
             }
 
             if (len <= WebSocket.FragmentLength)
-                broadcastAsync(Opcode.Binary, bytes, completed);
+                await broadcastAsync(Opcode.Binary, bytes, completed);
             else
-                broadcastAsync(Opcode.Binary, new MemoryStream(bytes), completed);
+                await broadcastAsync(Opcode.Binary, new MemoryStream(bytes), completed);
         }
 
         /// <summary>
@@ -965,7 +933,7 @@ namespace WebSocketSharp.Server
         /// The current state of the manager is not Start.
         /// </exception>
         [Obsolete("This method will be removed.")]
-        public Dictionary<string, bool> Broadping()
+        public async Task<Dictionary<string, bool>> BroadpingAsync()
         {
             if (_state != ServerState.Start)
             {
@@ -973,7 +941,7 @@ namespace WebSocketSharp.Server
                 throw new InvalidOperationException(msg);
             }
 
-            return Broadping(WebSocketFrame.EmptyPingBytes, _waitTime);
+            return await BroadpingAsync(WebSocketFrame.EmptyPingBytes, _waitTime);
         }
 
         /// <summary>
@@ -1008,7 +976,7 @@ namespace WebSocketSharp.Server
         /// The size of <paramref name="message"/> is greater than 125 bytes.
         /// </exception>
         [Obsolete("This method will be removed.")]
-        public Dictionary<string, bool> Broadping(string message)
+        public async Task<Dictionary<string, bool>> BroadpingAsync(string message)
         {
             if (_state != ServerState.Start)
             {
@@ -1017,7 +985,7 @@ namespace WebSocketSharp.Server
             }
 
             if (message.IsNullOrEmpty())
-                return Broadping(WebSocketFrame.EmptyPingBytes, _waitTime);
+                return await BroadpingAsync(WebSocketFrame.EmptyPingBytes, _waitTime);
 
             byte[] bytes;
             if (!message.TryGetUTF8EncodedBytes(out bytes))
@@ -1033,7 +1001,7 @@ namespace WebSocketSharp.Server
             }
 
             var frame = WebSocketFrame.CreatePingFrame(bytes, false);
-            return Broadping(frame.ToArray(), _waitTime);
+            return await BroadpingAsync(frame.ToArray(), _waitTime);
         }
 
         /// <summary>
@@ -1060,7 +1028,7 @@ namespace WebSocketSharp.Server
                 throw new InvalidOperationException(msg);
             }
 
-            session.Context.WebSocket.Close();
+            session.Context.WebSocket.CloseAsync();
         }
 
         /// <summary>
@@ -1130,7 +1098,7 @@ namespace WebSocketSharp.Server
         ///   The size of <paramref name="reason"/> is greater than 123 bytes.
         ///   </para>
         /// </exception>
-        public void CloseSession(string id, ushort code, string reason)
+        public async Task CloseSessionAsync(string id, ushort code, string reason)
         {
             IWebSocketSession session;
             if (!TryGetSession(id, out session))
@@ -1139,7 +1107,7 @@ namespace WebSocketSharp.Server
                 throw new InvalidOperationException(msg);
             }
 
-            session.Context.WebSocket.Close(code, reason);
+            await session.Context.WebSocket.CloseAsync(code, reason);
         }
 
         /// <summary>
@@ -1200,7 +1168,7 @@ namespace WebSocketSharp.Server
         /// <exception cref="ArgumentOutOfRangeException">
         /// The size of <paramref name="reason"/> is greater than 123 bytes.
         /// </exception>
-        public void CloseSession(string id, CloseStatusCode code, string reason)
+        public async Task CloseSessionAsync(string id, CloseStatusCode code, string reason)
         {
             IWebSocketSession session;
             if (!TryGetSession(id, out session))
@@ -1209,7 +1177,7 @@ namespace WebSocketSharp.Server
                 throw new InvalidOperationException(msg);
             }
 
-            session.Context.WebSocket.Close(code, reason);
+            await session.Context.WebSocket.CloseAsync(code, reason);
         }
 
         /// <summary>
@@ -1231,7 +1199,7 @@ namespace WebSocketSharp.Server
         /// <exception cref="InvalidOperationException">
         /// The session could not be found.
         /// </exception>
-        public bool PingTo(string id)
+        public async Task<bool> PingToAsync(string id)
         {
             IWebSocketSession session;
             if (!TryGetSession(id, out session))
@@ -1240,7 +1208,7 @@ namespace WebSocketSharp.Server
                 throw new InvalidOperationException(msg);
             }
 
-            return session.Context.WebSocket.Ping();
+            return await session.Context.WebSocket.PingAsync();
         }
 
         /// <summary>
@@ -1282,7 +1250,7 @@ namespace WebSocketSharp.Server
         /// <exception cref="ArgumentOutOfRangeException">
         /// The size of <paramref name="message"/> is greater than 125 bytes.
         /// </exception>
-        public bool PingTo(string message, string id)
+        public async Task<bool> PingToAsync(string message, string id)
         {
             IWebSocketSession session;
             if (!TryGetSession(id, out session))
@@ -1291,7 +1259,7 @@ namespace WebSocketSharp.Server
                 throw new InvalidOperationException(msg);
             }
 
-            return session.Context.WebSocket.Ping(message);
+            return await session.Context.WebSocket.PingAsync(message);
         }
 
         /// <summary>
@@ -1328,7 +1296,7 @@ namespace WebSocketSharp.Server
         ///   The current state of the WebSocket connection is not Open.
         ///   </para>
         /// </exception>
-        public void SendTo(byte[] data, string id)
+        public async Task SendToAsync(byte[] data, string id)
         {
             IWebSocketSession session;
             if (!TryGetSession(id, out session))
@@ -1337,7 +1305,7 @@ namespace WebSocketSharp.Server
                 throw new InvalidOperationException(msg);
             }
 
-            session.Context.WebSocket.Send(data);
+            await session.Context.WebSocket.SendAsync(data);
         }
 
         /// <summary>
@@ -1382,7 +1350,7 @@ namespace WebSocketSharp.Server
         ///   The current state of the WebSocket connection is not Open.
         ///   </para>
         /// </exception>
-        public void SendTo(string data, string id)
+        public async Task SendToAsync(string data, string id)
         {
             IWebSocketSession session;
             if (!TryGetSession(id, out session))
@@ -1391,7 +1359,7 @@ namespace WebSocketSharp.Server
                 throw new InvalidOperationException(msg);
             }
 
-            session.Context.WebSocket.Send(data);
+            await session.Context.WebSocket.SendAsync(data);
         }
 
         /// <summary>
@@ -1455,7 +1423,7 @@ namespace WebSocketSharp.Server
         ///   The current state of the WebSocket connection is not Open.
         ///   </para>
         /// </exception>
-        public void SendTo(Stream stream, int length, string id)
+        public async Task SendToAsync(Stream stream, int length, string id)
         {
             IWebSocketSession session;
             if (!TryGetSession(id, out session))
@@ -1464,13 +1432,13 @@ namespace WebSocketSharp.Server
                 throw new InvalidOperationException(msg);
             }
 
-            session.Context.WebSocket.Send(stream, length);
+            await session.Context.WebSocket.SendAsync(stream, length);
         }
 
         /// <summary>
         /// Cleans up the inactive sessions in the WebSocket service.
         /// </summary>
-        public void Sweep()
+        public async Task SweepAsync()
         {
             if (_sweeping)
             {
@@ -1489,12 +1457,12 @@ namespace WebSocketSharp.Server
                 _sweeping = true;
             }
 
-            foreach (var id in InactiveIDs)
+            await foreach (var id in GetInactiveIDs())
             {
                 if (_state != ServerState.Start)
                     break;
 
-                lock (_sync)
+                //lock (_sync)
                 {
                     if (_state != ServerState.Start)
                         break;
@@ -1504,7 +1472,7 @@ namespace WebSocketSharp.Server
                     {
                         var state = session.ConnectionState;
                         if (state == WebSocketState.Open)
-                            session.Context.WebSocket.Close(CloseStatusCode.Abnormal);
+                            await session.Context.WebSocket.CloseAsync(CloseStatusCode.Abnormal);
                         else if (state == WebSocketState.Closing)
                             continue;
                         else

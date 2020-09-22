@@ -29,6 +29,7 @@
 using System;
 using System.Collections.Specialized;
 using System.IO;
+using System.Threading.Tasks;
 using WebSocketSharp.Net;
 using WebSocketSharp.Net.WebSockets;
 
@@ -411,12 +412,12 @@ namespace WebSocketSharp.Server
             OnMessage(e);
         }
 
-        private void onOpen(object sender, EventArgs e)
+        private async Task onOpen(object sender, EventArgs e)
         {
             ID = Sessions.Add(this);
             if (ID == null)
             {
-                _websocket.Close(CloseStatusCode.Away);
+                await _websocket.CloseAsync(CloseStatusCode.Away);
                 return;
             }
 
@@ -428,7 +429,7 @@ namespace WebSocketSharp.Server
 
         #region Internal Methods
 
-        internal void Start(WebSocketContext context, WebSocketSessionManager sessions)
+        internal async Task StartAsync(WebSocketContext context, WebSocketSessionManager sessions)
         {
             if (_websocket != null)
             {
@@ -456,7 +457,7 @@ namespace WebSocketSharp.Server
             _websocket.OnError += onError;
             _websocket.OnClose += onClose;
 
-            _websocket.InternalAccept();
+            await _websocket.InternalAcceptAsync();
         }
 
         #endregion
@@ -473,7 +474,7 @@ namespace WebSocketSharp.Server
         /// <exception cref="InvalidOperationException">
         /// The session has not started yet.
         /// </exception>
-        protected void Close()
+        protected async Task CloseAsync()
         {
             if (_websocket == null)
             {
@@ -481,7 +482,7 @@ namespace WebSocketSharp.Server
                 throw new InvalidOperationException(msg);
             }
 
-            _websocket.Close();
+            await _websocket.CloseAsync();
         }
 
         /// <summary>
@@ -542,7 +543,7 @@ namespace WebSocketSharp.Server
         ///   <paramref name="reason"/> could not be UTF-8-encoded.
         ///   </para>
         /// </exception>
-        protected void Close(ushort code, string reason)
+        protected async Task CloseAsync(ushort code, string reason)
         {
             if (_websocket == null)
             {
@@ -550,7 +551,7 @@ namespace WebSocketSharp.Server
                 throw new InvalidOperationException(msg);
             }
 
-            _websocket.Close(code, reason);
+            await _websocket.CloseAsync(code, reason);
         }
 
         /// <summary>
@@ -602,7 +603,7 @@ namespace WebSocketSharp.Server
         ///   <paramref name="reason"/> could not be UTF-8-encoded.
         ///   </para>
         /// </exception>
-        protected void Close(CloseStatusCode code, string reason)
+        protected async Task CloseAsync(CloseStatusCode code, string reason)
         {
             if (_websocket == null)
             {
@@ -610,7 +611,7 @@ namespace WebSocketSharp.Server
                 throw new InvalidOperationException(msg);
             }
 
-            _websocket.Close(code, reason);
+            await _websocket.CloseAsync(code, reason);
         }
 
         /// <summary>
@@ -693,7 +694,7 @@ namespace WebSocketSharp.Server
         /// <exception cref="ArgumentNullException">
         /// <paramref name="data"/> is <see langword="null"/>.
         /// </exception>
-        protected void Send(byte[] data)
+        protected async Task SendAsync(byte[] data)
         {
             if (_websocket == null)
             {
@@ -701,7 +702,7 @@ namespace WebSocketSharp.Server
                 throw new InvalidOperationException(msg);
             }
 
-            _websocket.Send(data);
+            await _websocket.SendAsync(data);
         }
 
         /// <summary>
@@ -732,7 +733,7 @@ namespace WebSocketSharp.Server
         ///   The file could not be opened.
         ///   </para>
         /// </exception>
-        protected void Send(FileInfo fileInfo)
+        protected async Task SendAsync(FileInfo fileInfo)
         {
             if (_websocket == null)
             {
@@ -740,7 +741,7 @@ namespace WebSocketSharp.Server
                 throw new InvalidOperationException(msg);
             }
 
-            _websocket.Send(fileInfo);
+            await _websocket.SendAsync(fileInfo);
         }
 
         /// <summary>
@@ -758,7 +759,7 @@ namespace WebSocketSharp.Server
         /// <exception cref="ArgumentException">
         /// <paramref name="data"/> could not be UTF-8-encoded.
         /// </exception>
-        protected void Send(string data)
+        protected async Task SendAsync(string data)
         {
             if (_websocket == null)
             {
@@ -766,7 +767,7 @@ namespace WebSocketSharp.Server
                 throw new InvalidOperationException(msg);
             }
 
-            _websocket.Send(data);
+            await _websocket.SendAsync(data);
         }
 
         /// <summary>
@@ -807,7 +808,7 @@ namespace WebSocketSharp.Server
         ///   No data could be read from <paramref name="stream"/>.
         ///   </para>
         /// </exception>
-        protected void Send(Stream stream, int length)
+        protected async Task SendAsync(Stream stream, int length)
         {
             if (_websocket == null)
             {
@@ -815,7 +816,7 @@ namespace WebSocketSharp.Server
                 throw new InvalidOperationException(msg);
             }
 
-            _websocket.Send(stream, length);
+            await _websocket.SendAsync(stream, length);
         }
 
         #endregion

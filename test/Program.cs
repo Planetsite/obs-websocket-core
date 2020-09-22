@@ -83,7 +83,7 @@ namespace test
                 ;
             }
 
-            so.Disconnect();
+            so.DisconnectAsync();
         }
     }
 }

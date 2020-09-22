@@ -289,12 +289,9 @@ namespace OBSWebsocketDotNet
         /// <summary>
         /// Current connection state
         /// </summary>
-        public bool IsConnected
+        public async Task<bool> IsConnected()
         {
-            get
-            {
-                return (WSConnection != null ? WSConnection.IsAlive : false);
-            }
+            return WSConnection != null ? await WSConnection.PingAsync() : false;
         }
 
         /// <summary>
@@ -320,8 +317,8 @@ namespace OBSWebsocketDotNet
         /// <param name="password">Server password</param>
         public async Task ConnectAsync(string url, string password)
         {
-            if (WSConnection != null && WSConnection.IsAlive)
-                Disconnect();
+            if (WSConnection != null && await WSConnection.PingAsync())
+                await DisconnectAsync();
 
             WSConnection = new WebSocket(url);
             WSConnection.WaitTime = _pWSTimeout;
@@ -333,7 +330,7 @@ namespace OBSWebsocketDotNet
             };
             await WSConnection.ConnectAsync();
 
-            if (!WSConnection.IsAlive)
+            if (!await WSConnection.PingAsync())
                 return;
 
             OBSAuthInfo authInfo = GetAuthInfo();
@@ -348,10 +345,10 @@ namespace OBSWebsocketDotNet
         /// <summary>
         /// Disconnect this instance from the server
         /// </summary>
-        public void Disconnect()
+        public async Task DisconnectAsync()
         {
             if (WSConnection != null)
-                WSConnection.Close();
+                await WSConnection.CloseAsync();
 
             WSConnection = null;
             var unusedHandlers = _responseHandlers.ToArray();
@@ -434,7 +431,7 @@ namespace OBSWebsocketDotNet
             // Send the message and wait for a response
             // (received and notified by the websocket response handler)
             string bodyAsString = body.ToString();
-            WSConnection.Send(bodyAsString);
+            WSConnection.SendAsync(bodyAsString);
             tcs.Task.Wait();
 
             if (tcs.Task.IsCanceled)
