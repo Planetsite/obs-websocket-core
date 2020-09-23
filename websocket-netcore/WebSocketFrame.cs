@@ -38,6 +38,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace WebSocketSharp
@@ -543,7 +544,7 @@ Extended Payload Length: {7}
 
         private static async Task<WebSocketFrame> readHeaderAsync(Stream stream)
         {
-            var data = await Ext.ExtReadBytesAsync(stream, 2);
+            var data = await Ext.ExtReadBytesAsync(stream, 2, CancellationToken.None);
             return processHeader(data);
         }
 
@@ -562,7 +563,7 @@ Extended Payload Length: {7}
             }
 
             var len = 4;
-            var bytes = await Ext.ExtReadBytesAsync(stream, len);
+            var bytes = await Ext.ExtReadBytesAsync(stream, len, CancellationToken.None);
 
             if (bytes.Length != len)
             {
@@ -590,8 +591,8 @@ Extended Payload Length: {7}
 
             long len = (long)exactLen;
             var bytes = frame.PayloadLength < 127
-                ? await Ext.ExtReadBytesAsync(stream, (int)exactLen)
-                : await Ext.ExtReadBytesAsync(stream, (int)len)
+                ? await Ext.ExtReadBytesAsync(stream, (int)exactLen, CancellationToken.None)
+                : await Ext.ExtReadBytesAsync(stream, (int)len, CancellationToken.None)
             ;
 
             if (bytes.LongLength != len)
@@ -623,7 +624,7 @@ Extended Payload Length: {7}
 
             if (frame.PayloadLength < 127)
             {
-                var smallBytes = await Ext.ExtReadBytesAsync(stream, (int)exactLen);
+                var smallBytes = await Ext.ExtReadBytesAsync(stream, (int)exactLen, CancellationToken.None);
                 frame.PayloadData = new PayloadData(smallBytes, len);
                 return;
             }

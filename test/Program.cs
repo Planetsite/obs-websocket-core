@@ -33,7 +33,7 @@ namespace test
             so.WSTimeout = TimeSpan.FromSeconds(3);
             await so.ConnectAsync("ws://127.0.0.1:4444", null);
 
-            var clsmute = so.GetMute("Audio del desktop");
+            bool clsmute = await so.GetMuteAsync("Audio del desktop");
             await so.SetMuteAsync("Audio del desktop", true);
             await so.SetMuteAsync("asdfdaskbdskj", true);
             //string p = so.GetCurrentProfile();

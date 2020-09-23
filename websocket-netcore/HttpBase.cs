@@ -94,7 +94,7 @@ namespace WebSocketSharp
 
         #region Private Methods
 
-        private static async Task<byte[]> readEntityBody(Stream stream, string length)
+        private static async Task<byte[]> readEntityBodyAsync(Stream stream, string length, CancellationToken cancellationToken)
         {
             long len;
             if (!Int64.TryParse(length, out len))
@@ -104,34 +104,29 @@ namespace WebSocketSharp
                 throw new ArgumentOutOfRangeException("length", "Less than zero.");
 
             return len > 1024
-                ? await Ext.ExtReadBytesAsync(stream, (int)len)
+                ? await Ext.ExtReadBytesAsync(stream, (int)len, cancellationToken)
                 : len > 0
 
-                ? await Ext.ExtReadBytesAsync(stream, (int)len)
+                ? await Ext.ExtReadBytesAsync(stream, (int)len, cancellationToken)
                 : null
             ;
         }
 
-        private static string[] readHeaders(Stream stream, int maxLength)
+        private static async Task<string[]> readHeadersAsync(Stream stream, int maxLength, CancellationToken cancellationToken)
         {
-            var buff = new List<byte>();
+            var buff = new List<byte>(100);
+            var temp = new byte[1];
             var cnt = 0;
-            Action<int> add = i =>
-            {
-                if (i == -1)
-                    throw new EndOfStreamException("The header cannot be read from the data source.");
-
-                buff.Add((byte)i);
-                cnt++;
-            };
 
             var read = false;
             while (cnt < maxLength)
             {
-                if (stream.ReadByte().EqualsWith('\r', add) &&
-                    stream.ReadByte().EqualsWith('\n', add) &&
-                    stream.ReadByte().EqualsWith('\r', add) &&
-                    stream.ReadByte().EqualsWith('\n', add))
+                int nread = await stream.ReadAsync(temp, 0, 1, cancellationToken);
+                if (nread == 0) throw new WebSocketException("Connection was closed.");
+                buff.Add(temp[0]);
+                ++cnt;
+                int size = buff.Count;
+                if (size > 4 && buff[size-1] == '\n' && buff[size-2] == '\r' && buff[size-3] == '\n' && buff[size-4] == '\r')
                 {
                     read = true;
                     break;
@@ -141,10 +136,12 @@ namespace WebSocketSharp
             if (!read)
                 throw new WebSocketException("The length of header part is greater than the max length.");
 
-            return Encoding.UTF8.GetString(buff.ToArray())
-                   .Replace(CrLf + " ", " ")
-                   .Replace(CrLf + "\t", " ")
-                   .Split(new[] { CrLf }, StringSplitOptions.RemoveEmptyEntries);
+            return Encoding.UTF8
+                .GetString(buff.ToArray())
+                .Replace(CrLf + " ", " ")
+                .Replace(CrLf + "\t", " ")
+                .Split(new[] { CrLf }, StringSplitOptions.RemoveEmptyEntries)
+            ;
         }
 
         #endregion
@@ -155,34 +152,25 @@ namespace WebSocketSharp
           where T : HttpBase
         {
             var timeout = false;
-            var timer = new Timer(
-                state =>
-                {
-                    timeout = true;
-                    stream.Close();
-                },
-                null,
-                millisecondsTimeout,
-                -1
-            );
+            var cancellation = new CancellationTokenSource(millisecondsTimeout);
 
             T http = null;
             Exception exception = null;
             try
             {
-                http = parser(readHeaders(stream, _headersMaxLength));
+                http = parser(await readHeadersAsync(stream, _headersMaxLength, cancellation.Token));
                 var contentLen = http.Headers["Content-Length"];
                 if (contentLen != null && contentLen.Length > 0)
-                    http.EntityBodyData = await readEntityBody(stream, contentLen);
+                    http.EntityBodyData = await readEntityBodyAsync(stream, contentLen, cancellation.Token);
+            }
+            catch (TaskCanceledException)
+            {
+                timeout = true;
+                stream.Close();
             }
             catch (Exception ex)
             {
                 exception = ex;
-            }
-            finally
-            {
-                timer.Change(-1, -1);
-                timer.Dispose();
             }
 
             var msg = timeout

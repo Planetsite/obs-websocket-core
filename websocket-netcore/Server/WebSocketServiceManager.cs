@@ -833,7 +833,7 @@ namespace WebSocketSharp.Server
                 throw new ArgumentException(msg, "length");
             }
 
-            var bytes = await Ext.ExtReadBytesAsync(stream, length);
+            var bytes = await Ext.ExtReadBytesAsync(stream, length, CancellationToken.None);
 
             var len = bytes.Length;
             if (len == 0)

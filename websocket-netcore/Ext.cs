@@ -52,6 +52,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using WebSocketSharp.Net;
 
@@ -693,7 +694,7 @@ namespace WebSocketSharp
             return String.Format("\"{0}\"", value.Replace("\"", "\\\""));
         }
 
-        internal static async Task<byte[]> ExtReadBytesAsync(Stream stream, int length)
+        internal static async Task<byte[]> ExtReadBytesAsync(Stream stream, int length, CancellationToken cancellationToken)
         {
             var buff = new byte[length];
             int offset = 0;
@@ -702,7 +703,7 @@ namespace WebSocketSharp
 
             while (length > 0)
             {
-                nread = await stream.ReadAsync(buff, offset, length);
+                nread = await stream.ReadAsync(buff, offset, length, cancellationToken);
                 if (nread <= 0)
                 {
                     if (retry < _retry)

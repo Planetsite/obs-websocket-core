@@ -88,11 +88,11 @@ namespace WebSocketSharp
         private Opcode _fragmentsOpcode;
         private const string _guid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
         private bool _inContinuation;
-        private volatile bool _inMessage;
+        //private volatile bool _inMessage;
         private volatile Logger _logger;
         private static readonly int _maxRetryCountForConnect;
-        private Func<MessageEventArgs, Task> _messageAsync;
         private Queue<MessageEventArgs> _messageEventQueue;
+        private TaskCompletionSource<bool> _messageEventQueueRestart;
         private string _origin;
         private ManualResetEvent _pongReceived;
         private string _protocol;
@@ -160,7 +160,6 @@ namespace WebSocketSharp
 
             _closeContext = context.CloseAsync;
             _logger = context.Log;
-            _messageAsync = messagesAsync;
             IsSecure = context.IsSecureConnection;
             _stream = context.Stream;
             _waitTime = TimeSpan.FromSeconds(1);
@@ -176,7 +175,6 @@ namespace WebSocketSharp
 
             _closeContext = context.CloseAsync;
             _logger = context.Log;
-            _messageAsync = messagesAsync;
             IsSecure = context.IsSecureConnection;
             _stream = context.Stream;
             _waitTime = TimeSpan.FromSeconds(1);
@@ -263,7 +261,6 @@ namespace WebSocketSharp
             _base64Key = CreateBase64Key();
             _client = true;
             _logger = new Logger();
-            _messageAsync = messagecAsync;
             IsSecure = _uri.Scheme == "wss";
             _waitTime = TimeSpan.FromSeconds(5);
 
@@ -278,15 +275,6 @@ namespace WebSocketSharp
 
         // As server
         internal Func<WebSocketContext, string> CustomHandshakeRequestChecker { get; set; }
-
-        internal bool HasMessage
-        {
-            get
-            {
-                //lock (_forMessageEventQueue)
-                    return _messageEventQueue.Count > 0;
-            }
-        }
 
         // As server
         internal bool IgnoreExtensions { get; set; }
@@ -1344,12 +1332,6 @@ namespace WebSocketSharp
             return message == null;
         }
 
-        private MessageEventArgs dequeueFromMessageEventQueue()
-        {
-            //lock (_forMessageEventQueue)
-                return _messageEventQueue.Count > 0 ? _messageEventQueue.Dequeue() : null;
-        }
-
         // As client
         private async Task doHandshakeAsync()
         {
@@ -1391,8 +1373,9 @@ namespace WebSocketSharp
         private async Task fatalAsync(string message, Exception exception)
         {
             var code = exception is WebSocketException
-                       ? ((WebSocketException)exception).Code
-                       : CloseStatusCode.Abnormal;
+                ? ((WebSocketException)exception).Code
+                : CloseStatusCode.Abnormal
+            ;
 
             await fatalAsync(message, (ushort)code);
         }
@@ -1428,79 +1411,58 @@ namespace WebSocketSharp
             _readyState = WebSocketState.Connecting;
         }
 
-        private async Task messageAsync()
-        {
-            MessageEventArgs e = null;
-            //lock (_forMessageEventQueue)
-            {
-                if (_inMessage || _messageEventQueue.Count == 0 || _readyState != WebSocketState.Open)
-                    return;
+        //CancellationTokenSource eventQueueRestartToken;
+        //private void WakeUpEventQueue()
+        //{
+        //    if (eventQueueRestartToken.IsCancellationRequested) return;
+        //    eventQueueRestartToken.Cancel();
+        //}
 
-                _inMessage = true;
-                e = _messageEventQueue.Dequeue();
-            }
-
-            await _messageAsync(e);
-        }
-
-        private async Task messagecAsync(MessageEventArgs e)
+        private async Task startReceivingDispatcherTaskAsync()
         {
             do
             {
+                if (_messageEventQueue.Count == 0 || _readyState != WebSocketState.Open)
+                {
+                    if (await _messageEventQueueRestart.Task == false)
+                        break;
+                    _messageEventQueueRestart = new TaskCompletionSource<bool>();
+
+                    //try {
+                    //    await Task.Delay(-1, eventQueueRestartToken.Token);
+                    //}
+                    //catch
+                    //{
+                    //}
+                    //
+                    //eventQueueRestartToken = new CancellationTokenSource();
+                }
+
+                MessageEventArgs msg;
+                if (_messageEventQueue.Count == 0)
+                    continue;
+                msg = _messageEventQueue.Dequeue();
+
                 try
                 {
-                    OnMessage.Emit(this, e);
+                    OnMessage.Emit(this, msg);
                 }
                 catch (Exception ex)
                 {
                     _logger.Error(ex.ToString());
                     error("An error has occurred during an OnMessage event.", ex);
                 }
-
-                //lock (_forMessageEventQueue)
-                {
-                    if (_messageEventQueue.Count == 0 || _readyState != WebSocketState.Open)
-                    {
-                        _inMessage = false;
-                        break;
-                    }
-
-                    e = _messageEventQueue.Dequeue();
-                }
             }
             while (true);
         }
 
-        private async Task messagesAsync(MessageEventArgs e)
-        {
-            try
-            {
-                OnMessage.Emit(this, e);
-            }
-            catch (Exception ex)
-            {
-                _logger.Error(ex.ToString());
-                error("An error has occurred during an OnMessage event.", ex);
-            }
-
-            //lock (_forMessageEventQueue)
-            {
-                if (_messageEventQueue.Count == 0 || _readyState != WebSocketState.Open)
-                {
-                    _inMessage = false;
-                    return;
-                }
-
-                e = _messageEventQueue.Dequeue();
-            }
-
-            /*await*/ messagesAsync(e);
-        }
-
         private async Task openAsync()
         {
-            _inMessage = true;
-            /*await*/ startReceivingAsync();
+            _messageEventQueueRestart = new TaskCompletionSource<bool>();
+
+            /*await*/ startReceivingAccumulatorTaskAsync();
+            /*await*/ startReceivingDispatcherTaskAsync();
+
             try
             {
                 if (OnOpen != null)
@@ -1511,20 +1473,6 @@ namespace WebSocketSharp
                 _logger.Error(ex.ToString());
                 error("An error has occurred during the OnOpen event.", ex);
             }
-
-            MessageEventArgs e = null;
-            //lock (_forMessageEventQueue)
-            {
-                if (_messageEventQueue.Count == 0 || _readyState != WebSocketState.Open)
-                {
-                    _inMessage = false;
-                    return;
-                }
-
-                e = _messageEventQueue.Dequeue();
-            }
-
-            await _messageAsync(e);
         }
 
         private async Task<bool> pingAsync(byte[] data)
@@ -1573,9 +1521,9 @@ namespace WebSocketSharp
         private bool processDataFrame(WebSocketFrame frame)
         {
             enqueueToMessageEventQueue(
-              frame.IsCompressed
-              ? new MessageEventArgs(frame.Opcode, frame.PayloadData.ApplicationData.Decompress(_compression))
-              : new MessageEventArgs(frame)
+                frame.IsCompressed
+                ? new MessageEventArgs(frame.Opcode, frame.PayloadData.ApplicationData.Decompress(_compression))
+                : new MessageEventArgs(frame)
             );
 
             return true;
@@ -2024,7 +1972,7 @@ namespace WebSocketSharp
                     IsSecure = uri.Scheme == "wss";
 
                     setClientStream();
-                    return sendHandshakeRequestAsync().Result;
+                    return await sendHandshakeRequestAsync();
                 }
             }
 
@@ -2086,7 +2034,7 @@ namespace WebSocketSharp
             }
         }
 
-        private async Task startReceivingAsync()
+        private async Task startReceivingAccumulatorTaskAsync()
         {
             if (_messageEventQueue.Count > 0)
                 _messageEventQueue.Clear();
@@ -2105,18 +2053,16 @@ namespace WebSocketSharp
                         var exited = _receivingExited;
                         if (exited != null)
                             exited.Set();
-
-                        return;
+                        if (!_messageEventQueueRestart.Task.IsCompleted)
+                            _messageEventQueueRestart.SetCanceled();
+                        break;
                     }
 
                     // Receive next asap because the Ping or Close needs a response to it.
                     // temporaneamente disabilitato
                     // chiamava se stesso;
-
-                    if (_inMessage || !HasMessage || _readyState != WebSocketState.Open)
-                        return;
-
-                    await messageAsync();
+                    if (!_messageEventQueueRestart.Task.IsCompleted)
+                        _messageEventQueueRestart.SetResult(true);
                 }
                 catch (Exception ex)
                 {
@@ -3001,7 +2947,7 @@ namespace WebSocketSharp
                 throw new ArgumentException(msg, "length");
             }
 
-            var bytes = await Ext.ExtReadBytesAsync(stream, length);
+            var bytes = await Ext.ExtReadBytesAsync(stream, length, CancellationToken.None);
 
             var len = bytes.Length;
             if (len == 0)

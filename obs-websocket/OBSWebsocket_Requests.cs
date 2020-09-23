@@ -1002,7 +1002,7 @@ namespace OBSWebsocketDotNet
         /// </summary>
         /// <param name="sourceName">Source name</param>
         /// <returns>Source mute status (on/off)</returns>
-        public async Task<bool> GetMute(string sourceName)
+        public async Task<bool> GetMuteAsync(string sourceName)
         {
             var requestFields = new JObject();
             requestFields.Add("source", sourceName);
