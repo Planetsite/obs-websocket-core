@@ -1,10 +1,20 @@
 ﻿using System;
+using System.Threading.Tasks;
 
 namespace test
 {
     class Program
     {
         static void Main(string[] args)
+        {
+            var tests = new Tests();
+            tests.test().Wait();
+        }
+    }
+
+    class Tests
+    {
+        public async Task test()
         {
             Console.WriteLine("test");
 
@@ -21,18 +31,18 @@ namespace test
 
             var so = new OBSWebsocketDotNet.OBSWebsocket();
             so.WSTimeout = TimeSpan.FromSeconds(3);
-            so.Connect("ws://127.0.0.1:4444", null);
+            await so.ConnectAsync("ws://127.0.0.1:4444", null);
 
             var clsmute = so.GetMute("Audio del desktop");
-            so.SetMute("Audio del desktop", true);
-            so.SetMute("asdfdaskbdskj", true);
+            await so.SetMuteAsync("Audio del desktop", true);
+            await so.SetMuteAsync("asdfdaskbdskj", true);
             //string p = so.GetCurrentProfile();
             //var pp = so.ListProfiles();
 
             try
             {
-                so.SetCurrentProfile("prof1");
-                so.SetCurrentProfile("PROF1");
+                await so.SetCurrentProfileAsync("prof1");
+                await so.SetCurrentProfileAsync("PROF1");
                 var gcp = so.GetCurrentProfile();
             }
             catch(Exception e)
@@ -44,8 +54,8 @@ namespace test
             //var s = so.GetCurrentScene();
             try
             {
-                so.SetCurrentScene("Scena");
-                so.SetCurrentScene("SCENA 2");
+                await so.SetCurrentSceneAsync("Scena");
+                await so.SetCurrentSceneAsync("SCENA 2");
             }
             catch(Exception e)
             {
@@ -75,7 +85,7 @@ namespace test
             try
             {
                 var saved = so.GetStreamSettings();
-                so.SetStreamingSettings(newsett, true);
+                await so.SetStreamingSettingsAsync(newsett, true);
                 var xxx = so.StartStreaming();
             }
             catch(Exception testErr)
@@ -83,7 +93,7 @@ namespace test
                 ;
             }
 
-            so.DisconnectAsync();
+            await so.DisconnectAsync();
         }
     }
 }

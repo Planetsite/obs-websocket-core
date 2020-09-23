@@ -27,6 +27,7 @@ using Newtonsoft.Json.Linq;
 using OBSWebsocketDotNet.Types;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace OBSWebsocketDotNet
 {
@@ -45,9 +46,9 @@ namespace OBSWebsocketDotNet
         /// <summary>
         /// Get basic OBS video information
         /// </summary>
-        public OBSVideoInfo GetVideoInfo()
+        public async Task<OBSVideoInfo> GetVideoInfo()
         {
-            JObject response = SendRequest("GetVideoInfo");
+            JObject response = await SendRequestAsync("GetVideoInfo");
             return JsonConvert.DeserializeObject<OBSVideoInfo>(response.ToString());
         }
 
@@ -81,7 +82,7 @@ namespace OBSWebsocketDotNet
                 requestFields.Add("height", height);
             }
 
-            var response = SendRequest("TakeSourceScreenshot", requestFields);
+            var response = SendRequestAsync("TakeSourceScreenshot", requestFields);
             return JsonConvert.DeserializeObject<SourceScreenshotResponse>(response.ToString());
         }
 
@@ -111,9 +112,9 @@ namespace OBSWebsocketDotNet
         /// Get the current scene info along with its items
         /// </summary>
         /// <returns>An <see cref="OBSScene"/> object describing the current scene</returns>
-        public OBSScene GetCurrentScene()
+        public async Task<OBSScene> GetCurrentScene()
         {
-            JObject response = SendRequest("GetCurrentScene");
+            JObject response = await SendRequestAsync("GetCurrentScene");
             return new OBSScene(response);
         }
 
@@ -121,30 +122,30 @@ namespace OBSWebsocketDotNet
         /// Set the current scene to the specified one
         /// </summary>
         /// <param name="sceneName">The desired scene name</param>
-        public void SetCurrentScene(string sceneName)
+        public async Task SetCurrentSceneAsync(string sceneName)
         {
             var requestFields = new JObject();
             requestFields.Add("scene-name", sceneName);
 
-            SendRequest("SetCurrentScene", requestFields);
+            await SendRequestAsync("SetCurrentScene", requestFields);
         }
 
         /// <summary>
         /// Get the filename formatting string
         /// </summary>
         /// <returns>Current filename formatting string</returns>
-        public string GetFilenameFormatting()
+        public async Task<string> GetFilenameFormatting()
         {
-            JObject response = SendRequest("GetFilenameFormatting");
+            JObject response = await SendRequestAsync("GetFilenameFormatting");
             return (string)response["filename-formatting"];
         }
 
         /// <summary>
         /// Get OBS stats (almost the same info as provided in OBS' stats window)
         /// </summary>
-        public OBSStats GetStats()
+        public async Task<OBSStats> GetStats()
         {
-            JObject response = SendRequest("GetStats");
+            JObject response = await SendRequestAsync("GetStats");
             return JsonConvert.DeserializeObject<OBSStats>(response["stats"].ToString());
         }
 
@@ -152,18 +153,18 @@ namespace OBSWebsocketDotNet
         /// List every available scene
         /// </summary>
         /// <returns>A <see cref="List{OBSScene}" /> of <see cref="OBSScene"/> objects describing each scene</returns>
-        public List<OBSScene> ListScenes()
+        public async Task<List<OBSScene>> ListScenes()
         {
-            var response = GetSceneList();
+            var response = await GetSceneList();
             return response.Scenes;
         }
 
         /// <summary>
         /// Get a list of scenes in the currently active profile
         /// </summary>
-        public GetSceneListInfo GetSceneList()
+        public async Task<GetSceneListInfo> GetSceneList()
         {
-            JObject response = SendRequest("GetSceneList");
+            JObject response = await SendRequestAsync("GetSceneList");
             return JsonConvert.DeserializeObject<GetSceneListInfo>(response.ToString());
         }
 
@@ -172,7 +173,7 @@ namespace OBSWebsocketDotNet
         /// </summary>
         /// <param name="sceneName">Name of the scene to reorder (defaults to current)</param>
         /// <param name="sceneItems">List of items to reorder, only ID or Name required</param>
-        public void ReorderSceneItems(List<SceneItemStub> sceneItems, string sceneName = null)
+        public async Task ReorderSceneItems(List<SceneItemStub> sceneItems, string sceneName = null)
         {
             var requestFields = new JObject();
             if (sceneName != null)
@@ -181,7 +182,7 @@ namespace OBSWebsocketDotNet
             var items = JObject.Parse(JsonConvert.SerializeObject(sceneItems));
             requestFields.Add("items", items);
 
-            SendRequest("ReorderSceneItems", requestFields);
+            await SendRequestAsync("ReorderSceneItems", requestFields);
         }
 
         /// <summary>
@@ -189,12 +190,12 @@ namespace OBSWebsocketDotNet
         /// </summary>
         /// <param name="sceneName">Name of the scene to return the override info</param>
         /// <returns>TransitionOverrideInfo</returns>
-        public TransitionOverrideInfo GetSceneTransitionOverride(string sceneName)
+        public async Task<TransitionOverrideInfo> GetSceneTransitionOverride(string sceneName)
         {
             var requestFields = new JObject();
             requestFields.Add("sceneName", sceneName);
 
-            JObject response = SendRequest("GetSceneTransitionOverride", requestFields);
+            JObject response = await SendRequestAsync("GetSceneTransitionOverride", requestFields);
             return response.ToObject<TransitionOverrideInfo>();
         }
 
@@ -204,7 +205,7 @@ namespace OBSWebsocketDotNet
         /// <param name="sceneName">Name of the scene to set the transition override</param>
         /// <param name="transitionName">Name of the transition to use</param>
         /// <param name="transitionDuration">Duration in milliseconds of the transition if transition is not fixed. Defaults to the current duration specified in the UI if there is no current override and this value is not given</param>
-        public void SetSceneTransitionOverride(string sceneName, string transitionName, int transitionDuration = -1)
+        public async Task SetSceneTransitionOverride(string sceneName, string transitionName, int transitionDuration = -1)
         {
             var requestFields = new JObject();
             requestFields.Add("sceneName", sceneName);
@@ -215,36 +216,36 @@ namespace OBSWebsocketDotNet
                 requestFields.Add("transitionDuration", transitionDuration);
             }
 
-            SendRequest("SetSceneTransitionOverride", requestFields);
+            await SendRequestAsync("SetSceneTransitionOverride", requestFields);
         }
 
         /// <summary>
         /// Remove any transition override from a specific scene
         /// </summary>
         /// <param name="sceneName">Name of the scene to remove the transition override</param>
-        public void RemoveSceneTransitionOverride(string sceneName)
+        public async Task RemoveSceneTransitionOverride(string sceneName)
         {
             var requestFields = new JObject();
             requestFields.Add("sceneName", sceneName);
 
-            SendRequest("RemoveSceneTransitionOverride", requestFields);
+            await SendRequestAsync("RemoveSceneTransitionOverride", requestFields);
         }
 
         /// <summary>
         /// List all sources available in the running OBS instance
         /// </summary>
-        public List<SourceInfo> GetSourcesList()
+        public async Task<List<SourceInfo>> GetSourcesList()
         {
-            JObject response = SendRequest("GetSourcesList");
+            JObject response = await SendRequestAsync("GetSourcesList");
             return JsonConvert.DeserializeObject<List<SourceInfo>>(response["sources"].ToString());
         }
 
         /// <summary>
         /// List all sources available in the running OBS instance
         /// </summary>
-        public List<SourceType> GetSourceTypesList()
+        public async Task<List<SourceType>> GetSourceTypesList()
         {
-            JObject response = SendRequest("GetSourceTypesList");
+            JObject response = await SendRequestAsync("GetSourceTypesList");
             return JsonConvert.DeserializeObject<List<SourceType>>(response["types"].ToString());
         }
 
@@ -254,7 +255,7 @@ namespace OBSWebsocketDotNet
         /// <param name="itemName">Scene item which visiblity will be changed</param>
         /// <param name="visible">Desired visiblity</param>
         /// <param name="sceneName">Scene name of the specified item</param>
-        public void SetSourceRender(string itemName, bool visible, string sceneName = null)
+        public async Task SetSourceRender(string itemName, bool visible, string sceneName = null)
         {
             var requestFields = new JObject();
             requestFields.Add("item", itemName);
@@ -263,7 +264,7 @@ namespace OBSWebsocketDotNet
             if (sceneName != null)
                 requestFields.Add("scene-name", sceneName);
 
-            SendRequest("SetSceneItemProperties", requestFields);
+            await SendRequestAsync("SetSceneItemProperties", requestFields);
         }
 
         /// <summary>
@@ -282,7 +283,7 @@ namespace OBSWebsocketDotNet
         /// </summary>
         /// <param name="itemName">The name of the source</param>
         /// <param name="sceneName">The name of the scene that the source item belongs to. Defaults to the current scene.</param>
-        public JObject GetSceneItemPropertiesJson(string itemName, string sceneName = null)
+        public async Task<JObject> GetSceneItemPropertiesJson(string itemName, string sceneName = null)
         {
             var requestFields = new JObject();
             requestFields.Add("item", itemName);
@@ -290,19 +291,19 @@ namespace OBSWebsocketDotNet
             if (sceneName != null)
                 requestFields.Add("scene-name", sceneName);
 
-            return SendRequest("GetSceneItemProperties", requestFields);
+            return await SendRequestAsync("GetSceneItemProperties", requestFields);
         }
 
         /// <summary>
         /// Get the current properties of a Text GDI Plus source.
         /// </summary>
         /// <param name="sourceName">The name of the source</param>
-        public TextGDIPlusProperties GetTextGDIPlusProperties(string sourceName)
+        public async Task<TextGDIPlusProperties> GetTextGDIPlusProperties(string sourceName)
         {
             var requestFields = new JObject();
             requestFields.Add("source", sourceName);
 
-            JObject response = SendRequest("GetTextGDIPlusProperties", requestFields);
+            JObject response = await SendRequestAsync("GetTextGDIPlusProperties", requestFields);
             return JsonConvert.DeserializeObject<TextGDIPlusProperties>(response.ToString());
         }
 
@@ -310,12 +311,11 @@ namespace OBSWebsocketDotNet
         /// Set the current properties of a Text GDI Plus source.
         /// </summary>
         /// <param name="properties">properties for the source</param>
-        public void SetTextGDIPlusProperties(TextGDIPlusProperties properties)
+        public async Task SetTextGDIPlusProperties(TextGDIPlusProperties properties)
         {
             var requestFields = JObject.Parse(JsonConvert.SerializeObject(properties));
 
-            SendRequest("SetTextGDIPlusProperties", requestFields);
-
+            await SendRequestAsync("SetTextGDIPlusProperties", requestFields);
         }
 
         /// <summary>
@@ -324,14 +324,14 @@ namespace OBSWebsocketDotNet
         /// <param name="sourceName">Scene Name</param>
         /// <param name="filterName">Filter Name</param>
         /// <param name="movement">Direction to move</param>
-        public void MoveSourceFilter(string sourceName, string filterName, FilterMovementType movement)
+        public async Task MoveSourceFilter(string sourceName, string filterName, FilterMovementType movement)
         {
             var requestFields = new JObject();
             requestFields.Add("sourceName", sourceName);
             requestFields.Add("filterName", filterName);
             requestFields.Add("movementType", movement.ToString().ToLowerInvariant());
 
-            SendRequest("MoveSourceFilter", requestFields);
+            await SendRequestAsync("MoveSourceFilter", requestFields);
         }
 
         /// <summary>
@@ -340,14 +340,14 @@ namespace OBSWebsocketDotNet
         /// <param name="sourceName">Scene Name</param>
         /// <param name="filterName">Filter Name</param>
         /// <param name="newIndex">Desired position of the filter in the chain</param>
-        public void ReorderSourceFilter(string sourceName, string filterName, int newIndex)
+        public async Task ReorderSourceFilter(string sourceName, string filterName, int newIndex)
         {
             var requestFields = new JObject();
             requestFields.Add("sourceName", sourceName);
             requestFields.Add("filterName", filterName);
             requestFields.Add("newIndex", newIndex);
 
-            SendRequest("ReorderSourceFilter", requestFields);
+            await SendRequestAsync("ReorderSourceFilter", requestFields);
         }
 
         /// <summary>
@@ -356,14 +356,14 @@ namespace OBSWebsocketDotNet
         /// <param name="sourceName">Source with filter</param>
         /// <param name="filterName">Filter name</param>
         /// <param name="filterSettings">Filter settings</param>
-        public void SetSourceFilterSettings(string sourceName, string filterName, JObject filterSettings)
+        public async Task SetSourceFilterSettings(string sourceName, string filterName, JObject filterSettings)
         {
             var requestFields = new JObject();
             requestFields.Add("sourceName", sourceName);
             requestFields.Add("filterName", filterName);
             requestFields.Add("filterSettings", filterSettings);
 
-            SendRequest("SetSourceFilterSettings", requestFields);
+            await SendRequestAsync("SetSourceFilterSettings", requestFields);
         }
 
         /// <summary>
@@ -372,26 +372,26 @@ namespace OBSWebsocketDotNet
         /// <param name="sourceName">Source name</param>
         /// <param name="filterName">Source filter name</param>
         /// <param name="filterEnabled">New filter state</param>
-        public void SetSourceFilterVisibility(string sourceName, string filterName, bool filterEnabled)
+        public async Task SetSourceFilterVisibility(string sourceName, string filterName, bool filterEnabled)
         {
             var requestFields = new JObject();
             requestFields.Add("sourceName", sourceName);
             requestFields.Add("filterName", filterName);
             requestFields.Add("filterEnabled", filterEnabled);
 
-            SendRequest("SetSourceFilterVisibility", requestFields);
+            await SendRequestAsync("SetSourceFilterVisibility", requestFields);
         }
 
         /// <summary>
         /// Return a list of all filters on a source
         /// </summary>
         /// <param name="sourceName">Source name</param>
-        public List<FilterSettings> GetSourceFilters(string sourceName)
+        public async Task<List<FilterSettings>> GetSourceFilters(string sourceName)
         {
             var requestFields = new JObject();
             requestFields.Add("sourceName", sourceName);
 
-            JObject response = SendRequest("GetSourceFilters", requestFields);
+            JObject response = await SendRequestAsync("GetSourceFilters", requestFields);
 
             return JsonConvert.DeserializeObject<List<FilterSettings>>(response["filters"].ToString());
         }
@@ -401,13 +401,13 @@ namespace OBSWebsocketDotNet
         /// </summary>
         /// <param name="sourceName">Source name</param>
         /// <param name="filterName">Filter name</param>
-        public FilterSettings GetSourceFilterInfo(string sourceName, string filterName)
+        public async Task<FilterSettings> GetSourceFilterInfo(string sourceName, string filterName)
         {
             var requestFields = new JObject();
             requestFields.Add("sourceName", sourceName);
             requestFields.Add("filterName", filterName);
 
-            JObject response = SendRequest("GetSourceFilterInfo", requestFields);
+            JObject response = await SendRequestAsync("GetSourceFilterInfo", requestFields);
 
             return JsonConvert.DeserializeObject<FilterSettings>(response.ToString());
         }
@@ -417,14 +417,14 @@ namespace OBSWebsocketDotNet
         /// </summary>
         /// <param name="sourceName"></param>
         /// <param name="filterName"></param>
-        public bool RemoveFilterFromSource(string sourceName, string filterName)
+        public async Task<bool> RemoveFilterFromSource(string sourceName, string filterName)
         {
             var requestFields = new JObject();
             requestFields.Add("sourceName", sourceName);
             requestFields.Add("filterName", filterName);
             try
             {
-                SendRequest("RemoveFilterFromSource", requestFields);
+                await SendRequestAsync("RemoveFilterFromSource", requestFields);
                 return true;
             }
             catch (Exception e)
@@ -442,7 +442,7 @@ namespace OBSWebsocketDotNet
         /// <param name="filterName">Name of the filter</param>
         /// <param name="filterType">Type of filter</param>
         /// <param name="filterSettings">Filter settings object</param>
-        public void AddFilterToSource(string sourceName, string filterName, string filterType, JObject filterSettings)
+        public async Task AddFilterToSource(string sourceName, string filterName, string filterType, JObject filterSettings)
         {
             var requestFields = new JObject();
             requestFields.Add("sourceName", sourceName);
@@ -450,24 +450,24 @@ namespace OBSWebsocketDotNet
             requestFields.Add("filterName", filterName);
             requestFields.Add("filterSettings", filterSettings);
 
-            var result = SendRequest("AddFilterToSource", requestFields);
+            await SendRequestAsync("AddFilterToSource", requestFields);
         }
 
         /// <summary>
         /// Start/Stop the streaming output
         /// </summary>
-        public StandardResponse ToggleStreaming()
+        public async Task<StandardResponse> ToggleStreaming()
         {
-            var response = SendRequest("StartStopStreaming");
+            var response = await SendRequestAsync("StartStopStreaming");
             return response.ToObject<StandardResponse>();
         }
 
         /// <summary>
         /// Start/Stop the recording output
         /// </summary>
-        public StandardResponse ToggleRecording()
+        public async Task<StandardResponse> ToggleRecording()
         {
-            var response = SendRequest("StartStopRecording");
+            var response = await SendRequestAsync("StartStopRecording");
             return response.ToObject<StandardResponse>();
         }
 
@@ -475,9 +475,9 @@ namespace OBSWebsocketDotNet
         /// Get the current status of the streaming and recording outputs
         /// </summary>
         /// <returns>An <see cref="OutputStatus"/> object describing the current outputs states</returns>
-        public OutputStatus GetStreamingStatus()
+        public async Task<OutputStatus> GetStreamingStatus()
         {
-            JObject response = SendRequest("GetStreamingStatus");
+            JObject response = await SendRequestAsync("GetStreamingStatus");
             return new OutputStatus(response);
         }
 
@@ -485,14 +485,13 @@ namespace OBSWebsocketDotNet
         /// List all transitions
         /// </summary>
         /// <returns>A <see cref="List{T}"/> of all transition names</returns>
-        public List<string> ListTransitions()
+        public async Task<List<string>> ListTransitions()
         {
-            var transitions = GetTransitionList();
+            var transitions = await GetTransitionList();
 
             List<string> transitionNames = new List<string>();
             foreach (var item in transitions.Transitions)
                 transitionNames.Add(item.Name);
-
 
             return transitionNames;
         }
@@ -501,9 +500,9 @@ namespace OBSWebsocketDotNet
         /// Get the current transition name and duration
         /// </summary>
         /// <returns>An <see cref="TransitionSettings"/> object with the current transition name and duration</returns>
-        public TransitionSettings GetCurrentTransition()
+        public async Task<TransitionSettings> GetCurrentTransition()
         {
-            JObject respBody = SendRequest("GetCurrentTransition");
+            JObject respBody = await SendRequestAsync("GetCurrentTransition");
             return new TransitionSettings(respBody);
         }
 
@@ -511,24 +510,24 @@ namespace OBSWebsocketDotNet
         /// Set the current transition to the specified one
         /// </summary>
         /// <param name="transitionName">Desired transition name</param>
-        public void SetCurrentTransition(string transitionName)
+        public async Task SetCurrentTransition(string transitionName)
         {
             var requestFields = new JObject();
             requestFields.Add("transition-name", transitionName);
 
-            SendRequest("SetCurrentTransition", requestFields);
+            await SendRequestAsync("SetCurrentTransition", requestFields);
         }
 
         /// <summary>
         /// Change the transition's duration
         /// </summary>
         /// <param name="duration">Desired transition duration (in milliseconds)</param>
-        public void SetTransitionDuration(int duration)
+        public async Task SetTransitionDuration(int duration)
         {
             var requestFields = new JObject();
             requestFields.Add("duration", duration);
 
-            SendRequest("SetTransitionDuration", requestFields);
+            await SendRequestAsync("SetTransitionDuration", requestFields);
         }
 
         /// <summary>
@@ -537,14 +536,14 @@ namespace OBSWebsocketDotNet
         /// <param name="sourceName">Name of the source which volume will be changed</param>
         /// <param name="volume">Desired volume. Must be between `0.0` and `1.0` for amplitude/mul (useDecibel is false), and under 0.0 for dB (useDecibel is true). Note: OBS will interpret dB values under -100.0 as Inf.</param>
         /// <param name="useDecibel">Interperet `volume` data as decibels instead of amplitude/mul.</param>
-        public void SetVolume(string sourceName, float volume, bool useDecibel = false)
+        public async Task SetVolume(string sourceName, float volume, bool useDecibel = false)
         {
             var requestFields = new JObject();
             requestFields.Add("source", sourceName);
             requestFields.Add("volume", volume);
             requestFields.Add("useDecibel", useDecibel);
 
-            SendRequest("SetVolume", requestFields);
+            await SendRequestAsync("SetVolume", requestFields);
         }
 
         /// <summary>
@@ -554,13 +553,13 @@ namespace OBSWebsocketDotNet
         /// <param name="sourceName">Source name</param>
         /// <param name="useDecibel">Output volume in decibels of attenuation instead of amplitude/mul.</param>
         /// <returns>An <see cref="VolumeInfo"/>Object containing the volume and mute state of the specified source.</returns>
-        public VolumeInfo GetVolume(string sourceName, bool useDecibel = false)
+        public async Task<VolumeInfo> GetVolume(string sourceName, bool useDecibel = false)
         {
             var requestFields = new JObject();
             requestFields.Add("source", sourceName);
             requestFields.Add("useDecibel", useDecibel);
 
-            var response = SendRequest("GetVolume", requestFields);
+            var response = await SendRequestAsync("GetVolume", requestFields);
             return new VolumeInfo(response);
         }
 
@@ -569,25 +568,25 @@ namespace OBSWebsocketDotNet
         /// </summary>
         /// <param name="sourceName">Name of the source which mute state will be changed</param>
         /// <param name="mute">Desired mute state</param>
-        public void SetMute(string sourceName, bool mute)
+        public async Task SetMuteAsync(string sourceName, bool mute)
         {
             var requestFields = new JObject();
             requestFields.Add("source", sourceName);
             requestFields.Add("mute", mute);
 
-            SendRequest("SetMute", requestFields);
+            await SendRequestAsync("SetMute", requestFields);
         }
 
         /// <summary>
         /// Toggle the mute state of the specified source
         /// </summary>
         /// <param name="sourceName">Name of the source which mute state will be toggled</param>
-        public void ToggleMute(string sourceName)
+        public async Task ToggleMute(string sourceName)
         {
             var requestFields = new JObject();
             requestFields.Add("source", sourceName);
 
-            SendRequest("ToggleMute", requestFields);
+            await SendRequestAsync("ToggleMute", requestFields);
         }
 
         /// <summary>
@@ -597,7 +596,7 @@ namespace OBSWebsocketDotNet
         /// <param name="x">X coordinate</param>
         /// <param name="y">Y coordinate</param>
         /// <param name="sceneName">(optional) name of the scene the item belongs to</param>
-        public void SetSceneItemPosition(string itemName, float x, float y, string sceneName = null)
+        public async Task SetSceneItemPosition(string itemName, float x, float y, string sceneName = null)
         {
             var requestFields = new JObject();
             requestFields.Add("item", itemName);
@@ -607,7 +606,7 @@ namespace OBSWebsocketDotNet
             if (sceneName != null)
                 requestFields.Add("scene-name", sceneName);
 
-            SendRequest("SetSceneItemPosition", requestFields);
+            await SendRequestAsync("SetSceneItemPosition", requestFields);
         }
 
         /// <summary>
@@ -618,7 +617,7 @@ namespace OBSWebsocketDotNet
         /// <param name="xScale">Horizontal scale factor</param>
         /// <param name="yScale">Vertical scale factor</param>
         /// <param name="sceneName">(optional) name of the scene the item belongs to</param>
-        public void SetSceneItemTransform(string itemName, float rotation = 0, float xScale = 1, float yScale = 1, string sceneName = null)
+        public async Task SetSceneItemTransform(string itemName, float rotation = 0, float xScale = 1, float yScale = 1, string sceneName = null)
         {
             var requestFields = new JObject();
             requestFields.Add("item", itemName);
@@ -629,7 +628,7 @@ namespace OBSWebsocketDotNet
             if (sceneName != null)
                 requestFields.Add("scene-name", sceneName);
 
-            SendRequest("SetSceneItemTransform", requestFields);
+            await SendRequestAsync("SetSceneItemTransform", requestFields);
         }
 
         /// <summary>
@@ -637,7 +636,7 @@ namespace OBSWebsocketDotNet
         /// </summary>
         /// <param name="props">Object containing changes</param>
         /// <param name="sceneName">Option scene name</param>
-        public void SetSceneItemProperties(SceneItemProperties props, string sceneName = null)
+        public async Task SetSceneItemProperties(SceneItemProperties props, string sceneName = null)
         {
             JsonSerializerSettings settings = new JsonSerializerSettings();
             settings.NullValueHandling = NullValueHandling.Ignore;
@@ -653,7 +652,7 @@ namespace OBSWebsocketDotNet
                 requestFields.Add("scene-name", sceneName);
             }
 
-            SendRequest("SetSceneItemProperties", requestFields);
+            await SendRequestAsync("SetSceneItemProperties", requestFields);
         }
 
         /// <summary>
@@ -661,7 +660,7 @@ namespace OBSWebsocketDotNet
         /// </summary>
         /// <param name="obj"></param>
         /// <param name="sceneName"></param>
-        public void SetSceneItemProperties(JObject obj, string sceneName = null)
+        public async Task SetSceneItemProperties(JObject obj, string sceneName = null)
         {
             JsonSerializerSettings settings = new JsonSerializerSettings();
             settings.NullValueHandling = NullValueHandling.Ignore;
@@ -675,28 +674,28 @@ namespace OBSWebsocketDotNet
             if (sceneName != null)
                 requestFields.Add("scene-name", sceneName);
 
-            SendRequest("SetSceneItemProperties", requestFields);
+            await SendRequestAsync("SetSceneItemProperties", requestFields);
         }
 
         /// <summary>
         /// Set the current scene collection to the specified one
         /// </summary>
         /// <param name="scName">Desired scene collection name</param>
-        public void SetCurrentSceneCollection(string scName)
+        public async Task SetCurrentSceneCollection(string scName)
         {
             var requestFields = new JObject();
             requestFields.Add("sc-name", scName);
 
-            SendRequest("SetCurrentSceneCollection", requestFields);
+            await SendRequestAsync("SetCurrentSceneCollection", requestFields);
         }
 
         /// <summary>
         /// Get the name of the current scene collection
         /// </summary>
         /// <returns>Name of the current scene collection</returns>
-        public string GetCurrentSceneCollection()
+        public async Task<string> GetCurrentSceneCollection()
         {
-            var response = SendRequest("GetCurrentSceneCollection");
+            var response = await SendRequestAsync("GetCurrentSceneCollection");
             return (string)response["sc-name"];
         }
 
@@ -704,9 +703,9 @@ namespace OBSWebsocketDotNet
         /// List all scene collections
         /// </summary>
         /// <returns>A <see cref="List{T}"/> of the names of all scene collections</returns>
-        public List<string> ListSceneCollections()
+        public async Task<List<string>> ListSceneCollections()
         {
-            var response = SendRequest("ListSceneCollections");
+            var response = await SendRequestAsync("ListSceneCollections");
             var items = (JArray)response["scene-collections"];
 
             List<string> sceneCollections = new List<string>();
@@ -722,21 +721,21 @@ namespace OBSWebsocketDotNet
         /// Set the current profile to the specified one
         /// </summary>
         /// <param name="profileName">Name of the desired profile</param>
-        public void SetCurrentProfile(string profileName)
+        public async Task SetCurrentProfileAsync(string profileName)
         {
             var requestFields = new JObject();
             requestFields.Add("profile-name", profileName);
 
-            SendRequest("SetCurrentProfile", requestFields);
+            await SendRequestAsync("SetCurrentProfile", requestFields);
         }
 
         /// <summary>
         /// Get the name of the current profile
         /// </summary>
         /// <returns>Name of the current profile</returns>
-        public string GetCurrentProfile()
+        public async Task<string> GetCurrentProfile()
         {
-            var response = SendRequest("GetCurrentProfile");
+            var response = await SendRequestAsync("GetCurrentProfile");
             return (string)response["profile-name"];
         }
 
@@ -744,9 +743,9 @@ namespace OBSWebsocketDotNet
         /// List all profiles
         /// </summary>
         /// <returns>A <see cref="List{T}"/> of the names of all profiles</returns>
-        public List<string> ListProfiles()
+        public async Task<List<string>> ListProfiles()
         {
-            var response = SendRequest("ListProfiles");
+            var response = await SendRequestAsync("ListProfiles");
             var items = (JArray)response["profiles"];
 
             List<string> profiles = new List<string>();
@@ -762,72 +761,72 @@ namespace OBSWebsocketDotNet
         /// <summary>
         /// Start streaming. Will trigger an error if streaming is already active
         /// </summary>
-        public StandardResponse StartStreaming()
+        public async Task<StandardResponse> StartStreaming()
         {
-            var response = SendRequest("StartStreaming");
+            var response = await SendRequestAsync("StartStreaming");
             return response.ToObject<StandardResponse>();
         }
 
         /// <summary>
         /// Stop streaming. Will trigger an error if streaming is not active.
         /// </summary>
-        public StandardResponse StopStreaming()
+        public async Task<StandardResponse> StopStreaming()
         {
-            var response = SendRequest("StopStreaming");
+            var response = await SendRequestAsync("StopStreaming");
             return response.ToObject<StandardResponse>();
         }
 
         /// <summary>
         /// Toggle Streaming
         /// </summary>
-        public StandardResponse StartStopStreaming()
+        public async Task<StandardResponse> StartStopStreaming()
         {
-            var response = SendRequest("StartStopStreaming");
+            var response = await SendRequestAsync("StartStopStreaming");
             return response.ToObject<StandardResponse>();
         }
 
         /// <summary>
         /// Start recording. Will trigger an error if recording is already active.
         /// </summary>
-        public StandardResponse StartRecording()
+        public async Task<StandardResponse> StartRecording()
         {
-            var response = SendRequest("StartRecording");
+            var response = await SendRequestAsync("StartRecording");
             return response.ToObject<StandardResponse>();
         }
 
         /// <summary>
         /// Stop recording. Will trigger an error if recording is not active.
         /// </summary>
-        public StandardResponse StopRecording()
+        public async Task<StandardResponse> StopRecording()
         {
-            var response = SendRequest("StopRecording");
+            var response = await SendRequestAsync("StopRecording");
             return response.ToObject<StandardResponse>();
         }
 
         /// <summary>
         /// Toggle recording
         /// </summary>
-        public StandardResponse StartStopRecording()
+        public async Task<StandardResponse> StartStopRecording()
         {
-            var response = SendRequest("StartStopRecording");
+            var response = await SendRequestAsync("StartStopRecording");
             return response.ToObject<StandardResponse>();
         }
 
         /// <summary>
         /// Pause the current recording. Returns an error if recording is not active or already paused.
         /// </summary>
-        public StandardResponse PauseRecording()
+        public async Task<StandardResponse> PauseRecording()
         {
-            var response = SendRequest("PauseRecording");
+            var response = await SendRequestAsync("PauseRecording");
             return response.ToObject<StandardResponse>();
         }
 
         /// <summary>
         /// Resume/unpause the current recording (if paused). Returns an error if recording is not active or not paused.
         /// </summary>
-        public StandardResponse ResumeRecording()
+        public async Task<StandardResponse> ResumeRecording()
         {
-            var response = SendRequest("ResumeRecording");
+            var response = await SendRequestAsync("ResumeRecording");
             return response.ToObject<StandardResponse>();
         }
 
@@ -835,20 +834,20 @@ namespace OBSWebsocketDotNet
         /// Change the current recording folder
         /// </summary>
         /// <param name="recFolder">Recording folder path</param>
-        public void SetRecordingFolder(string recFolder)
+        public async Task SetRecordingFolder(string recFolder)
         {
             var requestFields = new JObject();
             requestFields.Add("rec-folder", recFolder);
-            SendRequest("SetRecordingFolder", requestFields);
+            await SendRequestAsync("SetRecordingFolder", requestFields);
         }
 
         /// <summary>
         /// Get the path of the current recording folder
         /// </summary>
         /// <returns>Current recording folder path</returns>
-        public string GetRecordingFolder()
+        public async Task<string> GetRecordingFolder()
         {
-            var response = SendRequest("GetRecordingFolder");
+            var response = await SendRequestAsync("GetRecordingFolder");
             return (string)response["rec-folder"];
         }
 
@@ -856,9 +855,9 @@ namespace OBSWebsocketDotNet
         /// Get duration of the currently selected transition (if supported)
         /// </summary>
         /// <returns>Current transition duration (in milliseconds)</returns>
-        public int GetTransitionDuration()
+        public async Task<int> GetTransitionDuration()
         {
-            var response = SendRequest("GetTransitionDuration");
+            var response = await SendRequestAsync("GetTransitionDuration");
             return (int)response["transition-duration"];
         }
 
@@ -866,9 +865,9 @@ namespace OBSWebsocketDotNet
         /// Get duration of the currently selected transition (if supported)
         /// </summary>
         /// <returns>Current transition duration (in milliseconds)</returns>
-        public GetTransitionListInfo GetTransitionList()
+        public async Task<GetTransitionListInfo> GetTransitionList()
         {
-            var response = SendRequest("GetTransitionList");
+            var response = await SendRequestAsync("GetTransitionList");
 
             return JsonConvert.DeserializeObject<GetTransitionListInfo>(response.ToString());
         }
@@ -878,9 +877,9 @@ namespace OBSWebsocketDotNet
         /// Note: Returns 1.0 when not active.
         /// </summary>
         /// <returns></returns>
-        public double GetTransitionPosition()
+        public async Task<double> GetTransitionPosition()
         {
-            var response = SendRequest("GetTransitionPosition");
+            var response = await SendRequestAsync("GetTransitionPosition");
 
             return (double)response["position"];
         }
@@ -889,34 +888,34 @@ namespace OBSWebsocketDotNet
         /// Get status of Studio Mode
         /// </summary>
         /// <returns>Studio Mode status (on/off)</returns>
-        public bool StudioModeEnabled()
+        public async Task<bool> StudioModeEnabled()
         {
-            var response = SendRequest("GetStudioModeStatus");
+            var response = await SendRequestAsync("GetStudioModeStatus");
             return (bool)response["studio-mode"];
         }
 
         /// <summary>
         /// Disable Studio Mode
         /// </summary>
-        public void DisableStudioMode()
+        public async Task DisableStudioModeAsync()
         {
-            SendRequest("DisableStudioMode");
+            await SendRequestAsync("DisableStudioMode");
         }
 
         /// <summary>
         /// Enable Studio Mode
         /// </summary>
-        public void EnableStudioMode()
+        public async Task EnableStudioModeAsync()
         {
-            SendRequest("EnableStudioMode");
+            await SendRequestAsync("EnableStudioMode");
         }
 
         /// <summary>
         /// Enable Studio Mode
         /// </summary>
-        public bool GetStudioModeStatus()
+        public async Task<bool> GetStudioModeStatus()
         {
-            var response = SendRequest("GetStudioModeStatus");
+            var response = await SendRequestAsync("GetStudioModeStatus");
             return (bool)response["studio-mode"];
         }
 
@@ -924,20 +923,20 @@ namespace OBSWebsocketDotNet
         /// Enable/disable Studio Mode
         /// </summary>
         /// <param name="enable">Desired Studio Mode status</param>
-        public void SetStudioMode(bool enable)
+        public async Task SetStudioModeAsync(bool enable)
         {
             if (enable)
-                EnableStudioMode();
+                await EnableStudioModeAsync();
             else
-                DisableStudioMode();
+                await DisableStudioModeAsync();
         }
 
         /// <summary>
         /// Toggle Studio Mode status (on to off or off to on)
         /// </summary>
-        public void ToggleStudioMode()
+        public async Task ToggleStudioMode()
         {
-            SendRequest("ToggleStudioMode");
+            await SendRequestAsync("ToggleStudioMode");
         }
 
         /// <summary>
@@ -945,9 +944,9 @@ namespace OBSWebsocketDotNet
         /// if Studio Mode is disabled
         /// </summary>
         /// <returns>Preview scene object</returns>
-        public OBSScene GetPreviewScene()
+        public async Task<OBSScene> GetPreviewScene()
         {
-            var response = SendRequest("GetPreviewScene");
+            var response = await SendRequestAsync("GetPreviewScene");
             return new OBSScene(response);
         }
 
@@ -956,11 +955,11 @@ namespace OBSWebsocketDotNet
         /// Triggers an error if Studio Mode is disabled
         /// </summary>
         /// <param name="previewScene">Preview scene name</param>
-        public void SetPreviewScene(string previewScene)
+        public async Task SetPreviewScene(string previewScene)
         {
             var requestFields = new JObject();
             requestFields.Add("scene-name", previewScene);
-            SendRequest("SetPreviewScene", requestFields);
+            await SendRequestAsync("SetPreviewScene", requestFields);
         }
 
         /// <summary>
@@ -968,9 +967,9 @@ namespace OBSWebsocketDotNet
         /// Triggers an error if Studio Mode is disabled.
         /// </summary>
         /// <param name="previewScene">Preview scene object</param>
-        public void SetPreviewScene(OBSScene previewScene)
+        public Task SetPreviewSceneAsync(OBSScene previewScene)
         {
-            SetPreviewScene(previewScene.Name);
+            return SetPreviewScene(previewScene.Name);
         }
 
         /// <summary>
@@ -978,7 +977,7 @@ namespace OBSWebsocketDotNet
         /// </summary>
         /// <param name="transitionDuration">(optional) Transition duration</param>
         /// <param name="transitionName">(optional) Name of transition to use</param>
-        public void TransitionToProgram(int transitionDuration = -1, string transitionName = null)
+        public async Task TransitionToProgram(int transitionDuration = -1, string transitionName = null)
         {
             var requestFields = new JObject();
 
@@ -995,7 +994,7 @@ namespace OBSWebsocketDotNet
                 requestFields.Add("with-transition", withTransition);
             }
 
-            SendRequest("TransitionToProgram", requestFields);
+            await SendRequestAsync("TransitionToProgram", requestFields);
         }
 
         /// <summary>
@@ -1003,21 +1002,21 @@ namespace OBSWebsocketDotNet
         /// </summary>
         /// <param name="sourceName">Source name</param>
         /// <returns>Source mute status (on/off)</returns>
-        public bool GetMute(string sourceName)
+        public async Task<bool> GetMute(string sourceName)
         {
             var requestFields = new JObject();
             requestFields.Add("source", sourceName);
 
-            var response = SendRequest("GetMute", requestFields);
+            var response = await SendRequestAsync("GetMute", requestFields);
             return (bool)response["muted"];
         }
 
         /// <summary>
         /// Toggle the Replay Buffer on/off
         /// </summary>
-        public void ToggleReplayBuffer()
+        public Task ToggleReplayBuffer()
         {
-            SendRequest("StartStopReplayBuffer");
+            return SendRequestAsync("StartStopReplayBuffer");
         }
 
         /// <summary>
@@ -1025,26 +1024,26 @@ namespace OBSWebsocketDotNet
         /// if the Replay Buffer is already active, or if the "Save Replay Buffer"
         /// hotkey is not set in OBS' settings
         /// </summary>
-        public void StartReplayBuffer()
+        public Task StartReplayBuffer()
         {
-            SendRequest("StartReplayBuffer");
+            return SendRequestAsync("StartReplayBuffer");
         }
 
         /// <summary>
         /// Stop recording into the Replay Buffer. Triggers an error if the
         /// Replay Buffer is not active.
         /// </summary>
-        public void StopReplayBuffer()
+        public Task StopReplayBuffer()
         {
-            SendRequest("StopReplayBuffer");
+            return SendRequestAsync("StopReplayBuffer");
         }
 
         /// <summary>
         /// Toggle replay buffer
         /// </summary>
-        public void StartStopReplayBuffer()
+        public Task StartStopReplayBuffer()
         {
-            SendRequest("StartStopReplayBuffer");
+            return SendRequestAsync("StartStopReplayBuffer");
         }
 
         /// <summary>
@@ -1052,9 +1051,9 @@ namespace OBSWebsocketDotNet
         /// the same as triggering the "Save Replay Buffer" hotkey in OBS.
         /// Triggers an error if Replay Buffer is not active.
         /// </summary>
-        public void SaveReplayBuffer()
+        public Task SaveReplayBuffer()
         {
-            SendRequest("SaveReplayBuffer");
+            return SendRequestAsync("SaveReplayBuffer");
         }
 
         /// <summary>
@@ -1062,12 +1061,12 @@ namespace OBSWebsocketDotNet
         /// </summary>
         /// <param name="sourceName">Source name</param>
         /// <param name="syncOffset">Audio offset (in nanoseconds) for the specified source</param>
-        public void SetSyncOffset(string sourceName, int syncOffset)
+        public async Task SetSyncOffset(string sourceName, int syncOffset)
         {
             var requestFields = new JObject();
             requestFields.Add("source", sourceName);
             requestFields.Add("offset", syncOffset);
-            SendRequest("SetSyncOffset", requestFields);
+            await SendRequestAsync("SetSyncOffset", requestFields);
         }
 
         /// <summary>
@@ -1075,11 +1074,11 @@ namespace OBSWebsocketDotNet
         /// </summary>
         /// <param name="sourceName">Source name</param>
         /// <returns>Audio offset (in nanoseconds) of the specified source</returns>
-        public int GetSyncOffset(string sourceName)
+        public async Task<int> GetSyncOffset(string sourceName)
         {
             var requestFields = new JObject();
             requestFields.Add("source", sourceName);
-            var response = SendRequest("GetSyncOffset", requestFields);
+            var response = await SendRequestAsync("GetSyncOffset", requestFields);
             return (int)response["offset"];
         }
 
@@ -1088,7 +1087,7 @@ namespace OBSWebsocketDotNet
         /// </summary>
         /// <param name="sceneItem">Scene item, requires name or id of item</param>
         /// /// <param name="sceneName">Scene name to delete item from (optional)</param>
-        public void DeleteSceneItem(SceneItemStub sceneItem, string sceneName = null)
+        public async Task DeleteSceneItem(SceneItemStub sceneItem, string sceneName = null)
         {
             var requestFields = new JObject();
 
@@ -1103,7 +1102,7 @@ namespace OBSWebsocketDotNet
 
             requestFields.Add("item", minReqs);
 
-            SendRequest("DeleteSceneItem", requestFields);
+            await SendRequestAsync("DeleteSceneItem", requestFields);
         }
 
         /// <summary>
@@ -1111,7 +1110,7 @@ namespace OBSWebsocketDotNet
         /// </summary>
         /// <param name="sceneItemId">Scene item id</param>
         /// /// <param name="sceneName">Scene name to delete item from (optional)</param>
-        public void DeleteSceneItem(int sceneItemId, string sceneName = null)
+        public async Task DeleteSceneItem(int sceneItemId, string sceneName = null)
         {
             var requestFields = new JObject();
 
@@ -1124,7 +1123,7 @@ namespace OBSWebsocketDotNet
 
             requestFields.Add("item", minReqs);
 
-            SendRequest("DeleteSceneItem", requestFields);
+            await SendRequestAsync("DeleteSceneItem", requestFields);
         }
 
         /// <summary>
@@ -1133,8 +1132,7 @@ namespace OBSWebsocketDotNet
         /// <param name="sceneItemName">Name of the scene item</param>
         /// <param name="cropInfo">Crop coordinates</param>
         /// <param name="sceneName">(optional) parent scene name of the specified source</param>
-        public void SetSceneItemCrop(string sceneItemName,
-            SceneItemCropInfo cropInfo, string sceneName = null)
+        public async Task SetSceneItemCrop(string sceneItemName, SceneItemCropInfo cropInfo, string sceneName = null)
         {
             var requestFields = new JObject();
 
@@ -1147,7 +1145,7 @@ namespace OBSWebsocketDotNet
             requestFields.Add("left", cropInfo.Left);
             requestFields.Add("right", cropInfo.Right);
 
-            SendRequest("SetSceneItemCrop", requestFields);
+            await SendRequestAsync("SetSceneItemCrop", requestFields);
         }
 
         /// <summary>
@@ -1156,10 +1154,9 @@ namespace OBSWebsocketDotNet
         /// <param name="sceneItem">Scene item object</param>
         /// <param name="cropInfo">Crop coordinates</param>
         /// <param name="scene">Parent scene of scene item</param>
-        public void SetSceneItemCrop(SceneItem sceneItem,
-            SceneItemCropInfo cropInfo, OBSScene scene)
+        public Task SetSceneItemCrop(SceneItem sceneItem, SceneItemCropInfo cropInfo, OBSScene scene)
         {
-            SetSceneItemCrop(sceneItem.SourceName, cropInfo, scene.Name);
+            return SetSceneItemCrop(sceneItem.SourceName, cropInfo, scene.Name);
         }
 
         /// <summary>
@@ -1167,7 +1164,7 @@ namespace OBSWebsocketDotNet
         /// </summary>
         /// <param name="itemName">Name of the source item</param>
         /// <param name="sceneName">Name of the scene the source belongs to. Defaults to the current scene.</param>
-        public void ResetSceneItem(string itemName, string sceneName = null)
+        public Task ResetSceneItem(string itemName, string sceneName = null)
         {
             var requestFields = new JObject();
             requestFields.Add("item", itemName);
@@ -1175,31 +1172,31 @@ namespace OBSWebsocketDotNet
             if (sceneName != null)
                 requestFields.Add("scene-name", sceneName);
 
-            SendRequest("ResetSceneItem", requestFields);
+            return SendRequestAsync("ResetSceneItem", requestFields);
         }
 
         /// <summary>
         /// Send the provided text as embedded CEA-608 caption data. As of OBS Studio 23.1, captions are not yet available on Linux.
         /// </summary>
         /// <param name="text">Captions text</param>
-        public void SendCaptions(string text)
+        public async Task SendCaptions(string text)
         {
             var requestFields = new JObject();
             requestFields.Add("text", text);
 
-            SendRequest("SendCaptions", requestFields);
+            await SendRequestAsync("SendCaptions", requestFields);
         }
 
         /// <summary>
         /// Set the filename formatting string
         /// </summary>
         /// <param name="filenameFormatting">Filename formatting string to set</param>
-        public void SetFilenameFormatting(string filenameFormatting)
+        public async Task SetFilenameFormatting(string filenameFormatting)
         {
             var requestFields = new JObject();
             requestFields.Add("filename-formatting", filenameFormatting);
 
-            SendRequest("SetFilenameFormatting", requestFields);
+            await SendRequestAsync("SetFilenameFormatting", requestFields);
         }
 
         /// <summary>
@@ -1208,7 +1205,7 @@ namespace OBSWebsocketDotNet
         /// <param name="fromSceneName">Source of the scene item</param>
         /// <param name="toSceneName">Destination for the scene item</param>
         /// <param name="sceneItem">Scene item, requires name or id</param>
-        public void DuplicateSceneItem(string fromSceneName, string toSceneName, SceneItem sceneItem)
+        public async Task DuplicateSceneItem(string fromSceneName, string toSceneName, SceneItem sceneItem)
         {
             var requestFields = new JObject();
 
@@ -1223,7 +1220,7 @@ namespace OBSWebsocketDotNet
 
             requestFields.Add("item", minReqs);
 
-            SendRequest("DuplicateSceneItem", requestFields);
+            await SendRequestAsync("DuplicateSceneItem", requestFields);
         }
 
         /// <summary>
@@ -1232,7 +1229,7 @@ namespace OBSWebsocketDotNet
         /// <param name="fromSceneName">Source of the scene item</param>
         /// <param name="toSceneName">Destination for the scene item</param>
         /// <param name="sceneItemID">Scene item id to duplicate</param>
-        public void DuplicateSceneItem(string fromSceneName, string toSceneName, int sceneItemID)
+        public async Task DuplicateSceneItem(string fromSceneName, string toSceneName, int sceneItemID)
         {
             var requestFields = new JObject();
 
@@ -1244,7 +1241,7 @@ namespace OBSWebsocketDotNet
 
             requestFields.Add("item", minReqs);
 
-            SendRequest("DuplicateSceneItem", requestFields);
+            await SendRequestAsync("DuplicateSceneItem", requestFields);
         }
 
         /// <summary>
@@ -1252,9 +1249,9 @@ namespace OBSWebsocketDotNet
         /// and Mic sources)
         /// </summary>
         /// <returns></returns>
-        public Dictionary<string, string> GetSpecialSources()
+        public async Task<Dictionary<string, string>> GetSpecialSources()
         {
-            var response = SendRequest("GetSpecialSources");
+            var response = await SendRequestAsync("GetSpecialSources");
             var sources = new Dictionary<string, string>();
             foreach (KeyValuePair<string, JToken> kvp in response)
             {
@@ -1273,7 +1270,7 @@ namespace OBSWebsocketDotNet
         /// </summary>
         /// <param name="service">Service settings</param>
         /// <param name="save">Save to disk</param>
-        public JObject SetStreamingSettings(StreamingService service, bool save)
+        public async Task<JObject> SetStreamingSettingsAsync(StreamingService service, bool save)
         {
             //var jsonSettings = JsonConvert.SerializeObject(service.Settings);
             var jsonSettings = JObject.FromObject(service.Settings);
@@ -1282,16 +1279,16 @@ namespace OBSWebsocketDotNet
             requestFields.Add("type", service.Type);
             requestFields.Add("settings", jsonSettings);
             requestFields.Add("save", save);
-            return SendRequest("SetStreamSettings", requestFields);
+            return await SendRequestAsync("SetStreamSettings", requestFields);
         }
 
         /// <summary>
         /// Get current streaming settings
         /// </summary>
         /// <returns></returns>
-        public StreamingService GetStreamSettings()
+        public async Task<StreamingService> GetStreamSettings()
         {
-            var response = SendRequest("GetStreamSettings");
+            var response = await SendRequestAsync("GetStreamSettings");
             return response.ToObject<StreamingService>();
         }
 
@@ -1300,18 +1297,18 @@ namespace OBSWebsocketDotNet
         /// </summary>
         /// <param name="service">Service settings</param>
         /// <param name="save">Save to disk</param>
-        public StandardResponse SetStreamSettings(StreamingService service, bool save)
+        public async Task<StandardResponse> SetStreamSettings(StreamingService service, bool save)
         {
-            var response = SetStreamingSettings(service, save);
+            var response = await SetStreamingSettingsAsync(service, save);
             return response.ToObject<StandardResponse>();
         }
 
         /// <summary>
         /// Save current Streaming settings to disk
         /// </summary>
-        public StandardResponse SaveStreamSettings()
+        public async Task<StandardResponse> SaveStreamSettings()
         {
-            var response = SendRequest("SaveStreamSettings");
+            var response = await SendRequestAsync("SaveStreamSettings");
             return response.ToObject<StandardResponse>();
         }
 
@@ -1321,7 +1318,7 @@ namespace OBSWebsocketDotNet
         /// <param name="sourceName">Source name</param>
         /// <param name="sceneName">Optional name of a scene where the specified source can be found</param>
         /// <returns>BrowserSource properties</returns>
-        public BrowserSourceProperties GetBrowserSourceProperties(string sourceName, string sceneName = null)
+        public async Task<BrowserSourceProperties> GetBrowserSourceProperties(string sourceName, string sceneName = null)
         {
             var request = new JObject();
             request.Add("sourceName", sourceName);
@@ -1329,7 +1326,7 @@ namespace OBSWebsocketDotNet
             {
                 request.Add("scene-name", sourceName);
             }
-            var response = SendRequest("GetSourceSettings", request);
+            var response = await SendRequestAsync("GetSourceSettings", request);
             if (response[SOURCE_TYPE_JSON_FIELD].ToString() != SOURCE_TYPE_BROWSER_SOURCE)
             {
                 throw new Exception($"Invalid source_type. Expected: {SOURCE_TYPE_BROWSER_SOURCE} Received: {response[SOURCE_TYPE_JSON_FIELD]}");
@@ -1344,7 +1341,7 @@ namespace OBSWebsocketDotNet
         /// <param name="sourceName">Source name</param>
         /// <param name="props">BrowserSource properties</param>
         /// <param name="sceneName">Optional name of a scene where the specified source can be found</param>
-        public void SetBrowserSourceProperties(string sourceName, BrowserSourceProperties props, string sceneName = null)
+        public async Task SetBrowserSourceProperties(string sourceName, BrowserSourceProperties props, string sceneName = null)
         {
             props.Source = sourceName;
             var request = JObject.FromObject(props);
@@ -1353,7 +1350,7 @@ namespace OBSWebsocketDotNet
                 request.Add("scene-name", sourceName);
             }
 
-            SetSourceSettings(sourceName, request, SOURCE_TYPE_BROWSER_SOURCE);
+            await SetSourceSettings(sourceName, request, SOURCE_TYPE_BROWSER_SOURCE);
         }
 
         /// <summary>
@@ -1361,12 +1358,12 @@ namespace OBSWebsocketDotNet
         /// </summary>
         /// <param name="enable"></param>
         [Obsolete("Will be deprecated in v4.9 and completely removed in v5.0")]
-        public void SetHeartbeat(bool enable)
+        public async Task SetHeartbeat(bool enable)
         {
             var request = new JObject();
             request.Add("enable", enable);
 
-            SendRequest("SetHeartbeat", request);
+            await SendRequestAsync("SetHeartbeat", request);
         }
 
         /// <summary>
@@ -1375,7 +1372,7 @@ namespace OBSWebsocketDotNet
         /// <param name="sourceName">Source name</param>
         /// <param name="sourceType">Type of the specified source. Useful for type-checking to avoid settings a set of settings incompatible with the actual source's type.</param>
         /// <returns>settings</returns>
-        public SourceSettings GetSourceSettings(string sourceName, string sourceType = null)
+        public async Task<SourceSettings> GetSourceSettings(string sourceName, string sourceType = null)
         {
             var request = new JObject();
             request.Add("sourceName", sourceName);
@@ -1384,7 +1381,7 @@ namespace OBSWebsocketDotNet
                 request.Add("sourceType", sourceType);
             }
 
-            JObject result = SendRequest("GetSourceSettings", request);
+            JObject result = await SendRequestAsync("GetSourceSettings", request);
             SourceSettings settings = new SourceSettings(result);
 
             return settings;
@@ -1396,7 +1393,7 @@ namespace OBSWebsocketDotNet
         /// <param name="sourceName">Source name</param>
         /// <param name="settings">Settings for the source</param>
         /// <param name="sourceType">Type of the specified source. Useful for type-checking to avoid settings a set of settings incompatible with the actual source's type.</param>
-        public void SetSourceSettings(string sourceName, JObject settings, string sourceType = null)
+        public async Task SetSourceSettings(string sourceName, JObject settings, string sourceType = null)
         {
             var request = new JObject();
             request.Add("sourceName", sourceName);
@@ -1406,7 +1403,7 @@ namespace OBSWebsocketDotNet
                 request.Add("sourceType", sourceType);
             }
 
-            SendRequest("SetSourceSettings", request);
+            await SendRequestAsync("SetSourceSettings", request);
         }
 
         /// <summary>
@@ -1414,13 +1411,13 @@ namespace OBSWebsocketDotNet
         /// </summary>
         /// <param name="sourceName"></param>
         /// <returns></returns>
-        public MediaSourceSettings GetMediaSourceSettings(string sourceName)
+        public async Task<MediaSourceSettings> GetMediaSourceSettings(string sourceName)
         {
             var request = new JObject();
             request.Add("sourceName", sourceName);
             request.Add("sourceType", "ffmpeg_source");
 
-            var response = SendRequest("GetSourceSettings", request);
+            var response = await SendRequestAsync("GetSourceSettings", request);
             return response.ToObject<MediaSourceSettings>();
         }
 
@@ -1428,13 +1425,13 @@ namespace OBSWebsocketDotNet
         /// Sets settings of a media source
         /// </summary>
         /// <param name="sourceSettings"></param>
-        public void SetMediaSourceSettings(MediaSourceSettings sourceSettings)
+        public async Task SetMediaSourceSettings(MediaSourceSettings sourceSettings)
         {
             if (sourceSettings.SourceType != "ffmpeg_source")
             {
                 throw new System.Exception("Invalid SourceType");
             }
-            SendRequest("SetSourceSettings", JObject.FromObject(sourceSettings));
+            await SendRequestAsync("SetSourceSettings", JObject.FromObject(sourceSettings));
         }
 
         /// <summary>
@@ -1444,7 +1441,7 @@ namespace OBSWebsocketDotNet
         /// <param name="monitor">Monitor to open the projector on. If -1 or omitted, opens a window</param>
         /// <param name="geometry">Size and position of the projector window (only if monitor is -1). Encoded in Base64 using Qt's geometry encoding. Corresponds to OBS's saved projectors</param>
         /// <param name="name">Name of the source or scene to be displayed (ignored for other projector types)</param>
-        public void OpenProjector(string projectorType = "preview", int monitor = -1, string geometry = null, string name = null)
+        public async Task OpenProjector(string projectorType = "preview", int monitor = -1, string geometry = null, string name = null)
         {
             var request = new JObject();
             request.Add("type", projectorType);
@@ -1460,7 +1457,7 @@ namespace OBSWebsocketDotNet
                 request.Add("name", name);
             }
 
-            SendRequest("OpenProjector", request);
+            await SendRequestAsync("OpenProjector", request);
         }
 
         /// <summary>
@@ -1469,22 +1466,22 @@ namespace OBSWebsocketDotNet
         /// </summary>
         /// <param name="currentName">Current source name</param>
         /// <param name="newName">New source name</param>
-        public void SetSourceName(string currentName, string newName)
+        public async Task SetSourceName(string currentName, string newName)
         {
             var request = new JObject();
             request.Add("sourceName", currentName);
             request.Add("newName", newName);
 
-            SendRequest("SetSourceName", request);
+            await SendRequestAsync("SetSourceName", request);
         }
 
         /// <summary>
         /// List existing outputs
         /// </summary>
         /// <returns>Array of OutputInfo</returns>
-        public List<OBSOutputInfo> ListOutputs()
+        public async Task<List<OBSOutputInfo>> ListOutputs()
         {
-            var response = SendRequest("ListOutputs");
+            var response = await SendRequestAsync("ListOutputs");
             return response["outputs"].ToObject<List<OBSOutputInfo>>();
         }
         /// <summary>
@@ -1493,12 +1490,12 @@ namespace OBSWebsocketDotNet
         /// </summary>
         /// <param name="sourceName">Source name</param>
         /// <returns>The monitor type in use</returns>
-        public string GetAudioMonitorType(string sourceName)
+        public async Task<string> GetAudioMonitorType(string sourceName)
         {
             var request = new JObject();
             request.Add("sourceName", sourceName);
 
-            var response = SendRequest("GetAudioMonitorType", request);
+            var response = await SendRequestAsync("GetAudioMonitorType", request);
             return (string)response["monitorType"];
         }
 
@@ -1507,13 +1504,13 @@ namespace OBSWebsocketDotNet
         /// </summary>
         /// <param name="sourceName">Source name</param>
         /// <param name="monitorType">The monitor type to use. Options: none, monitorOnly, monitorAndOutput</param>
-        public void SetAudioMonitorType(string sourceName, string monitorType)
+        public async Task SetAudioMonitorType(string sourceName, string monitorType)
         {
             var request = new JObject();
             request.Add("sourceName", sourceName);
             request.Add("monitorType", monitorType);
 
-            SendRequest("SetAudioMonitorType", request);
+            await SendRequestAsync("SetAudioMonitorType", request);
         }
 
         /// <summary>
@@ -1521,13 +1518,13 @@ namespace OBSWebsocketDotNet
         /// </summary>
         /// <param name="realm">Identifier to be choosen by the client</param>
         /// <param name="data">User-defined data</param>
-        public void BroadcastCustomMessage(string realm, JObject data)
+        public async Task BroadcastCustomMessageAsync(string realm, JObject data)
         {
             var request = new JObject();
             request.Add("realm", realm);
             request.Add("data", data);
 
-            SendRequest("BroadcastCustomMessage", request);
+            await SendRequestAsync("BroadcastCustomMessage", request);
         }
     }
 }

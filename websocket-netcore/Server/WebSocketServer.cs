@@ -70,7 +70,7 @@ namespace WebSocketSharp.Server
         private int _port;
         private string _realm;
         private string _realmInUse;
-        private Thread _receiveThread;
+        //private Thread _receiveThread;
         private bool _reuseAddress;
         private bool _secure;
         private WebSocketServiceManager _services;
@@ -757,7 +757,7 @@ namespace WebSocketSharp.Server
 
         #region Private Methods
 
-        private void abort()
+        private async Task abortAsync()
         {
             lock (_sync)
             {
@@ -775,7 +775,7 @@ namespace WebSocketSharp.Server
                 }
                 finally
                 {
-                    _services.Stop(1006, String.Empty);
+                    await _services.StopAsync(1006, String.Empty);
                 }
             }
             catch
@@ -960,10 +960,10 @@ namespace WebSocketSharp.Server
             }
 
             if (_state != ServerState.ShuttingDown)
-                abort();
+                await abortAsync();
         }
 
-        private void start(ServerSslConfiguration sslConfig)
+        private async Task startAsync(ServerSslConfiguration sslConfig)
         {
             if (_state == ServerState.Start)
             {
@@ -977,7 +977,7 @@ namespace WebSocketSharp.Server
                 return;
             }
 
-            lock (_sync)
+            //lock (_sync)
             {
                 if (_state == ServerState.Start)
                 {
@@ -1001,7 +1001,7 @@ namespace WebSocketSharp.Server
                 }
                 catch
                 {
-                    _services.Stop(1011, String.Empty);
+                    await _services.StopAsync(1011, String.Empty);
                     throw;
                 }
 
@@ -1031,7 +1031,7 @@ namespace WebSocketSharp.Server
             /*await */ receiveRequestAsync();
         }
 
-        private void stop(ushort code, string reason)
+        private async Task stopAsync(ushort code, string reason)
         {
             if (_state == ServerState.Ready)
             {
@@ -1084,7 +1084,7 @@ namespace WebSocketSharp.Server
                 {
                     try
                     {
-                        _services.Stop(code, reason);
+                        await _services.StopAsync(code, reason);
                     }
                     catch
                     {
@@ -1111,7 +1111,7 @@ namespace WebSocketSharp.Server
                 throw new InvalidOperationException(msg, ex);
             }
 
-            _receiveThread.Join(millisecondsTimeout);
+            //_receiveThread.Join(millisecondsTimeout);
         }
 
         private static bool tryCreateUri(
@@ -1398,9 +1398,9 @@ namespace WebSocketSharp.Server
         ///   query and fragment components.
         ///   </para>
         /// </exception>
-        public bool RemoveWebSocketService(string path)
+        public async Task<bool> RemoveWebSocketServiceAsync(string path)
         {
-            return _services.RemoveService(path);
+            return await _services.RemoveServiceAsync(path);
         }
 
         /// <summary>
@@ -1421,7 +1421,7 @@ namespace WebSocketSharp.Server
         ///   The underlying <see cref="TcpListener"/> has failed to start.
         ///   </para>
         /// </exception>
-        public void Start()
+        public async Task StartAsync()
         {
             ServerSslConfiguration sslConfig = null;
 
@@ -1434,7 +1434,7 @@ namespace WebSocketSharp.Server
                     throw new InvalidOperationException(msg);
             }
 
-            start(sslConfig);
+            await startAsync(sslConfig);
         }
 
         /// <summary>
@@ -1443,9 +1443,9 @@ namespace WebSocketSharp.Server
         /// <exception cref="InvalidOperationException">
         /// The underlying <see cref="TcpListener"/> has failed to stop.
         /// </exception>
-        public void Stop()
+        public async Task StopAsync()
         {
-            stop(1001, String.Empty);
+            await stopAsync(1001, String.Empty);
         }
 
         /// <summary>
@@ -1502,8 +1502,7 @@ namespace WebSocketSharp.Server
         /// <exception cref="InvalidOperationException">
         /// The underlying <see cref="TcpListener"/> has failed to stop.
         /// </exception>
-        [Obsolete("This method will be removed.")]
-        public void Stop(ushort code, string reason)
+        public async Task StopAsync(ushort code, string reason)
         {
             if (!code.IsCloseStatusCode())
             {
@@ -1539,7 +1538,7 @@ namespace WebSocketSharp.Server
                 }
             }
 
-            stop(code, reason);
+            await stopAsync(code, reason);
         }
 
         /// <summary>
@@ -1587,8 +1586,7 @@ namespace WebSocketSharp.Server
         /// <exception cref="InvalidOperationException">
         /// The underlying <see cref="TcpListener"/> has failed to stop.
         /// </exception>
-        [Obsolete("This method will be removed.")]
-        public void Stop(CloseStatusCode code, string reason)
+        public async Task StopAsync(CloseStatusCode code, string reason)
         {
             if (code == CloseStatusCode.MandatoryExtension)
             {
@@ -1618,7 +1616,7 @@ namespace WebSocketSharp.Server
                 }
             }
 
-            stop((ushort)code, reason);
+            await stopAsync((ushort)code, reason);
         }
 
         #endregion

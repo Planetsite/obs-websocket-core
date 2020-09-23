@@ -179,17 +179,13 @@ namespace WebSocketSharp
             return buff.ToArray();
         }
 
-        internal static void Close(
-          this HttpListenerResponse response, HttpStatusCode code
-        )
+        internal static void Close(this HttpListenerResponse response, HttpStatusCode code)
         {
             response.StatusCode = (int)code;
             response.OutputStream.Close();
         }
 
-        internal static void CloseWithAuthChallenge(
-          this HttpListenerResponse response, string challenge
-        )
+        internal static void CloseWithAuthChallenge(this HttpListenerResponse response, string challenge)
         {
             response.Headers.InternalSet("WWW-Authenticate", challenge, true);
             response.Close(HttpStatusCode.Unauthorized);
@@ -2038,9 +2034,7 @@ namespace WebSocketSharp
         ///   </para>
         /// </exception>
         [Obsolete("This method will be removed.")]
-        public static void WriteContent(
-          this HttpListenerResponse response, byte[] content
-        )
+        public static async Task WriteContentAsync(this HttpListenerResponse response, byte[] content)
         {
             if (response == null)
                 throw new ArgumentNullException("response");
@@ -2051,7 +2045,7 @@ namespace WebSocketSharp
             var len = content.LongLength;
             if (len == 0)
             {
-                response.Close();
+                await response.CloseAsync();
                 return;
             }
 
@@ -2060,9 +2054,9 @@ namespace WebSocketSharp
             var output = response.OutputStream;
 
             if (len <= Int32.MaxValue)
-                output.Write(content, 0, (int)len);
+                await output.WriteAsync(content, 0, (int)len);
             else
-                output.WriteBytesAsync(content, 1024);
+                await output.WriteBytesAsync(content, 1024);
 
             output.Close();
         }

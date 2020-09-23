@@ -30,6 +30,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace WebSocketSharp.Server
@@ -51,7 +52,8 @@ namespace WebSocketSharp.Server
         private Dictionary<string, IWebSocketSession> _sessions;
         private volatile ServerState _state;
         private volatile bool _sweeping;
-        private System.Timers.Timer _sweepTimer;
+        //private System.Timers.Timer _sweepTimer;
+        private CancellationTokenRegistration _sweepTimer;
         //private object _sync;
         private TimeSpan _waitTime;
 
@@ -444,8 +446,11 @@ namespace WebSocketSharp.Server
 
         private void setSweepTimer(double interval)
         {
-            _sweepTimer = new System.Timers.Timer(interval);
-            _sweepTimer.Elapsed += (sender, e) => SweepAsync();
+            var cts = new CancellationTokenSource((int)interval);
+            _sweepTimer = cts.Token.Register(() => SweepAsync().Wait());
+
+            //_sweepTimer = new System.Timers.Timer(interval);
+            //_sweepTimer.Elapsed += (sender, e) => SweepAsync();
         }
 
         private async Task stopAsync(PayloadData payloadData, bool send)
@@ -458,7 +463,7 @@ namespace WebSocketSharp.Server
             {
                 _state = ServerState.ShuttingDown;
 
-                _sweepTimer.Enabled = false;
+                await _sweepTimer.DisposeAsync();
                 foreach (var session in _sessions.Values.ToList())
                     await session.Context.WebSocket.CloseAsync(payloadData, bytes);
 
@@ -557,20 +562,21 @@ namespace WebSocketSharp.Server
         {
             //lock (_sync)
             {
-                _sweepTimer.Enabled = _clean;
+                if (_clean)
+                    setSweepTimer(60000);
                 _state = ServerState.Start;
             }
         }
 
-        internal void Stop(ushort code, string reason)
+        internal async Task StopAsync(ushort code, string reason)
         {
             if (code == 1005)
             { // == no status
-                stopAsync(PayloadData.Empty, true);
+                await stopAsync(PayloadData.Empty, true);
                 return;
             }
 
-            stopAsync(new PayloadData(code, reason), !code.IsReserved());
+            await stopAsync(new PayloadData(code, reason), !code.IsReserved());
         }
 
         #endregion
@@ -754,7 +760,7 @@ namespace WebSocketSharp.Server
         /// <exception cref="ArgumentNullException">
         /// <paramref name="data"/> is <see langword="null"/>.
         /// </exception>
-        public void BroadcastAsync(byte[] data, Action completed)
+        public async Task BroadcastAsync(byte[] data, Action completed)
         {
             if (_state != ServerState.Start)
             {
@@ -766,9 +772,9 @@ namespace WebSocketSharp.Server
                 throw new ArgumentNullException("data");
 
             if (data.LongLength <= WebSocket.FragmentLength)
-                broadcastAsync(Opcode.Binary, data, completed);
+                await broadcastAsync(Opcode.Binary, data, completed);
             else
-                broadcastAsync(Opcode.Binary, new MemoryStream(data), completed);
+                await broadcastAsync(Opcode.Binary, new MemoryStream(data), completed);
         }
 
         /// <summary>
@@ -799,7 +805,7 @@ namespace WebSocketSharp.Server
         /// <exception cref="ArgumentException">
         /// <paramref name="data"/> could not be UTF-8-encoded.
         /// </exception>
-        public void BroadcastAsync(string data, Action completed)
+        public async Task BroadcastAsync(string data, Action completed)
         {
             if (_state != ServerState.Start)
             {
@@ -818,9 +824,9 @@ namespace WebSocketSharp.Server
             }
 
             if (bytes.LongLength <= WebSocket.FragmentLength)
-                broadcastAsync(Opcode.Text, bytes, completed);
+                await broadcastAsync(Opcode.Text, bytes, completed);
             else
-                broadcastAsync(Opcode.Text, new MemoryStream(bytes), completed);
+                await broadcastAsync(Opcode.Text, new MemoryStream(bytes), completed);
         }
 
         /// <summary>
@@ -1019,7 +1025,7 @@ namespace WebSocketSharp.Server
         /// <exception cref="InvalidOperationException">
         /// The session could not be found.
         /// </exception>
-        public void CloseSession(string id)
+        public async Task CloseSessionAsync(string id)
         {
             IWebSocketSession session;
             if (!TryGetSession(id, out session))
@@ -1028,7 +1034,7 @@ namespace WebSocketSharp.Server
                 throw new InvalidOperationException(msg);
             }
 
-            session.Context.WebSocket.CloseAsync();
+            await session.Context.WebSocket.CloseAsync();
         }
 
         /// <summary>

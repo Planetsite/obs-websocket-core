@@ -216,9 +216,9 @@ namespace WebSocketSharp.Server
             await CreateSession().StartAsync(context, _sessions);
         }
 
-        internal void Stop(ushort code, string reason)
+        internal async Task StopAsync(ushort code, string reason)
         {
-            _sessions.Stop(code, reason);
+            await _sessions.StopAsync(code, reason);
         }
 
         #endregion

@@ -295,7 +295,7 @@ namespace WebSocketSharp.Net
                 {
                     if (_requestBuffer != null && _requestBuffer.Length > 0)
                     {
-                        await SendError(ex.Message, 400);
+                        await SendErrorAsync(ex.Message, 400);
                         return;
                     }
 
@@ -316,14 +316,14 @@ namespace WebSocketSharp.Net
 
                     if (_context.HasError)
                     {
-                        await SendError();
+                        await SendErrorAsync();
                         return;
                     }
 
                     HttpListener lsnr;
                     if (!_listener.TrySearchHttpListener(_context.Request.Url, out lsnr))
                     {
-                        await SendError(null, 404);
+                        await SendErrorAsync(null, 404);
                         return;
                     }
 
@@ -357,7 +357,7 @@ namespace WebSocketSharp.Net
             //}
         }
 
-        private static async Task onTimeout(object state)
+        private static async Task onTimeout(object state) // TODO
         {
             //var conn = (HttpConnection)state;
             //var current = conn._reuses;
@@ -570,12 +570,13 @@ namespace WebSocketSharp.Net
                 disposeRequestBuffer();
 
                 _inputStream = chunked
-                               ? new ChunkedRequestStream(
-                                   _stream, buff, _position, cnt, _context
-                                 )
-                               : new RequestStream(
-                                   _stream, buff, _position, cnt, contentLength
-                                 );
+                    ? new ChunkedRequestStream(
+                        _stream, buff, _position, cnt, _context
+                    )
+                    : new RequestStream(
+                        _stream, buff, _position, cnt, contentLength
+                    )
+                ;
 
                 return _inputStream;
             }
@@ -601,12 +602,12 @@ namespace WebSocketSharp.Net
             }
         }
 
-        public async Task SendError()
+        public async Task SendErrorAsync()
         {
-            await SendError(_context.ErrorMessage, _context.ErrorStatus);
+            await SendErrorAsync(_context.ErrorMessage, _context.ErrorStatus);
         }
 
-        public async Task SendError(string message, int status)
+        public async Task SendErrorAsync(string message, int status)
         {
             if (_socket == null)
                 return;
@@ -638,7 +639,7 @@ namespace WebSocketSharp.Net
                 }
                 catch
                 {
-                    CloseAsync(true);
+                    await CloseAsync(true);
                 }
             }
         }

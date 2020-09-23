@@ -40,7 +40,6 @@
 #endregion
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Security;
@@ -74,7 +73,7 @@ namespace WebSocketSharp
         private AuthenticationChallenge _authChallenge;
         private string _base64Key;
         private bool _client;
-        private Action _closeContext;
+        private Func<Task> _closeContext;
         private CompressionMethod _compression;
         private WebSocketContext _context;
         private bool _enableRedirection;
@@ -159,7 +158,7 @@ namespace WebSocketSharp
             _context = context;
             _protocol = protocol;
 
-            _closeContext = context.Close;
+            _closeContext = context.CloseAsync;
             _logger = context.Log;
             _messageAsync = messagesAsync;
             IsSecure = context.IsSecureConnection;
@@ -175,7 +174,7 @@ namespace WebSocketSharp
             _context = context;
             _protocol = protocol;
 
-            _closeContext = context.Close;
+            _closeContext = context.CloseAsync;
             _logger = context.Log;
             _messageAsync = messagesAsync;
             IsSecure = context.IsSecureConnection;
@@ -1141,7 +1140,7 @@ namespace WebSocketSharp
             _logger.Trace("Begin closing the connection.");
 
             var res = await closeHandshakeAsync(payloadData, send, receive, received);
-            releaseResources();
+            await releaseResourcesAsync();
 
             _logger.Trace("End closing the connection.");
 
@@ -1777,7 +1776,7 @@ namespace WebSocketSharp
             var res = createHandshakeFailureResponse(HttpStatusCode.BadRequest);
             await sendHttpResponseAsync(res);
 
-            releaseServerResources();
+            await releaseServerResourcesAsync();
 
             _readyState = WebSocketState.Closed;
 
@@ -1832,23 +1831,23 @@ namespace WebSocketSharp
             }
         }
 
-        private void releaseResources()
+        private async Task releaseResourcesAsync()
         {
             if (_client)
                 releaseClientResources();
             else
-                releaseServerResources();
+                await releaseServerResourcesAsync();
 
             releaseCommonResources();
         }
 
         // As server
-        private void releaseServerResources()
+        private async Task releaseServerResourcesAsync()
         {
             if (_closeContext == null)
                 return;
 
-            _closeContext();
+            await _closeContext();
             _closeContext = null;
             _stream = null;
             _context = null;
@@ -2212,15 +2211,15 @@ namespace WebSocketSharp
             _readyState = WebSocketState.Closing;
 
             await sendHttpResponseAsync(response);
-            releaseServerResources();
+            await releaseServerResourcesAsync();
 
             _readyState = WebSocketState.Closed;
         }
 
         // As server
-        internal void Close(HttpStatusCode code)
+        internal async Task CloseAsync(HttpStatusCode code)
         {
-            CloseAsync(createHandshakeFailureResponse(code));
+            await CloseAsync(createHandshakeFailureResponse(code));
         }
 
         // As server
@@ -2254,7 +2253,7 @@ namespace WebSocketSharp
 
             _logger.Debug($"Was clean?: {res}\n  sent: {sent}\n  received: {received}");
 
-            releaseServerResources();
+            await releaseServerResourcesAsync();
             releaseCommonResources();
 
             _logger.Trace("End closing the connection.");

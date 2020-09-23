@@ -434,7 +434,7 @@ namespace WebSocketSharp.Server
             if (_websocket != null)
             {
                 _websocket.Log.Error("A session instance cannot be reused.");
-                context.WebSocket.Close(HttpStatusCode.ServiceUnavailable);
+                await context.WebSocket.CloseAsync(HttpStatusCode.ServiceUnavailable);
 
                 return;
             }

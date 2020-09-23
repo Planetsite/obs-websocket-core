@@ -186,7 +186,7 @@ namespace WebSocketSharp.Net
           return false;
 
         _endpoints.Remove (endpoint);
-        lsnr.Close ();
+        lsnr.CloseAsync ();
 
         return true;
       }

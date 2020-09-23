@@ -462,7 +462,7 @@ namespace WebSocketSharp.Net
             while (Interlocked.CompareExchange(ref _prefixes, prefs2, prefs) != prefs);
         }
 
-        public void Close()
+        public async Task CloseAsync()
         {
             _socket.Close();
 
@@ -479,7 +479,7 @@ namespace WebSocketSharp.Net
             }
 
             for (var i = conns.Length - 1; i >= 0; i--)
-                conns[i].CloseAsync(true);
+                await conns[i].CloseAsync(true);
         }
 
         public void RemovePrefix(HttpListenerPrefix prefix, HttpListener listener)

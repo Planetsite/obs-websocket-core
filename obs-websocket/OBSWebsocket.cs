@@ -333,10 +333,10 @@ namespace OBSWebsocketDotNet
             if (!await WSConnection.PingAsync())
                 return;
 
-            OBSAuthInfo authInfo = GetAuthInfo();
+            OBSAuthInfo authInfo = await GetAuthInfoAsync();
 
             if (authInfo.AuthRequired)
-                Authenticate(password, authInfo);
+                await AuthenticateAsync(password, authInfo);
 
             if (Connected != null)
                 Connected(this, null);
@@ -396,7 +396,7 @@ namespace OBSWebsocketDotNet
         /// <param name="requestType">obs-websocket request type, must be one specified in the protocol specification</param>
         /// <param name="additionalFields">additional JSON fields if required by the request type</param>
         /// <returns>The server's JSON response as a JObject</returns>
-        public JObject SendRequest(string requestType, JObject additionalFields = null)
+        public async Task<JObject> SendRequestAsync(string requestType, JObject additionalFields = null)
         {
             string messageID;
 
@@ -431,15 +431,14 @@ namespace OBSWebsocketDotNet
             // Send the message and wait for a response
             // (received and notified by the websocket response handler)
             string bodyAsString = body.ToString();
-            WSConnection.SendAsync(bodyAsString);
-            tcs.Task.Wait();
+            await WSConnection.SendAsync(bodyAsString);
+            var result = await tcs.Task;
 
             if (tcs.Task.IsCanceled)
                 throw new ErrorResponseException("Request canceled");
 
             // Throw an exception if the server returned an error.
             // An error occurs if authentication fails or one if the request body is invalid.
-            var result = tcs.Task.Result;
 
             if ((string)result["status"] == "error")
                 throw new ErrorResponseException((string)result["error"]);
@@ -451,9 +450,9 @@ namespace OBSWebsocketDotNet
         /// Requests version info regarding obs-websocket, the API and OBS Studio
         /// </summary>
         /// <returns>Version info in an <see cref="OBSVersion"/> object</returns>
-        public OBSVersion GetVersion()
+        public async Task<OBSVersion> GetVersionAsync()
         {
-            JObject response = SendRequest("GetVersion");
+            JObject response = await SendRequestAsync("GetVersion");
             return new OBSVersion(response);
         }
 
@@ -461,9 +460,9 @@ namespace OBSWebsocketDotNet
         /// Request authentication data. You don't have to call this manually.
         /// </summary>
         /// <returns>Authentication data in an <see cref="OBSAuthInfo"/> object</returns>
-        public OBSAuthInfo GetAuthInfo()
+        public async Task<OBSAuthInfo> GetAuthInfoAsync()
         {
-            JObject response = SendRequest("GetAuthRequired");
+            JObject response = await SendRequestAsync("GetAuthRequired");
             return new OBSAuthInfo(response);
         }
 
@@ -473,7 +472,7 @@ namespace OBSWebsocketDotNet
         /// <param name="password">User password</param>
         /// <param name="authInfo">Authentication data</param>
         /// <returns>true if authentication succeeds, false otherwise</returns>
-        public bool Authenticate(string password, OBSAuthInfo authInfo)
+        public async Task<bool> AuthenticateAsync(string password, OBSAuthInfo authInfo)
         {
             string secret = HashEncode(password + authInfo.PasswordSalt);
             string authResponse = HashEncode(secret + authInfo.Challenge);
@@ -484,7 +483,7 @@ namespace OBSWebsocketDotNet
             try
             {
                 // Throws ErrorResponseException if auth fails
-                SendRequest("Authenticate", requestFields);
+                await SendRequestAsync("Authenticate", requestFields);
             }
             catch (ErrorResponseException)
             {

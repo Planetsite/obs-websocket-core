@@ -31,6 +31,7 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
 using System.Security.Principal;
+using System.Threading.Tasks;
 
 namespace WebSocketSharp.Net.WebSockets
 {
@@ -402,9 +403,9 @@ namespace WebSocketSharp.Net.WebSockets
 
         #region Internal Methods
 
-        internal void Close()
+        internal async Task CloseAsync()
         {
-            _context.Connection.CloseAsync(true);
+            await _context.Connection.CloseAsync(true);
         }
 
         internal void Close(HttpStatusCode code)

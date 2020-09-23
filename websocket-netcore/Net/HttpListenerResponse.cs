@@ -978,12 +978,12 @@ namespace WebSocketSharp.Net
         /// <summary>
         /// Closes the connection to the client without sending a response.
         /// </summary>
-        public void Abort()
+        public async Task AbortAsync()
         {
             if (_disposed)
                 return;
 
-            closeAsync(true);
+            await closeAsync(true);
         }
 
         /// <summary>
@@ -1060,12 +1060,12 @@ namespace WebSocketSharp.Net
         /// Sends the response to the client and releases the resources used by
         /// this instance.
         /// </summary>
-        public void Close()
+        public async Task CloseAsync()
         {
             if (_disposed)
                 return;
 
-            closeAsync(false);
+            await closeAsync(false);
         }
 
         /// <summary>
@@ -1105,7 +1105,7 @@ namespace WebSocketSharp.Net
             }
 
             await OutputStream.WriteAsync(responseEntity, 0, (int)len);
-            closeAsync(false);
+            await closeAsync(false);
         }
 
         /// <summary>

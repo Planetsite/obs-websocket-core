@@ -515,7 +515,7 @@ namespace WebSocketSharp.Net.WebSockets
             return false;
         }
 
-        internal void Close()
+        internal async Task CloseAsync()
         {
             _stream.Close();
             _tcpClient.Close();
