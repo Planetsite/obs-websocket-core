@@ -46,13 +46,11 @@
 #endregion
 
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace WebSocketSharp.Net
@@ -494,13 +492,13 @@ namespace WebSocketSharp.Net
                 if (force)
                 {
                     if (_outputStream != null)
-                        _outputStream.Close(true);
+                        await _outputStream.CloseAsync(true);
 
                     close();
                     return;
                 }
 
-                GetResponseStream().Close(false);
+                await GetResponseStream().CloseAsync(false);
 
                 if (_context.Response.CloseConnection)
                 {

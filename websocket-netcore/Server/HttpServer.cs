@@ -1048,7 +1048,7 @@ namespace WebSocketSharp.Server
 
                 try
                 {
-                    startReceiving();
+                    await startReceiving();
                 }
                 catch
                 {
@@ -1060,11 +1060,11 @@ namespace WebSocketSharp.Server
             }
         }
 
-        private void startReceiving()
+        private async Task startReceiving()
         {
             try
             {
-                _listener.Start();
+                await _listener.StartAsync();
             }
             catch (Exception ex)
             {
@@ -1072,7 +1072,9 @@ namespace WebSocketSharp.Server
                 throw new InvalidOperationException(msg, ex);
             }
 
+            #pragma warning disable CS4014
             /*await*/ receiveRequestAsync();
+            #pragma warning restore CS4014
         }
 
         private async Task stopAsync(ushort code, string reason)

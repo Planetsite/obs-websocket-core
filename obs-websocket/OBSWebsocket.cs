@@ -283,13 +283,12 @@ namespace OBSWebsocketDotNet
         }
         private TimeSpan _pWSTimeout;
 
-        // Random should never be created inside a function
         private static Random random = new Random();
 
         /// <summary>
         /// Current connection state
         /// </summary>
-        public async Task<bool> IsConnected()
+        public async Task<bool> IsConnectedAsync()
         {
             return WSConnection != null ? await WSConnection.PingAsync() : false;
         }

@@ -40,6 +40,7 @@
 using System;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace WebSocketSharp.Net
 {
@@ -290,7 +291,7 @@ namespace WebSocketSharp.Net
 
         #region Internal Methods
 
-        internal void Close(bool force)
+        internal async Task CloseAsync(bool force)
         {
             if (_disposed)
                 return;
@@ -301,7 +302,7 @@ namespace WebSocketSharp.Net
             {
                 if (flush(true))
                 {
-                    _response.CloseAsync();
+                    await _response.CloseAsync();
 
                     _response = null;
                     _innerStream = null;
@@ -316,7 +317,7 @@ namespace WebSocketSharp.Net
                 _write(_lastChunk, 0, 5);
 
             _bodyBuffer.Dispose();
-            _response.AbortAsync();
+            await _response.AbortAsync();
 
             _bodyBuffer = null;
             _response = null;
@@ -352,12 +353,12 @@ namespace WebSocketSharp.Net
 
         public override void Close()
         {
-            Close(false);
+            CloseAsync(false).Wait();
         }
 
-        protected override void Dispose(bool disposing)
+        public override async ValueTask DisposeAsync()
         {
-            Close(!disposing);
+            await CloseAsync(false);
         }
 
         public override int EndRead(IAsyncResult asyncResult)

@@ -1028,7 +1028,9 @@ namespace WebSocketSharp.Server
                 throw new InvalidOperationException(msg, ex);
             }
 
+            #pragma warning disable CS4014
             /*await */ receiveRequestAsync();
+            #pragma warning restore CS4014
         }
 
         private async Task stopAsync(ushort code, string reason)

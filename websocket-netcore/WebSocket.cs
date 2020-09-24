@@ -1460,8 +1460,10 @@ namespace WebSocketSharp
         {
             _messageEventQueueRestart = new TaskCompletionSource<bool>();
 
+            #pragma warning disable CS4014
             /*await*/ startReceivingAccumulatorTaskAsync();
             /*await*/ startReceivingDispatcherTaskAsync();
+            #pragma warning restore CS4014
 
             try
             {

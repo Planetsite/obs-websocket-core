@@ -535,7 +535,7 @@ namespace WebSocketSharp.Net
             if (_listening)
             {
                 _listening = false;
-                EndPointManager.RemoveListener(this);
+                await EndPointManager.RemoveListenerAsync(this);
             }
 
             //lock (_ctxRegistrySync)
@@ -832,13 +832,13 @@ namespace WebSocketSharp.Net
         /// <exception cref="ObjectDisposedException">
         /// This listener has been closed.
         /// </exception>
-        public void Start()
+        public async Task StartAsync()
         {
             CheckDisposed();
             if (_listening)
                 return;
 
-            EndPointManager.AddListener(this);
+            await EndPointManager.AddListenerAsync(this);
             _listening = true;
         }
 
@@ -855,7 +855,7 @@ namespace WebSocketSharp.Net
                 return;
 
             _listening = false;
-            EndPointManager.RemoveListener(this);
+            await EndPointManager.RemoveListenerAsync(this);
 
             //lock (_ctxRegistrySync)
                 await cleanupContextQueueAsync(true);

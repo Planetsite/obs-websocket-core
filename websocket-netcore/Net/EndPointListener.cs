@@ -122,7 +122,9 @@ namespace WebSocketSharp.Net
             _socket.Listen(500);
             //_socket.BeginAccept(onAccept, this);
 
+            #pragma warning disable CS4014
             /*await*/ AcceptConnection();
+            #pragma warning restore CS4014
         }
 
         #endregion
@@ -229,7 +231,7 @@ namespace WebSocketSharp.Net
             return defaultCertificate;
         }
 
-        private void leaveIfNoPrefix()
+        private async Task leaveIfNoPrefixAsync()
         {
             if (_prefixes.Count > 0)
                 return;
@@ -242,7 +244,7 @@ namespace WebSocketSharp.Net
             if (prefs != null && prefs.Count > 0)
                 return;
 
-            EndPointManager.RemoveEndPoint(_endpoint);
+            await EndPointManager.RemoveEndPointAsync(_endpoint);
         }
 
         private async Task onAccept(Socket newSocket)
@@ -482,7 +484,7 @@ namespace WebSocketSharp.Net
                 await conns[i].CloseAsync(true);
         }
 
-        public void RemovePrefix(HttpListenerPrefix prefix, HttpListener listener)
+        public async Task RemovePrefixAsync(HttpListenerPrefix prefix, HttpListener listener)
         {
             List<HttpListenerPrefix> current, future;
             if (prefix.Host == "*")
@@ -499,7 +501,7 @@ namespace WebSocketSharp.Net
                 }
                 while (Interlocked.CompareExchange(ref _unhandled, future, current) != current);
 
-                leaveIfNoPrefix();
+                await leaveIfNoPrefixAsync();
                 return;
             }
 
@@ -517,7 +519,7 @@ namespace WebSocketSharp.Net
                 }
                 while (Interlocked.CompareExchange(ref _all, future, current) != current);
 
-                leaveIfNoPrefix();
+                await leaveIfNoPrefixAsync();
                 return;
             }
 
@@ -533,7 +535,7 @@ namespace WebSocketSharp.Net
             }
             while (Interlocked.CompareExchange(ref _prefixes, prefs2, prefs) != prefs);
 
-            leaveIfNoPrefix();
+            await leaveIfNoPrefixAsync();
         }
 
         #endregion
