@@ -33,17 +33,18 @@ namespace test
             so.WSTimeout = TimeSpan.FromSeconds(3);
             await so.ConnectAsync("ws://127.0.0.1:4444", null);
 
-            bool clsmute = await so.GetMuteAsync("Audio del desktop");
-            await so.SetMuteAsync("Audio del desktop", true);
-            await so.SetMuteAsync("asdfdaskbdskj", true);
+            //bool clsmute = await so.GetMuteAsync("Audio del desktop");
+            //await so.SetMuteAsync("Audio del desktop", true);
+            //await so.SetMuteAsync("asdfdaskbdskj", true);
             //string p = so.GetCurrentProfile();
             //var pp = so.ListProfiles();
+            var prop = await so.GetSceneItemPropertiesAsync("Fonte di colore");
 
             try
             {
                 await so.SetCurrentProfileAsync("prof1");
                 await so.SetCurrentProfileAsync("PROF1");
-                var gcp = so.GetCurrentProfile();
+                var gcp = await so.GetCurrentProfileAsync();
             }
             catch(Exception e)
             {
@@ -84,9 +85,9 @@ namespace test
 
             try
             {
-                var saved = so.GetStreamSettings();
+                var saved = await so.GetStreamSettingsAsync();
                 await so.SetStreamingSettingsAsync(newsett, true);
-                var xxx = so.StartStreaming();
+                var xxx = await so.StartStreamingAsync();
             }
             catch(Exception testErr)
             {
