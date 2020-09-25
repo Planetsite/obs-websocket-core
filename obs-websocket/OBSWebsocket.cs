@@ -285,13 +285,8 @@ namespace OBSWebsocketDotNet
 
         private static Random random = new Random();
 
-        /// <summary>
-        /// Current connection state
-        /// </summary>
-        public async Task<bool> IsConnectedAsync()
-        {
-            return WSConnection != null ? await WSConnection.PingAsync() : false;
-        }
+        public bool IsConnected =>
+            WSConnection != null && WSConnection.IsConnected;
 
         /// <summary>
         /// Underlying WebSocket connection to an obs-websocket server. Value is null when disconnected.
@@ -314,7 +309,7 @@ namespace OBSWebsocketDotNet
         /// </summary>
         /// <param name="url">Server URL in standard URL format</param>
         /// <param name="password">Server password</param>
-        public async Task ConnectAsync(string url, string password)
+        public async Task ConnectAsync(string url)
         {
             if (WSConnection != null && await WSConnection.PingAsync())
                 await DisconnectAsync();
@@ -328,7 +323,10 @@ namespace OBSWebsocketDotNet
                     Disconnected(this, e);
             };
             await WSConnection.ConnectAsync();
+        }
 
+        public async Task StartAsync(string password = null)
+        {
             if (!await WSConnection.PingAsync())
                 return;
 

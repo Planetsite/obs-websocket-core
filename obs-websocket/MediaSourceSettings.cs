@@ -28,7 +28,5 @@ namespace OBSWebsocketDotNet
         /// </summary>
         [JsonProperty(PropertyName = "sourceSettings")]
         public FFMpegSourceSettings Media { get; set; }
-
-
     }
 }

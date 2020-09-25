@@ -119,7 +119,7 @@ namespace OBSWebsocketDotNet
 
     /// <summary>
     /// Called by <see cref="OBSWebsocket.StreamingStateChanged"/>, <see cref="OBSWebsocket.RecordingStateChanged"/>
-    /// or <see cref="OBSWebsocket.ReplayBufferStateChanged"/> 
+    /// or <see cref="OBSWebsocket.ReplayBufferStateChanged"/>
     /// </summary>
     /// <param name="sender"><see cref="OBSWebsocket"/> instance</param>
     /// <param name="type">New output state</param>

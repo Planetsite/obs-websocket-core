@@ -67,7 +67,7 @@ namespace OBSWebsocketDotNet.Types
         /// </summary>
         [JsonProperty(PropertyName = "cpu-usage")]
         public double CPU { internal set; get; }
-           
+
         /// <summary>
         /// Total number of skipped frames
         /// </summary>

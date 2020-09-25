@@ -1,4 +1,6 @@
 ﻿using System;
+using System.IO;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 
 namespace test
@@ -8,13 +10,13 @@ namespace test
         static void Main(string[] args)
         {
             var tests = new Tests();
-            tests.test().Wait();
+            tests.TestMultiple().Wait();
         }
     }
 
     class Tests
     {
-        public async Task test()
+        public async Task Test()
         {
             Console.WriteLine("test");
 
@@ -31,7 +33,8 @@ namespace test
 
             var so = new OBSWebsocketDotNet.OBSWebsocket();
             so.WSTimeout = TimeSpan.FromSeconds(3);
-            await so.ConnectAsync("ws://127.0.0.1:4444", null);
+            await so.ConnectAsync("ws://127.0.0.1:4444");
+            await so.StartAsync();
 
             //bool clsmute = await so.GetMuteAsync("Audio del desktop");
             //await so.SetMuteAsync("Audio del desktop", true);
@@ -93,6 +96,41 @@ namespace test
             {
                 ;
             }
+
+            await so.DisconnectAsync();
+        }
+
+        public async Task TestMultiple()
+        {
+            var so = new OBSWebsocketDotNet.OBSWebsocket();
+            so.WSTimeout = TimeSpan.FromSeconds(3);
+            await so.ConnectAsync("ws://127.0.0.1:4444");
+            await so.StartAsync();
+
+            so.StreamingStateChanged += (ws, state) =>
+            {
+                Console.WriteLine("streaming state changed: " + state);
+            };
+
+            so.StreamStatus += (ws, status) =>
+            {
+                Console.WriteLine("stream status:\n" + Newtonsoft.Json.JsonConvert.SerializeObject(status));
+            };
+
+            var stdin = Console.OpenStandardInput();
+            var consoleIn = new StreamReader(stdin);
+
+            string cmd;
+
+            do
+            {
+                cmd = await consoleIn.ReadLineAsync();
+                switch (cmd)
+                {
+                    case "start": await so.StartStreamingAsync(); break;
+                    case "stop" : await so.StopStreamingAsync(); break;
+                }
+            } while (cmd != "exit");
 
             await so.DisconnectAsync();
         }

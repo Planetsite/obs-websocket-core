@@ -279,7 +279,7 @@ namespace WebSocketSharp
         // As server
         internal bool IgnoreExtensions { get; set; }
 
-        internal bool IsConnected
+        public bool IsConnected
         {
             get
             {
