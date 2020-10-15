@@ -29,6 +29,7 @@
 using System;
 using System.Collections.Specialized;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using WebSocketSharp.Net;
 using WebSocketSharp.Net.WebSockets;
@@ -417,7 +418,7 @@ namespace WebSocketSharp.Server
             ID = Sessions.Add(this);
             if (ID == null)
             {
-                await _websocket.CloseAsync(CloseStatusCode.Away);
+                await _websocket.CloseAsync(CloseStatusCode.Away, CancellationToken.None);
                 return;
             }
 
@@ -429,12 +430,12 @@ namespace WebSocketSharp.Server
 
         #region Internal Methods
 
-        internal async Task StartAsync(WebSocketContext context, WebSocketSessionManager sessions)
+        internal async Task StartAsync(WebSocketContext context, WebSocketSessionManager sessions, CancellationToken cancellationToken)
         {
             if (_websocket != null)
             {
                 _websocket.Log.Error("A session instance cannot be reused.");
-                await context.WebSocket.CloseAsync(HttpStatusCode.ServiceUnavailable);
+                await context.WebSocket.InternalCloseAsync(HttpStatusCode.ServiceUnavailable, cancellationToken);
 
                 return;
             }
@@ -457,7 +458,7 @@ namespace WebSocketSharp.Server
             _websocket.OnError += onError;
             _websocket.OnClose += onClose;
 
-            await _websocket.InternalAcceptAsync();
+            await _websocket.InternalAcceptAsync(cancellationToken);
         }
 
         #endregion
@@ -474,7 +475,7 @@ namespace WebSocketSharp.Server
         /// <exception cref="InvalidOperationException">
         /// The session has not started yet.
         /// </exception>
-        protected async Task CloseAsync()
+        protected async Task CloseAsync(CancellationToken cancellationToken)
         {
             if (_websocket == null)
             {
@@ -482,7 +483,7 @@ namespace WebSocketSharp.Server
                 throw new InvalidOperationException(msg);
             }
 
-            await _websocket.CloseAsync();
+            await _websocket.CloseAsync(cancellationToken);
         }
 
         /// <summary>
@@ -543,7 +544,7 @@ namespace WebSocketSharp.Server
         ///   <paramref name="reason"/> could not be UTF-8-encoded.
         ///   </para>
         /// </exception>
-        protected async Task CloseAsync(ushort code, string reason)
+        protected async Task CloseAsync(ushort code, string reason, CancellationToken cancellationToken)
         {
             if (_websocket == null)
             {
@@ -551,7 +552,7 @@ namespace WebSocketSharp.Server
                 throw new InvalidOperationException(msg);
             }
 
-            await _websocket.CloseAsync(code, reason);
+            await _websocket.CloseAsync(code, reason, cancellationToken);
         }
 
         /// <summary>
@@ -603,7 +604,7 @@ namespace WebSocketSharp.Server
         ///   <paramref name="reason"/> could not be UTF-8-encoded.
         ///   </para>
         /// </exception>
-        protected async Task CloseAsync(CloseStatusCode code, string reason)
+        protected async Task CloseAsync(CloseStatusCode code, string reason, CancellationToken cancellationToken)
         {
             if (_websocket == null)
             {
@@ -611,7 +612,7 @@ namespace WebSocketSharp.Server
                 throw new InvalidOperationException(msg);
             }
 
-            await _websocket.CloseAsync(code, reason);
+            await _websocket.CloseAsync(code, reason, cancellationToken);
         }
 
         /// <summary>
@@ -694,7 +695,7 @@ namespace WebSocketSharp.Server
         /// <exception cref="ArgumentNullException">
         /// <paramref name="data"/> is <see langword="null"/>.
         /// </exception>
-        protected async Task SendAsync(byte[] data)
+        protected async Task SendAsync(byte[] data, CancellationToken cancellationToken)
         {
             if (_websocket == null)
             {
@@ -702,7 +703,7 @@ namespace WebSocketSharp.Server
                 throw new InvalidOperationException(msg);
             }
 
-            await _websocket.SendAsync(data);
+            await _websocket.SendAsync(data, cancellationToken);
         }
 
         /// <summary>
@@ -733,7 +734,7 @@ namespace WebSocketSharp.Server
         ///   The file could not be opened.
         ///   </para>
         /// </exception>
-        protected async Task SendAsync(FileInfo fileInfo)
+        protected async Task SendAsync(FileInfo fileInfo, CancellationToken cancellationToken)
         {
             if (_websocket == null)
             {
@@ -741,7 +742,7 @@ namespace WebSocketSharp.Server
                 throw new InvalidOperationException(msg);
             }
 
-            await _websocket.SendAsync(fileInfo);
+            await _websocket.SendAsync(fileInfo, cancellationToken);
         }
 
         /// <summary>
@@ -759,7 +760,7 @@ namespace WebSocketSharp.Server
         /// <exception cref="ArgumentException">
         /// <paramref name="data"/> could not be UTF-8-encoded.
         /// </exception>
-        protected async Task SendAsync(string data)
+        protected async Task SendAsync(string data, CancellationToken cancellationToken)
         {
             if (_websocket == null)
             {
@@ -767,7 +768,7 @@ namespace WebSocketSharp.Server
                 throw new InvalidOperationException(msg);
             }
 
-            await _websocket.SendAsync(data);
+            await _websocket.SendAsync(data, cancellationToken);
         }
 
         /// <summary>
@@ -808,7 +809,7 @@ namespace WebSocketSharp.Server
         ///   No data could be read from <paramref name="stream"/>.
         ///   </para>
         /// </exception>
-        protected async Task SendAsync(Stream stream, int length)
+        protected async Task SendAsync(Stream stream, int length, CancellationToken cancellationToken)
         {
             if (_websocket == null)
             {
@@ -816,7 +817,7 @@ namespace WebSocketSharp.Server
                 throw new InvalidOperationException(msg);
             }
 
-            await _websocket.SendAsync(stream, length);
+            await _websocket.SendAsync(stream, length, cancellationToken);
         }
 
         #endregion

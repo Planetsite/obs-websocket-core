@@ -200,7 +200,7 @@ namespace WebSocketSharp.Server
             set
             {
                 string msg;
-                if (!canSet(out msg))
+                if (!CanSet(out msg))
                 {
                     _log.Warn(msg);
                     return;
@@ -208,7 +208,7 @@ namespace WebSocketSharp.Server
 
                 lock (_sync)
                 {
-                    if (!canSet(out msg))
+                    if (!CanSet(out msg))
                     {
                         _log.Warn(msg);
                         return;
@@ -295,7 +295,7 @@ namespace WebSocketSharp.Server
                     throw new ArgumentOutOfRangeException("value", "Zero or less.");
 
                 string msg;
-                if (!canSet(out msg))
+                if (!CanSet(out msg))
                 {
                     _log.Warn(msg);
                     return;
@@ -303,7 +303,7 @@ namespace WebSocketSharp.Server
 
                 lock (_sync)
                 {
-                    if (!canSet(out msg))
+                    if (!CanSet(out msg))
                     {
                         _log.Warn(msg);
                         return;
@@ -321,7 +321,7 @@ namespace WebSocketSharp.Server
 
         #region Private Methods
 
-        private async Task broadcastAsync(Opcode opcode, byte[] data, Action completed)
+        private async Task PrivateBroadcastAsync(Opcode opcode, byte[] data, Action completed, CancellationToken cancellationToken)
         {
             var cache = new Dictionary<CompressionMethod, byte[]>();
 
@@ -335,7 +335,7 @@ namespace WebSocketSharp.Server
                         break;
                     }
 
-                    await host.Sessions.BroadcastAsync(opcode, data, cache);
+                    await host.Sessions.BroadcastAsync(opcode, data, cache, cancellationToken);
                 }
 
                 if (completed != null)
@@ -352,7 +352,7 @@ namespace WebSocketSharp.Server
             }
         }
 
-        private async Task broadcastAsync(Opcode opcode, Stream stream, Action completed)
+        private async Task PrivateBroadcastAsync(Opcode opcode, Stream stream, Action completed, CancellationToken cancellationToken)
         {
             var cache = new Dictionary<CompressionMethod, Stream>();
 
@@ -366,7 +366,7 @@ namespace WebSocketSharp.Server
                         break;
                     }
 
-                    await host.Sessions.BroadcastAsync(opcode, stream, cache);
+                    await host.Sessions.BroadcastAsync(opcode, stream, cache, cancellationToken);
                 }
 
                 if (completed != null)
@@ -386,7 +386,7 @@ namespace WebSocketSharp.Server
             }
         }
 
-        private async Task<Dictionary<string, Dictionary<string, bool>>> broadpingAsync(byte[] frameAsBytes, TimeSpan timeout)
+        private async Task<Dictionary<string, Dictionary<string, bool>>> PrivateBroadpingAsync(byte[] frameAsBytes, TimeSpan timeout, CancellationToken cancellationToken)
         {
             var ret = new Dictionary<string, Dictionary<string, bool>>();
 
@@ -398,14 +398,14 @@ namespace WebSocketSharp.Server
                     break;
                 }
 
-                var res = await host.Sessions.BroadpingAsync(frameAsBytes, timeout);
+                var res = await host.Sessions.BroadpingAsync(frameAsBytes, timeout, cancellationToken);
                 ret.Add(host.Path, res);
             }
 
             return ret;
         }
 
-        private bool canSet(out string message)
+        private bool CanSet(out string message)
         {
             message = null;
 
@@ -428,8 +428,8 @@ namespace WebSocketSharp.Server
 
         #region Internal Methods
 
-        internal void Add<TBehavior>(string path, Func<TBehavior> creator)
-          where TBehavior : WebSocketBehavior
+        internal void Add<TBehavior>(string path, Func<TBehavior> creator, CancellationToken stoppingToken)
+            where TBehavior : WebSocketBehavior
         {
             path = path.TrimSlashFromEnd();
 
@@ -439,9 +439,7 @@ namespace WebSocketSharp.Server
                 if (_hosts.TryGetValue(path, out host))
                     throw new ArgumentException("Already in use.", "path");
 
-                host = new WebSocketServiceHost<TBehavior>(
-                         path, creator, null, _log
-                       );
+                host = new WebSocketServiceHost<TBehavior>(path, creator, null, _log);
 
                 if (!_clean)
                     host.KeepClean = false;
@@ -450,7 +448,7 @@ namespace WebSocketSharp.Server
                     host.WaitTime = _waitTime;
 
                 if (_state == ServerState.Start)
-                    host.Start();
+                    host.Start(stoppingToken);
 
                 _hosts.Add(path, host);
             }
@@ -466,25 +464,25 @@ namespace WebSocketSharp.Server
                 return _hosts.TryGetValue(path, out host);
         }
 
-        internal void Start()
+        internal void Start(CancellationToken stoppingToken)
         {
             lock (_sync)
             {
                 foreach (var host in _hosts.Values)
-                    host.Start();
+                    host.Start(stoppingToken);
 
                 _state = ServerState.Start;
             }
         }
 
-        internal async Task StopAsync(ushort code, string reason)
+        internal async Task StopAsync(ushort code, string reason, CancellationToken stoppingToken)
         {
             //lock (_sync)
             {
                 _state = ServerState.ShuttingDown;
 
                 foreach (var host in _hosts.Values)
-                    await host.StopAsync(code, reason);
+                    await host.StopAsync(code, reason, stoppingToken);
 
                 _state = ServerState.Stop;
             }
@@ -555,8 +553,8 @@ namespace WebSocketSharp.Server
         ///   <paramref name="path"/> is already in use.
         ///   </para>
         /// </exception>
-        public void AddService<TBehavior>(string path, Action<TBehavior> initializer)
-          where TBehavior : WebSocketBehavior, new()
+        public void AddService<TBehavior>(string path, Action<TBehavior> initializer, CancellationToken stoppingToken)
+            where TBehavior : WebSocketBehavior, new()
         {
             if (path == null)
                 throw new ArgumentNullException("path");
@@ -592,7 +590,7 @@ namespace WebSocketSharp.Server
                     host.WaitTime = _waitTime;
 
                 if (_state == ServerState.Start)
-                    host.Start();
+                    host.Start(stoppingToken);
 
                 _hosts.Add(path, host);
             }
@@ -610,7 +608,7 @@ namespace WebSocketSharp.Server
         /// <exception cref="ArgumentNullException">
         /// <paramref name="data"/> is <see langword="null"/>.
         /// </exception>
-        public async Task BroadcastAsync(byte[] data)
+        public async Task BroadcastAsync(byte[] data, CancellationToken cancellationToken)
         {
             if (_state != ServerState.Start)
             {
@@ -622,9 +620,9 @@ namespace WebSocketSharp.Server
                 throw new ArgumentNullException("data");
 
             if (data.LongLength <= WebSocket.FragmentLength)
-                await broadcastAsync(Opcode.Binary, data, null);
+                await PrivateBroadcastAsync(Opcode.Binary, data, null, cancellationToken);
             else
-                await broadcastAsync(Opcode.Binary, new MemoryStream(data), null);
+                await PrivateBroadcastAsync(Opcode.Binary, new MemoryStream(data), null, cancellationToken);
         }
 
         /// <summary>
@@ -642,7 +640,7 @@ namespace WebSocketSharp.Server
         /// <exception cref="ArgumentException">
         /// <paramref name="data"/> could not be UTF-8-encoded.
         /// </exception>
-        public async Task BroadcastAsync(string data)
+        public async Task BroadcastAsync(string data, CancellationToken cancellationToken)
         {
             if (_state != ServerState.Start)
             {
@@ -661,9 +659,9 @@ namespace WebSocketSharp.Server
             }
 
             if (bytes.LongLength <= WebSocket.FragmentLength)
-                await broadcastAsync(Opcode.Text, bytes, null);
+                await PrivateBroadcastAsync(Opcode.Text, bytes, null, cancellationToken);
             else
-                await broadcastAsync(Opcode.Text, new MemoryStream(bytes), null);
+                await PrivateBroadcastAsync(Opcode.Text, new MemoryStream(bytes), null, cancellationToken);
         }
 
         /// <summary>
@@ -691,7 +689,7 @@ namespace WebSocketSharp.Server
         /// <exception cref="ArgumentNullException">
         /// <paramref name="data"/> is <see langword="null"/>.
         /// </exception>
-        public async Task BroadcastAsync(byte[] data, Action completed)
+        public async Task BroadcastAsync(byte[] data, Action completed, CancellationToken cancellationToken)
         {
             if (_state != ServerState.Start)
             {
@@ -703,9 +701,9 @@ namespace WebSocketSharp.Server
                 throw new ArgumentNullException("data");
 
             if (data.LongLength <= WebSocket.FragmentLength)
-                await broadcastAsync(Opcode.Binary, data, completed);
+                await PrivateBroadcastAsync(Opcode.Binary, data, completed, cancellationToken);
             else
-                await broadcastAsync(Opcode.Binary, new MemoryStream(data), completed);
+                await PrivateBroadcastAsync(Opcode.Binary, new MemoryStream(data), completed, cancellationToken);
         }
 
         /// <summary>
@@ -736,7 +734,7 @@ namespace WebSocketSharp.Server
         /// <exception cref="ArgumentException">
         /// <paramref name="data"/> could not be UTF-8-encoded.
         /// </exception>
-        public async Task BroadcastAsync(string data, Action completed)
+        public async Task BroadcastAsync(string data, Action completed, CancellationToken cancellationToken)
         {
             if (_state != ServerState.Start)
             {
@@ -755,9 +753,9 @@ namespace WebSocketSharp.Server
             }
 
             if (bytes.LongLength <= WebSocket.FragmentLength)
-                await broadcastAsync(Opcode.Text, bytes, completed);
+                await PrivateBroadcastAsync(Opcode.Text, bytes, completed, cancellationToken);
             else
-                await broadcastAsync(Opcode.Text, new MemoryStream(bytes), completed);
+                await PrivateBroadcastAsync(Opcode.Text, new MemoryStream(bytes), completed, cancellationToken);
         }
 
         /// <summary>
@@ -810,7 +808,7 @@ namespace WebSocketSharp.Server
         ///   No data could be read from <paramref name="stream"/>.
         ///   </para>
         /// </exception>
-        public async Task BroadcastAsync(Stream stream, int length, Action completed)
+        public async Task BroadcastAsync(Stream stream, int length, Action completed, CancellationToken cancellationToken)
         {
             if (_state != ServerState.Start)
             {
@@ -848,9 +846,9 @@ namespace WebSocketSharp.Server
             }
 
             if (len <= WebSocket.FragmentLength)
-                await broadcastAsync(Opcode.Binary, bytes, completed);
+                await PrivateBroadcastAsync(Opcode.Binary, bytes, completed, cancellationToken);
             else
-                await broadcastAsync(Opcode.Binary, new MemoryStream(bytes), completed);
+                await PrivateBroadcastAsync(Opcode.Binary, new MemoryStream(bytes), completed, cancellationToken);
         }
 
         /// <summary>
@@ -870,7 +868,7 @@ namespace WebSocketSharp.Server
         /// The current state of the manager is not Start.
         /// </exception>
         [Obsolete("This method will be removed.")]
-        public async Task<Dictionary<string, Dictionary<string, bool>>> BroadpingAsync()
+        public async Task<Dictionary<string, Dictionary<string, bool>>> BroadpingAsync(CancellationToken cancellationToken)
         {
             if (_state != ServerState.Start)
             {
@@ -878,7 +876,7 @@ namespace WebSocketSharp.Server
                 throw new InvalidOperationException(msg);
             }
 
-            return await broadpingAsync(WebSocketFrame.EmptyPingBytes, _waitTime);
+            return await PrivateBroadpingAsync(WebSocketFrame.EmptyPingBytes, _waitTime, cancellationToken);
         }
 
         /// <summary>
@@ -913,7 +911,7 @@ namespace WebSocketSharp.Server
         /// The size of <paramref name="message"/> is greater than 125 bytes.
         /// </exception>
         [Obsolete("This method will be removed.")]
-        public async Task<Dictionary<string, Dictionary<string, bool>>> BroadpingAsync(string message)
+        public async Task<Dictionary<string, Dictionary<string, bool>>> BroadpingAsync(string message, CancellationToken cancellationToken)
         {
             if (_state != ServerState.Start)
             {
@@ -922,7 +920,7 @@ namespace WebSocketSharp.Server
             }
 
             if (message.IsNullOrEmpty())
-                return await broadpingAsync(WebSocketFrame.EmptyPingBytes, _waitTime);
+                return await PrivateBroadpingAsync(WebSocketFrame.EmptyPingBytes, _waitTime, cancellationToken);
 
             byte[] bytes;
             if (!message.TryGetUTF8EncodedBytes(out bytes))
@@ -938,7 +936,7 @@ namespace WebSocketSharp.Server
             }
 
             var frame = WebSocketFrame.CreatePingFrame(bytes, false);
-            return await broadpingAsync(frame.ToArray(), _waitTime);
+            return await PrivateBroadpingAsync(frame.ToArray(), _waitTime, cancellationToken);
         }
 
         /// <summary>
@@ -948,7 +946,7 @@ namespace WebSocketSharp.Server
         /// A service is stopped with close status 1001 (going away)
         /// if it has already started.
         /// </remarks>
-        public async Task ClearAsync()
+        public async Task ClearAsync(CancellationToken cancellationToken)
         {
             List<WebSocketServiceHost> hosts = null;
 
@@ -961,7 +959,7 @@ namespace WebSocketSharp.Server
             foreach (var host in hosts)
             {
                 if (host.State == ServerState.Start)
-                    await host.StopAsync(1001, String.Empty);
+                    await host.StopAsync(1001, String.Empty, cancellationToken);
             }
         }
 
@@ -1006,7 +1004,7 @@ namespace WebSocketSharp.Server
         ///   query and fragment components.
         ///   </para>
         /// </exception>
-        public async Task<bool> RemoveServiceAsync(string path)
+        public async Task<bool> RemoveServiceAsync(string path, CancellationToken stoppingToken)
         {
             if (path == null)
                 throw new ArgumentNullException("path");
@@ -1035,7 +1033,7 @@ namespace WebSocketSharp.Server
             }
 
             if (host.State == ServerState.Start)
-                await host.StopAsync(1001, String.Empty);
+                await host.StopAsync(1001, String.Empty, stoppingToken);
 
             return true;
         }

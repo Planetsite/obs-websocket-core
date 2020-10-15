@@ -47,9 +47,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Security.Cryptography.X509Certificates;
 using System.Security.Principal;
-using System.Threading;
 using System.Threading.Tasks;
 
 // TODO: Logging.
@@ -453,7 +451,7 @@ namespace WebSocketSharp.Net
 
         #region Private Methods
 
-        private async Task cleanupConnectionsAsync()
+        private async Task CleanupConnectionsAsync()
         {
             HttpConnection[] conns = null;
             lock (_connectionsSync)
@@ -472,7 +470,7 @@ namespace WebSocketSharp.Net
                 await conns[i].CloseAsync(true);
         }
 
-        private async Task cleanupContextQueueAsync(bool sendServiceUnavailable)
+        private async Task CleanupContextQueueAsync(bool sendServiceUnavailable)
         {
             HttpListenerContext[] ctxs = null;
             lock (_ctxQueueSync)
@@ -495,7 +493,7 @@ namespace WebSocketSharp.Net
             }
         }
 
-        private async Task cleanupContextRegistryAsync()
+        private async Task CleanupContextRegistryAsync()
         {
             HttpListenerContext[] ctxs = null;
             lock (_ctxRegistrySync)
@@ -514,7 +512,7 @@ namespace WebSocketSharp.Net
                 await ctxs[i].Connection.CloseAsync(true);
         }
 
-        private void cleanupWaitQueue(Exception exception)
+        private void CleanupWaitQueue(Exception exception)
         {
             HttpListenerAsyncResult[] aress = null;
             lock (_waitQueueSync)
@@ -530,7 +528,7 @@ namespace WebSocketSharp.Net
                 ares.Complete(exception);
         }
 
-        private async Task closeAsync(bool force)
+        private async Task PrivateCloseAsync(bool force)
         {
             if (_listening)
             {
@@ -539,16 +537,16 @@ namespace WebSocketSharp.Net
             }
 
             //lock (_ctxRegistrySync)
-                await cleanupContextQueueAsync(!force);
+                await CleanupContextQueueAsync(!force);
 
-            await cleanupContextRegistryAsync();
-            await cleanupConnectionsAsync();
-            cleanupWaitQueue(new ObjectDisposedException(GetType().ToString()));
+            await CleanupContextRegistryAsync();
+            await CleanupConnectionsAsync();
+            CleanupWaitQueue(new ObjectDisposedException(GetType().ToString()));
 
             _disposed = true;
         }
 
-        private HttpListenerAsyncResult getAsyncResultFromQueue()
+        private HttpListenerAsyncResult GetAsyncResultFromQueue()
         {
             if (_waitQueue.Count == 0)
                 return null;
@@ -559,7 +557,7 @@ namespace WebSocketSharp.Net
             return ares;
         }
 
-        private HttpListenerContext getContextFromQueue()
+        private HttpListenerContext GetContextFromQueue()
         {
             if (_ctxQueue.Count == 0)
                 return null;
@@ -596,7 +594,7 @@ namespace WebSocketSharp.Net
                 if (!_listening)
                     throw new HttpListenerException(995);
 
-                var ctx = getContextFromQueue();
+                var ctx = GetContextFromQueue();
                 if (ctx == null)
                     _waitQueue.Add(asyncResult);
                 else
@@ -635,7 +633,7 @@ namespace WebSocketSharp.Net
 
                 _ctxRegistry[context] = context;
 
-                var ares = getAsyncResultFromQueue();
+                var ares = GetAsyncResultFromQueue();
                 if (ares == null)
                     _ctxQueue.Add(context);
                 else
@@ -685,7 +683,7 @@ namespace WebSocketSharp.Net
             if (_disposed)
                 return;
 
-            await closeAsync(true);
+            await PrivateCloseAsync(true);
         }
 
         /// <summary>
@@ -740,7 +738,7 @@ namespace WebSocketSharp.Net
             if (_disposed)
                 return;
 
-            await closeAsync(false);
+            await PrivateCloseAsync(false);
         }
 
         /// <summary>
@@ -858,11 +856,11 @@ namespace WebSocketSharp.Net
             await EndPointManager.RemoveListenerAsync(this);
 
             //lock (_ctxRegistrySync)
-                await cleanupContextQueueAsync(true);
+                await CleanupContextQueueAsync(true);
 
-            await cleanupContextRegistryAsync();
-            await cleanupConnectionsAsync();
-            cleanupWaitQueue(new HttpListenerException(995, "The listener is stopped."));
+            await CleanupContextRegistryAsync();
+            await CleanupConnectionsAsync();
+            CleanupWaitQueue(new HttpListenerException(995, "The listener is stopped."));
         }
 
         #endregion
@@ -877,7 +875,7 @@ namespace WebSocketSharp.Net
             if (_disposed)
                 return;
 
-            await closeAsync(true);
+            await PrivateCloseAsync(true);
         }
 
         #endregion

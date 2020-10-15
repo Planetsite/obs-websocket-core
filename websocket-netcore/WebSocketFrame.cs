@@ -83,19 +83,17 @@ namespace WebSocketSharp
         {
         }
 
-        internal WebSocketFrame(
-          Fin fin, Opcode opcode, byte[] data, bool compressed, bool mask
-        )
+        internal WebSocketFrame(Fin fin, Opcode opcode, byte[] data, bool compressed, bool mask)
           : this(fin, opcode, new PayloadData(data), compressed, mask)
         {
         }
 
         internal WebSocketFrame(
-          Fin fin,
-          Opcode opcode,
-          PayloadData payloadData,
-          bool compressed,
-          bool mask
+            Fin fin,
+            Opcode opcode,
+            PayloadData payloadData,
+            bool compressed,
+            bool mask
         )
         {
             Fin = fin;
@@ -125,7 +123,7 @@ namespace WebSocketSharp
             if (mask)
             {
                 Mask = Mask.On;
-                MaskingKey = createMaskingKey();
+                MaskingKey = CreateMaskingKey();
                 payloadData.Mask(MaskingKey);
             }
             else
@@ -299,7 +297,7 @@ namespace WebSocketSharp
 
         #region Private Methods
 
-        private static byte[] createMaskingKey()
+        private static byte[] CreateMaskingKey()
         {
             var key = new byte[4];
             WebSocket.RandomNumber.GetBytes(key);
@@ -307,7 +305,7 @@ namespace WebSocketSharp
             return key;
         }
 
-        private static string dump(WebSocketFrame frame)
+        private static string Dump(WebSocketFrame frame)
         {
             var len = frame.Length;
             var cnt = (long)(len / 4);
@@ -403,7 +401,7 @@ namespace WebSocketSharp
             return buff.ToString();
         }
 
-        private static string print(WebSocketFrame frame)
+        private static string Print(WebSocketFrame frame)
         {
             // Payload Length
             var payloadLen = frame.PayloadLength;
@@ -426,7 +424,7 @@ namespace WebSocketSharp
                               || frame.IsMasked
                               || frame.IsCompressed
                               ? frame.PayloadData.ToString()
-                              : utf8Decode(frame.PayloadData.ApplicationData);
+                              : Utf8Decode(frame.PayloadData.ApplicationData);
 
             var fmt = @"
                     FIN: {0}
@@ -455,7 +453,7 @@ Extended Payload Length: {7}
             );
         }
 
-        private static WebSocketFrame processHeader(byte[] header)
+        private static WebSocketFrame ProcessHeader(byte[] header)
         {
             if (header.Length != 2)
             {
@@ -523,7 +521,7 @@ Extended Payload Length: {7}
             return frame;
         }
 
-        private static async Task readExtendedPayloadLengthAsync(Stream stream, WebSocketFrame frame)
+        private static async Task ReadExtendedPayloadLengthAsync(Stream stream, WebSocketFrame frame, CancellationToken cancellationToken)
         {
             var len = frame.ExtendedPayloadLengthWidth;
             if (len == 0)
@@ -532,7 +530,7 @@ Extended Payload Length: {7}
                 return;
             }
 
-            byte[] bytes = await Ext.ExtReadBytesRetryAsync(stream, len);
+            byte[] bytes = await Ext.ExtReadBytesRetryAsync(stream, len, cancellationToken);
             if (bytes.Length != len)
             {
                 var msg = "The extended payload length of a frame could not be read.";
@@ -542,10 +540,10 @@ Extended Payload Length: {7}
             frame.ExtendedPayloadLength = bytes;
         }
 
-        private static async Task<WebSocketFrame> readHeaderAsync(Stream stream)
+        private static async Task<WebSocketFrame> ReadHeaderAsync(Stream stream, CancellationToken cancellationToken)
         {
-            var data = await Ext.ExtReadBytesAsync(stream, 2, CancellationToken.None);
-            return processHeader(data);
+            var data = await Ext.ExtReadBytesAsync(stream, 2, cancellationToken);
+            return ProcessHeader(data);
         }
 
         //private static async Task<WebSocketFrame> readHeaderAsync(Stream stream)
@@ -554,7 +552,7 @@ Extended Payload Length: {7}
         //    return processHeader(bytes);
         //}
 
-        private static async Task readMaskingKeyAsync(Stream stream, WebSocketFrame frame)
+        private static async Task ReadMaskingKeyAsync(Stream stream, WebSocketFrame frame, CancellationToken cancellationToken)
         {
             if (!frame.IsMasked)
             {
@@ -563,7 +561,7 @@ Extended Payload Length: {7}
             }
 
             var len = 4;
-            var bytes = await Ext.ExtReadBytesAsync(stream, len, CancellationToken.None);
+            var bytes = await Ext.ExtReadBytesAsync(stream, len, cancellationToken);
 
             if (bytes.Length != len)
             {
@@ -574,7 +572,7 @@ Extended Payload Length: {7}
             frame.MaskingKey = bytes;
         }
 
-        private static async Task<WebSocketFrame> readPayloadData(Stream stream, WebSocketFrame frame)
+        private static async Task<WebSocketFrame> ReadPayloadData(Stream stream, WebSocketFrame frame)
         {
             var exactLen = frame.ExactPayloadLength;
             if (exactLen > PayloadData.MaxLength)
@@ -605,7 +603,7 @@ Extended Payload Length: {7}
             return frame;
         }
 
-        private static async Task readPayloadDataAsync(Stream stream, WebSocketFrame frame)
+        private static async Task ReadPayloadDataAsync(Stream stream, WebSocketFrame frame, CancellationToken cancellationToken)
         {
             var exactLen = frame.ExactPayloadLength;
             if (exactLen > PayloadData.MaxLength)
@@ -624,12 +622,12 @@ Extended Payload Length: {7}
 
             if (frame.PayloadLength < 127)
             {
-                var smallBytes = await Ext.ExtReadBytesAsync(stream, (int)exactLen, CancellationToken.None);
+                var smallBytes = await Ext.ExtReadBytesAsync(stream, (int)exactLen, cancellationToken);
                 frame.PayloadData = new PayloadData(smallBytes, len);
                 return;
             }
 
-            var bytes = await Ext.ExtReadBytesRetryAsync(stream, (int)len);
+            var bytes = await Ext.ExtReadBytesRetryAsync(stream, (int)len, cancellationToken);
             if (bytes.LongLength != len)
             {
                 var msg = "The payload data of a frame could not be read.";
@@ -639,7 +637,7 @@ Extended Payload Length: {7}
             frame.PayloadData = new PayloadData(bytes, len);
         }
 
-        private static string utf8Decode(byte[] bytes)
+        private static string Utf8Decode(byte[] bytes)
         {
             try
             {
@@ -655,9 +653,7 @@ Extended Payload Length: {7}
 
         #region Internal Methods
 
-        internal static WebSocketFrame CreateCloseFrame(
-          PayloadData payloadData, bool mask
-        )
+        internal static WebSocketFrame CreateCloseFrame(PayloadData payloadData, bool mask)
         {
             return new WebSocketFrame(Fin.Final, Opcode.Close, payloadData, false, mask);
         }
@@ -677,12 +673,12 @@ Extended Payload Length: {7}
             return new WebSocketFrame(Fin.Final, Opcode.Pong, payloadData, false, mask);
         }
 
-        internal static async Task<WebSocketFrame> ReadFrameAsync(Stream stream, bool unmask)
+        internal static async Task<WebSocketFrame> ReadFrameAsync(Stream stream, bool unmask, CancellationToken cancellationToken)
         {
-            var frame = await readHeaderAsync(stream);
-            await readExtendedPayloadLengthAsync(stream, frame);
-            await readMaskingKeyAsync(stream, frame);
-            await readPayloadDataAsync(stream, frame);
+            var frame = await ReadHeaderAsync(stream, cancellationToken);
+            await ReadExtendedPayloadLengthAsync(stream, frame, cancellationToken);
+            await ReadMaskingKeyAsync(stream, frame, cancellationToken);
+            await ReadPayloadDataAsync(stream, frame, cancellationToken);
 
             if (unmask)
                 frame.Unmask();
@@ -712,12 +708,12 @@ Extended Payload Length: {7}
 
         public void Print(bool dumped)
         {
-            Console.WriteLine(dumped ? dump(this) : print(this));
+            Console.WriteLine(dumped ? Dump(this) : Print(this));
         }
 
         public string PrintToString(bool dumped)
         {
-            return dumped ? dump(this) : print(this);
+            return dumped ? Dump(this) : Print(this);
         }
 
         public byte[] ToArray()

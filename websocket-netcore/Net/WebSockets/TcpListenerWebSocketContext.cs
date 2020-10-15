@@ -41,6 +41,7 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Principal;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace WebSocketSharp.Net.WebSockets
@@ -521,11 +522,11 @@ namespace WebSocketSharp.Net.WebSockets
             _tcpClient.Close();
         }
 
-        internal void Close(HttpStatusCode code)
+        internal async Task CloseAsync(HttpStatusCode code, CancellationToken stoppingToken)
         {
             var res = HttpResponse.CreateCloseResponse(code);
             var bytes = res.ToByteArray();
-            _stream.Write(bytes, 0, bytes.Length);
+            await _stream.WriteAsync(bytes, 0, bytes.Length, stoppingToken);
 
             _stream.Close();
             _tcpClient.Close();

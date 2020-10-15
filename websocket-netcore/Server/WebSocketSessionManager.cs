@@ -47,13 +47,13 @@ namespace WebSocketSharp.Server
         #region Private Fields
 
         private volatile bool _clean;
-        private object _forSweep;
+        //private object _forSweep;
         private Logger _log;
         private Dictionary<string, IWebSocketSession> _sessions;
         private volatile ServerState _state;
         private volatile bool _sweeping;
         //private System.Timers.Timer _sweepTimer;
-        private CancellationTokenRegistration _sweepTimer;
+        private CancellationTokenSource _sweepStoppingToken = new CancellationTokenSource();
         //private object _sync;
         private TimeSpan _waitTime;
 
@@ -66,13 +66,13 @@ namespace WebSocketSharp.Server
             _log = log;
 
             _clean = true;
-            _forSweep = new object();
+            //_forSweep = new object();
             _sessions = new Dictionary<string, IWebSocketSession>();
             _state = ServerState.Ready;
             //_sync = ((ICollection)_sessions).SyncRoot;
             _waitTime = TimeSpan.FromSeconds(1);
 
-            setSweepTimer(60000);
+            //setSweepTimerNotAsync(60000, CancellationToken.None);
         }
 
         #endregion
@@ -103,9 +103,9 @@ namespace WebSocketSharp.Server
         ///   the collection of the IDs for the active sessions.
         ///   </para>
         /// </value>
-        public async IAsyncEnumerable<string> GetActiveIDs()
+        public async IAsyncEnumerable<string> GetActiveIDsAsync(CancellationToken cancellationToken)
         {
-            foreach (var res in await broadpingAsync(WebSocketFrame.EmptyPingBytes))
+            foreach (var res in await PrivateBroadpingAsync(WebSocketFrame.EmptyPingBytes, cancellationToken))
             {
                 if (res.Value)
                     yield return res.Key;
@@ -168,9 +168,9 @@ namespace WebSocketSharp.Server
         ///   the collection of the IDs for the inactive sessions.
         ///   </para>
         /// </value>
-        public async IAsyncEnumerable<string> GetInactiveIDs()
+        public async IAsyncEnumerable<string> GetInactiveIDsAsync(CancellationToken cancellationToken)
         {
-            foreach (var res in await broadpingAsync(WebSocketFrame.EmptyPingBytes))
+            foreach (var res in await PrivateBroadpingAsync(WebSocketFrame.EmptyPingBytes, cancellationToken))
             {
                 if (!res.Value)
                     yield return res.Key;
@@ -210,7 +210,7 @@ namespace WebSocketSharp.Server
                     throw new ArgumentException("An empty string.", "id");
 
                 IWebSocketSession session;
-                tryGetSession(id, out session);
+                PrivateTryGetSession(id, out session);
 
                 return session;
             }
@@ -238,7 +238,7 @@ namespace WebSocketSharp.Server
             set
             {
                 string msg;
-                if (!canSet(out msg))
+                if (!CanSet(out msg))
                 {
                     _log.Warn(msg);
                     return;
@@ -246,7 +246,7 @@ namespace WebSocketSharp.Server
 
                 //lock (_sync)
                 {
-                    if (!canSet(out msg))
+                    if (!CanSet(out msg))
                     {
                         _log.Warn(msg);
                         return;
@@ -313,7 +313,7 @@ namespace WebSocketSharp.Server
                     throw new ArgumentOutOfRangeException("value", "Zero or less.");
 
                 string msg;
-                if (!canSet(out msg))
+                if (!CanSet(out msg))
                 {
                     _log.Warn(msg);
                     return;
@@ -321,7 +321,7 @@ namespace WebSocketSharp.Server
 
                 //lock (_sync)
                 {
-                    if (!canSet(out msg))
+                    if (!CanSet(out msg))
                     {
                         _log.Warn(msg);
                         return;
@@ -336,7 +336,7 @@ namespace WebSocketSharp.Server
 
         #region Private Methods
 
-        private async Task broadcastAsync(Opcode opcode, byte[] data, Action completed)
+        private async Task PrivateBroadcastAsync(Opcode opcode, byte[] data, Action completed, CancellationToken cancellationToken)
         {
             var cache = new Dictionary<CompressionMethod, byte[]>();
 
@@ -350,7 +350,7 @@ namespace WebSocketSharp.Server
                         break;
                     }
 
-                    await session.Context.WebSocket.SendAsync(opcode, data, cache);
+                    await session.Context.WebSocket.InternalSendAsync(opcode, data, cache, cancellationToken);
                 }
 
                 if (completed != null)
@@ -367,7 +367,7 @@ namespace WebSocketSharp.Server
             }
         }
 
-        private async Task broadcastAsync(Opcode opcode, Stream stream, Action completed)
+        private async Task PrivateBroadcastAsync(Opcode opcode, Stream stream, Action completed, CancellationToken cancellationToken)
         {
             var cache = new Dictionary<CompressionMethod, Stream>();
 
@@ -381,7 +381,7 @@ namespace WebSocketSharp.Server
                         break;
                     }
 
-                    await session.Context.WebSocket.SendAsync(opcode, stream, cache);
+                    await session.Context.WebSocket.InternalSendAsync(opcode, stream, cache, cancellationToken);
                 }
 
                 if (completed != null)
@@ -401,7 +401,7 @@ namespace WebSocketSharp.Server
             }
         }
 
-        private async Task<Dictionary<string, bool>> broadpingAsync(byte[] frameAsBytes)
+        private async Task<Dictionary<string, bool>> PrivateBroadpingAsync(byte[] frameAsBytes, CancellationToken cancellationToken)
         {
             var ret = new Dictionary<string, bool>();
 
@@ -413,14 +413,14 @@ namespace WebSocketSharp.Server
                     break;
                 }
 
-                var res = await session.Context.WebSocket.PingAsync(frameAsBytes, _waitTime);
+                var res = await session.Context.WebSocket.InternalPingAsync(frameAsBytes, _waitTime, cancellationToken);
                 ret.Add(session.ID, res);
             }
 
             return ret;
         }
 
-        private bool canSet(out string message)
+        private bool CanSet(out string message)
         {
             message = null;
 
@@ -439,21 +439,37 @@ namespace WebSocketSharp.Server
             return true;
         }
 
-        private static string createID()
+        private static string CreateID()
         {
             return Guid.NewGuid().ToString("N");
         }
 
-        private void setSweepTimer(double interval)
+        private async Task SetSweepTimerNotAsync(double interval, CancellationToken stoppingToken)
         {
-            var cts = new CancellationTokenSource((int)interval);
-            _sweepTimer = cts.Token.Register(() => SweepAsync().Wait());
+            int sleepMillisec = (int)interval;
+            var stop = _sweepStoppingToken.Token;
+            using var disposeRegistration = stoppingToken.Register(() => _sweepStoppingToken.Cancel());
 
-            //_sweepTimer = new System.Timers.Timer(interval);
-            //_sweepTimer.Elapsed += (sender, e) => SweepAsync();
+            try
+            {
+                do
+                {
+                    using var cts = new CancellationTokenSource(sleepMillisec);
+                    await SweepAsync(cts.Token);
+                    await Task.Delay(sleepMillisec);
+                }
+                while (!stop.IsCancellationRequested);
+            }
+            catch (TaskCanceledException)
+            {
+            }
+            catch (Exception sweepErr)
+            {
+                _log.Error($"WebSocketSessionManager Sweep loop crash: {sweepErr.Message}\n{sweepErr.StackTrace}");
+            }
         }
 
-        private async Task stopAsync(PayloadData payloadData, bool send)
+        private async Task PrivateStopAsync(PayloadData payloadData, bool send, CancellationToken stoppingToken)
         {
             var bytes = send
                 ? WebSocketFrame.CreateCloseFrame(payloadData, false).ToArray()
@@ -463,15 +479,15 @@ namespace WebSocketSharp.Server
             {
                 _state = ServerState.ShuttingDown;
 
-                await _sweepTimer.DisposeAsync();
+                _sweepStoppingToken.Cancel();
                 foreach (var session in _sessions.Values.ToList())
-                    await session.Context.WebSocket.CloseAsync(payloadData, bytes);
+                    await session.Context.WebSocket.InternalCloseAsync(payloadData, bytes, stoppingToken);
 
                 _state = ServerState.Stop;
             }
         }
 
-        private bool tryGetSession(string id, out IWebSocketSession session)
+        private bool PrivateTryGetSession(string id, out IWebSocketSession session)
         {
             session = null;
 
@@ -498,14 +514,14 @@ namespace WebSocketSharp.Server
                 if (_state != ServerState.Start)
                     return null;
 
-                var id = createID();
+                var id = CreateID();
                 _sessions.Add(id, session);
 
                 return id;
             }
         }
 
-        internal async Task BroadcastAsync(Opcode opcode, byte[] data, Dictionary<CompressionMethod, byte[]> cache)
+        internal async Task BroadcastAsync(Opcode opcode, byte[] data, Dictionary<CompressionMethod, byte[]> cache, CancellationToken cancellationToken)
         {
             foreach (var session in Sessions)
             {
@@ -515,11 +531,11 @@ namespace WebSocketSharp.Server
                     break;
                 }
 
-                await session.Context.WebSocket.SendAsync(opcode, data, cache);
+                await session.Context.WebSocket.InternalSendAsync(opcode, data, cache, cancellationToken);
             }
         }
 
-        internal async Task BroadcastAsync(Opcode opcode, Stream stream, Dictionary<CompressionMethod, Stream> cache)
+        internal async Task BroadcastAsync(Opcode opcode, Stream stream, Dictionary<CompressionMethod, Stream> cache, CancellationToken cancellationToken)
         {
             foreach (var session in Sessions)
             {
@@ -529,11 +545,11 @@ namespace WebSocketSharp.Server
                     break;
                 }
 
-                await session.Context.WebSocket.SendAsync(opcode, stream, cache);
+                await session.Context.WebSocket.InternalSendAsync(opcode, stream, cache, cancellationToken);
             }
         }
 
-        internal async Task<Dictionary<string, bool>> BroadpingAsync(byte[] frameAsBytes, TimeSpan timeout)
+        internal async Task<Dictionary<string, bool>> BroadpingAsync(byte[] frameAsBytes, TimeSpan timeout, CancellationToken cancellationToken)
         {
             var ret = new Dictionary<string, bool>();
 
@@ -545,7 +561,7 @@ namespace WebSocketSharp.Server
                     break;
                 }
 
-                var res = await session.Context.WebSocket.PingAsync(frameAsBytes, timeout);
+                var res = await session.Context.WebSocket.InternalPingAsync(frameAsBytes, timeout, cancellationToken);
                 ret.Add(session.ID, res);
             }
 
@@ -558,25 +574,27 @@ namespace WebSocketSharp.Server
                 return _sessions.Remove(id);
         }
 
-        internal void Start()
+        internal void Start(CancellationToken stoppingToken)
         {
             //lock (_sync)
             {
                 if (_clean)
-                    setSweepTimer(60000);
+                    #pragma warning disable CS4014
+                    /*await*/ SetSweepTimerNotAsync(60000, stoppingToken);
+                    #pragma warning restore CS4014
                 _state = ServerState.Start;
             }
         }
 
-        internal async Task StopAsync(ushort code, string reason)
+        internal async Task StopAsync(ushort code, string reason, CancellationToken stoppingToken)
         {
             if (code == 1005)
             { // == no status
-                await stopAsync(PayloadData.Empty, true);
+                await PrivateStopAsync(PayloadData.Empty, true, stoppingToken);
                 return;
             }
 
-            await stopAsync(new PayloadData(code, reason), !code.IsReserved());
+            await PrivateStopAsync(new PayloadData(code, reason), !code.IsReserved(), stoppingToken);
         }
 
         #endregion
@@ -595,7 +613,7 @@ namespace WebSocketSharp.Server
         /// <exception cref="ArgumentNullException">
         /// <paramref name="data"/> is <see langword="null"/>.
         /// </exception>
-        public async Task BroadcastAsync(byte[] data)
+        public async Task BroadcastAsync(byte[] data, CancellationToken cancellationToken)
         {
             if (_state != ServerState.Start)
             {
@@ -607,9 +625,9 @@ namespace WebSocketSharp.Server
                 throw new ArgumentNullException("data");
 
             if (data.LongLength <= WebSocket.FragmentLength)
-                await broadcastAsync(Opcode.Binary, data, null);
+                await PrivateBroadcastAsync(Opcode.Binary, data, null, cancellationToken);
             else
-                await broadcastAsync(Opcode.Binary, new MemoryStream(data), null);
+                await PrivateBroadcastAsync(Opcode.Binary, new MemoryStream(data), null, cancellationToken);
         }
 
         /// <summary>
@@ -627,7 +645,7 @@ namespace WebSocketSharp.Server
         /// <exception cref="ArgumentException">
         /// <paramref name="data"/> could not be UTF-8-encoded.
         /// </exception>
-        public async Task BroadcastAsync(string data)
+        public async Task BroadcastAsync(string data, CancellationToken cancellationToken)
         {
             if (_state != ServerState.Start)
             {
@@ -646,9 +664,9 @@ namespace WebSocketSharp.Server
             }
 
             if (bytes.LongLength <= WebSocket.FragmentLength)
-                await broadcastAsync(Opcode.Text, bytes, null);
+                await PrivateBroadcastAsync(Opcode.Text, bytes, null, cancellationToken);
             else
-                await broadcastAsync(Opcode.Text, new MemoryStream(bytes), null);
+                await PrivateBroadcastAsync(Opcode.Text, new MemoryStream(bytes), null, cancellationToken);
         }
 
         /// <summary>
@@ -687,7 +705,7 @@ namespace WebSocketSharp.Server
         ///   No data could be read from <paramref name="stream"/>.
         ///   </para>
         /// </exception>
-        public async Task BroadcastAsync(Stream stream, int length)
+        public async Task BroadcastAsync(Stream stream, int length, CancellationToken cancellationToken)
         {
             if (_state != ServerState.Start)
             {
@@ -730,9 +748,9 @@ namespace WebSocketSharp.Server
             }
 
             if (len <= WebSocket.FragmentLength)
-                await broadcastAsync(Opcode.Binary, bytes, null);
+                await PrivateBroadcastAsync(Opcode.Binary, bytes, null, cancellationToken);
             else
-                await broadcastAsync(Opcode.Binary, new MemoryStream(bytes), null);
+                await PrivateBroadcastAsync(Opcode.Binary, new MemoryStream(bytes), null, cancellationToken);
         }
 
         /// <summary>
@@ -760,7 +778,7 @@ namespace WebSocketSharp.Server
         /// <exception cref="ArgumentNullException">
         /// <paramref name="data"/> is <see langword="null"/>.
         /// </exception>
-        public async Task BroadcastAsync(byte[] data, Action completed)
+        public async Task BroadcastAsync(byte[] data, Action completed, CancellationToken cancellationToken)
         {
             if (_state != ServerState.Start)
             {
@@ -772,9 +790,9 @@ namespace WebSocketSharp.Server
                 throw new ArgumentNullException("data");
 
             if (data.LongLength <= WebSocket.FragmentLength)
-                await broadcastAsync(Opcode.Binary, data, completed);
+                await PrivateBroadcastAsync(Opcode.Binary, data, completed, cancellationToken);
             else
-                await broadcastAsync(Opcode.Binary, new MemoryStream(data), completed);
+                await PrivateBroadcastAsync(Opcode.Binary, new MemoryStream(data), completed, cancellationToken);
         }
 
         /// <summary>
@@ -805,7 +823,7 @@ namespace WebSocketSharp.Server
         /// <exception cref="ArgumentException">
         /// <paramref name="data"/> could not be UTF-8-encoded.
         /// </exception>
-        public async Task BroadcastAsync(string data, Action completed)
+        public async Task BroadcastAsync(string data, Action completed, CancellationToken cancellationToken)
         {
             if (_state != ServerState.Start)
             {
@@ -824,9 +842,9 @@ namespace WebSocketSharp.Server
             }
 
             if (bytes.LongLength <= WebSocket.FragmentLength)
-                await broadcastAsync(Opcode.Text, bytes, completed);
+                await PrivateBroadcastAsync(Opcode.Text, bytes, completed, cancellationToken);
             else
-                await broadcastAsync(Opcode.Text, new MemoryStream(bytes), completed);
+                await PrivateBroadcastAsync(Opcode.Text, new MemoryStream(bytes), completed, cancellationToken);
         }
 
         /// <summary>
@@ -879,7 +897,7 @@ namespace WebSocketSharp.Server
         ///   No data could be read from <paramref name="stream"/>.
         ///   </para>
         /// </exception>
-        public async Task BroadcastAsync(Stream stream, int length, Action completed)
+        public async Task BroadcastAsync(Stream stream, int length, Action completed, CancellationToken cancellationToken)
         {
             if (_state != ServerState.Start)
             {
@@ -917,9 +935,9 @@ namespace WebSocketSharp.Server
             }
 
             if (len <= WebSocket.FragmentLength)
-                await broadcastAsync(Opcode.Binary, bytes, completed);
+                await PrivateBroadcastAsync(Opcode.Binary, bytes, completed, cancellationToken);
             else
-                await broadcastAsync(Opcode.Binary, new MemoryStream(bytes), completed);
+                await PrivateBroadcastAsync(Opcode.Binary, new MemoryStream(bytes), completed, cancellationToken);
         }
 
         /// <summary>
@@ -939,7 +957,7 @@ namespace WebSocketSharp.Server
         /// The current state of the manager is not Start.
         /// </exception>
         [Obsolete("This method will be removed.")]
-        public async Task<Dictionary<string, bool>> BroadpingAsync()
+        public async Task<Dictionary<string, bool>> BroadpingAsync(CancellationToken cancellationToken)
         {
             if (_state != ServerState.Start)
             {
@@ -947,7 +965,7 @@ namespace WebSocketSharp.Server
                 throw new InvalidOperationException(msg);
             }
 
-            return await BroadpingAsync(WebSocketFrame.EmptyPingBytes, _waitTime);
+            return await BroadpingAsync(WebSocketFrame.EmptyPingBytes, _waitTime, cancellationToken);
         }
 
         /// <summary>
@@ -982,7 +1000,7 @@ namespace WebSocketSharp.Server
         /// The size of <paramref name="message"/> is greater than 125 bytes.
         /// </exception>
         [Obsolete("This method will be removed.")]
-        public async Task<Dictionary<string, bool>> BroadpingAsync(string message)
+        public async Task<Dictionary<string, bool>> BroadpingAsync(string message, CancellationToken cancellationToken)
         {
             if (_state != ServerState.Start)
             {
@@ -991,7 +1009,7 @@ namespace WebSocketSharp.Server
             }
 
             if (message.IsNullOrEmpty())
-                return await BroadpingAsync(WebSocketFrame.EmptyPingBytes, _waitTime);
+                return await BroadpingAsync(WebSocketFrame.EmptyPingBytes, _waitTime, cancellationToken);
 
             byte[] bytes;
             if (!message.TryGetUTF8EncodedBytes(out bytes))
@@ -1007,7 +1025,7 @@ namespace WebSocketSharp.Server
             }
 
             var frame = WebSocketFrame.CreatePingFrame(bytes, false);
-            return await BroadpingAsync(frame.ToArray(), _waitTime);
+            return await BroadpingAsync(frame.ToArray(), _waitTime, cancellationToken);
         }
 
         /// <summary>
@@ -1025,16 +1043,16 @@ namespace WebSocketSharp.Server
         /// <exception cref="InvalidOperationException">
         /// The session could not be found.
         /// </exception>
-        public async Task CloseSessionAsync(string id)
+        public async Task CloseSessionAsync(string id, CancellationToken cancellationToken)
         {
             IWebSocketSession session;
-            if (!TryGetSession(id, out session))
+            if (!PrivateTryGetSession(id, out session))
             {
                 var msg = "The session could not be found.";
                 throw new InvalidOperationException(msg);
             }
 
-            await session.Context.WebSocket.CloseAsync();
+            await session.Context.WebSocket.CloseAsync(cancellationToken);
         }
 
         /// <summary>
@@ -1104,16 +1122,16 @@ namespace WebSocketSharp.Server
         ///   The size of <paramref name="reason"/> is greater than 123 bytes.
         ///   </para>
         /// </exception>
-        public async Task CloseSessionAsync(string id, ushort code, string reason)
+        public async Task CloseSessionAsync(string id, ushort code, string reason, CancellationToken cancellationToken)
         {
             IWebSocketSession session;
-            if (!TryGetSession(id, out session))
+            if (!PrivateTryGetSession(id, out session))
             {
                 var msg = "The session could not be found.";
                 throw new InvalidOperationException(msg);
             }
 
-            await session.Context.WebSocket.CloseAsync(code, reason);
+            await session.Context.WebSocket.CloseAsync(code, reason, cancellationToken);
         }
 
         /// <summary>
@@ -1174,16 +1192,16 @@ namespace WebSocketSharp.Server
         /// <exception cref="ArgumentOutOfRangeException">
         /// The size of <paramref name="reason"/> is greater than 123 bytes.
         /// </exception>
-        public async Task CloseSessionAsync(string id, CloseStatusCode code, string reason)
+        public async Task CloseSessionAsync(string id, CloseStatusCode code, string reason, CancellationToken cancellationToken)
         {
             IWebSocketSession session;
-            if (!TryGetSession(id, out session))
+            if (!PrivateTryGetSession(id, out session))
             {
                 var msg = "The session could not be found.";
                 throw new InvalidOperationException(msg);
             }
 
-            await session.Context.WebSocket.CloseAsync(code, reason);
+            await session.Context.WebSocket.CloseAsync(code, reason, cancellationToken);
         }
 
         /// <summary>
@@ -1205,16 +1223,16 @@ namespace WebSocketSharp.Server
         /// <exception cref="InvalidOperationException">
         /// The session could not be found.
         /// </exception>
-        public async Task<bool> PingToAsync(string id)
+        public async Task<bool> PingToAsync(string id, CancellationToken cancellationToken)
         {
             IWebSocketSession session;
-            if (!TryGetSession(id, out session))
+            if (!PrivateTryGetSession(id, out session))
             {
                 var msg = "The session could not be found.";
                 throw new InvalidOperationException(msg);
             }
 
-            return await session.Context.WebSocket.PingAsync();
+            return await session.Context.WebSocket.PingAsync(cancellationToken);
         }
 
         /// <summary>
@@ -1256,16 +1274,16 @@ namespace WebSocketSharp.Server
         /// <exception cref="ArgumentOutOfRangeException">
         /// The size of <paramref name="message"/> is greater than 125 bytes.
         /// </exception>
-        public async Task<bool> PingToAsync(string message, string id)
+        public async Task<bool> PingToAsync(string message, string id, CancellationToken cancellationToken)
         {
             IWebSocketSession session;
-            if (!TryGetSession(id, out session))
+            if (!PrivateTryGetSession(id, out session))
             {
                 var msg = "The session could not be found.";
                 throw new InvalidOperationException(msg);
             }
 
-            return await session.Context.WebSocket.PingAsync(message);
+            return await session.Context.WebSocket.PingAsync(message, cancellationToken);
         }
 
         /// <summary>
@@ -1302,16 +1320,16 @@ namespace WebSocketSharp.Server
         ///   The current state of the WebSocket connection is not Open.
         ///   </para>
         /// </exception>
-        public async Task SendToAsync(byte[] data, string id)
+        public async Task SendToAsync(byte[] data, string id, CancellationToken cancellationToken)
         {
             IWebSocketSession session;
-            if (!TryGetSession(id, out session))
+            if (!PrivateTryGetSession(id, out session))
             {
                 var msg = "The session could not be found.";
                 throw new InvalidOperationException(msg);
             }
 
-            await session.Context.WebSocket.SendAsync(data);
+            await session.Context.WebSocket.SendAsync(data, cancellationToken);
         }
 
         /// <summary>
@@ -1356,16 +1374,16 @@ namespace WebSocketSharp.Server
         ///   The current state of the WebSocket connection is not Open.
         ///   </para>
         /// </exception>
-        public async Task SendToAsync(string data, string id)
+        public async Task SendToAsync(string data, string id, CancellationToken cancellationToken)
         {
             IWebSocketSession session;
-            if (!TryGetSession(id, out session))
+            if (!PrivateTryGetSession(id, out session))
             {
                 var msg = "The session could not be found.";
                 throw new InvalidOperationException(msg);
             }
 
-            await session.Context.WebSocket.SendAsync(data);
+            await session.Context.WebSocket.SendAsync(data, cancellationToken);
         }
 
         /// <summary>
@@ -1429,22 +1447,22 @@ namespace WebSocketSharp.Server
         ///   The current state of the WebSocket connection is not Open.
         ///   </para>
         /// </exception>
-        public async Task SendToAsync(Stream stream, int length, string id)
+        public async Task SendToAsync(Stream stream, int length, string id, CancellationToken cancellationToken)
         {
             IWebSocketSession session;
-            if (!TryGetSession(id, out session))
+            if (!PrivateTryGetSession(id, out session))
             {
                 var msg = "The session could not be found.";
                 throw new InvalidOperationException(msg);
             }
 
-            await session.Context.WebSocket.SendAsync(stream, length);
+            await session.Context.WebSocket.SendAsync(stream, length, cancellationToken);
         }
 
         /// <summary>
         /// Cleans up the inactive sessions in the WebSocket service.
         /// </summary>
-        public async Task SweepAsync()
+        public async Task SweepAsync(CancellationToken cancellationToken)
         {
             if (_sweeping)
             {
@@ -1452,7 +1470,7 @@ namespace WebSocketSharp.Server
                 return;
             }
 
-            lock (_forSweep)
+            //lock (_forSweep)
             {
                 if (_sweeping)
                 {
@@ -1463,7 +1481,7 @@ namespace WebSocketSharp.Server
                 _sweeping = true;
             }
 
-            await foreach (var id in GetInactiveIDs())
+            await foreach (var id in GetInactiveIDsAsync(cancellationToken))
             {
                 if (_state != ServerState.Start)
                     break;
@@ -1478,7 +1496,7 @@ namespace WebSocketSharp.Server
                     {
                         var state = session.ConnectionState;
                         if (state == WebSocketState.Open)
-                            await session.Context.WebSocket.CloseAsync(CloseStatusCode.Abnormal);
+                            await session.Context.WebSocket.CloseAsync(CloseStatusCode.Abnormal, cancellationToken);
                         else if (state == WebSocketState.Closing)
                             continue;
                         else
@@ -1524,7 +1542,7 @@ namespace WebSocketSharp.Server
             if (id.Length == 0)
                 throw new ArgumentException("An empty string.", "id");
 
-            return tryGetSession(id, out session);
+            return PrivateTryGetSession(id, out session);
         }
 
         #endregion

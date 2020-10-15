@@ -33,6 +33,7 @@ using OBSWebsocketDotNet.Types;
 using Newtonsoft.Json;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Threading;
 
 namespace OBSWebsocketDotNet
 {
@@ -309,10 +310,10 @@ namespace OBSWebsocketDotNet
         /// </summary>
         /// <param name="url">Server URL in standard URL format</param>
         /// <param name="password">Server password</param>
-        public async Task ConnectAsync(string url)
+        public async Task ConnectAsync(string url, CancellationToken stoppingToken = default)
         {
-            if (WSConnection != null && await WSConnection.PingAsync())
-                await DisconnectAsync();
+            if (WSConnection != null && await WSConnection.PingAsync(stoppingToken))
+                await DisconnectAsync(stoppingToken);
 
             WSConnection = new WebSocket(url);
             WSConnection.WaitTime = _pWSTimeout;
@@ -322,15 +323,15 @@ namespace OBSWebsocketDotNet
                 if (Disconnected != null)
                     Disconnected(this, e);
             };
-            await WSConnection.ConnectAsync();
+            await WSConnection.ConnectAsync(stoppingToken);
         }
 
-        public async Task StartAsync(string password = null)
+        public async Task StartAsync(string password = null, CancellationToken cancellationToken = default)
         {
-            if (!await WSConnection.PingAsync())
+            if (!await WSConnection.PingAsync(cancellationToken))
                 return;
 
-            OBSAuthInfo authInfo = await GetAuthInfoAsync();
+            OBSAuthInfo authInfo = await GetAuthInfoAsync(cancellationToken);
 
             if (authInfo.AuthRequired)
                 await AuthenticateAsync(password, authInfo);
@@ -342,10 +343,10 @@ namespace OBSWebsocketDotNet
         /// <summary>
         /// Disconnect this instance from the server
         /// </summary>
-        public async Task DisconnectAsync()
+        public async Task DisconnectAsync(CancellationToken cancellationToken = default)
         {
             if (WSConnection != null)
-                await WSConnection.CloseAsync();
+                await WSConnection.CloseAsync(cancellationToken);
 
             WSConnection = null;
             var unusedHandlers = _responseHandlers.ToArray();
@@ -393,7 +394,7 @@ namespace OBSWebsocketDotNet
         /// <param name="requestType">obs-websocket request type, must be one specified in the protocol specification</param>
         /// <param name="additionalFields">additional JSON fields if required by the request type</param>
         /// <returns>The server's JSON response as a JObject</returns>
-        public async Task<JObject> SendRequestAsync(string requestType, JObject additionalFields = null)
+        public async Task<JObject> SendRequestAsync(string requestType, JObject additionalFields = null, CancellationToken cancellationToken = default)
         {
             string messageID;
 
@@ -424,11 +425,12 @@ namespace OBSWebsocketDotNet
                     break;
                 }
                 // Message id already exists, retry with a new one.
-            } while (true);
+            } while (!cancellationToken.IsCancellationRequested);
             // Send the message and wait for a response
             // (received and notified by the websocket response handler)
             string bodyAsString = body.ToString();
-            await WSConnection.SendAsync(bodyAsString);
+            using var registration = cancellationToken.Register(() => tcs.SetCanceled());
+            await WSConnection.SendAsync(bodyAsString, cancellationToken);
             var result = await tcs.Task;
 
             if (tcs.Task.IsCanceled)
@@ -447,9 +449,9 @@ namespace OBSWebsocketDotNet
         /// Requests version info regarding obs-websocket, the API and OBS Studio
         /// </summary>
         /// <returns>Version info in an <see cref="OBSVersion"/> object</returns>
-        public async Task<OBSVersion> GetVersionAsync()
+        public async Task<OBSVersion> GetVersionAsync(CancellationToken cancellationToken = default)
         {
-            JObject response = await SendRequestAsync("GetVersion");
+            JObject response = await SendRequestAsync("GetVersion", cancellationToken: cancellationToken);
             return new OBSVersion(response);
         }
 
@@ -457,9 +459,9 @@ namespace OBSWebsocketDotNet
         /// Request authentication data. You don't have to call this manually.
         /// </summary>
         /// <returns>Authentication data in an <see cref="OBSAuthInfo"/> object</returns>
-        public async Task<OBSAuthInfo> GetAuthInfoAsync()
+        public async Task<OBSAuthInfo> GetAuthInfoAsync(CancellationToken cancellationToken = default)
         {
-            JObject response = await SendRequestAsync("GetAuthRequired");
+            JObject response = await SendRequestAsync("GetAuthRequired", cancellationToken: cancellationToken);
             return new OBSAuthInfo(response);
         }
 
@@ -469,7 +471,7 @@ namespace OBSWebsocketDotNet
         /// <param name="password">User password</param>
         /// <param name="authInfo">Authentication data</param>
         /// <returns>true if authentication succeeds, false otherwise</returns>
-        public async Task<bool> AuthenticateAsync(string password, OBSAuthInfo authInfo)
+        public async Task<bool> AuthenticateAsync(string password, OBSAuthInfo authInfo, CancellationToken cancellationToken = default)
         {
             string secret = HashEncode(password + authInfo.PasswordSalt);
             string authResponse = HashEncode(secret + authInfo.Challenge);
@@ -480,7 +482,7 @@ namespace OBSWebsocketDotNet
             try
             {
                 // Throws ErrorResponseException if auth fails
-                await SendRequestAsync("Authenticate", requestFields);
+                await SendRequestAsync("Authenticate", requestFields, cancellationToken);
             }
             catch (ErrorResponseException)
             {

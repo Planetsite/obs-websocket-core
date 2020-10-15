@@ -37,6 +37,7 @@ using System;
 using System.Collections.Specialized;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using WebSocketSharp.Net;
 
@@ -143,10 +144,10 @@ namespace WebSocketSharp
             return req;
         }
 
-        internal async Task<HttpResponse> GetResponseAsync(Stream stream, int millisecondsTimeout)
+        internal async Task<HttpResponse> GetResponseAsync(Stream stream, int millisecondsTimeout, CancellationToken cancellationToken)
         {
             var buff = ToByteArray();
-            await stream.WriteAsync(buff, 0, buff.Length);
+            await stream.WriteAsync(buff, 0, buff.Length, cancellationToken);
 
             return await ReadAsync(stream, HttpResponse.Parse, millisecondsTimeout);
         }

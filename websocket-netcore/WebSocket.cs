@@ -99,7 +99,7 @@ namespace WebSocketSharp
         private string[] _protocols;
         private bool _protocolsRequested;
         private volatile WebSocketState _readyState;
-        private ManualResetEvent _receivingExited;
+        //private ManualResetEvent _receivingExited;
         private int _retryCountForConnect;
         private ClientSslConfiguration _sslConfig;
         private Stream _stream;
@@ -107,6 +107,7 @@ namespace WebSocketSharp
         private Uri _uri;
         private const string _version = "13";
         private TimeSpan _waitTime;
+        private CancellationTokenSource _receivingStoppingToken = new CancellationTokenSource();
 
         #endregion
 
@@ -164,7 +165,7 @@ namespace WebSocketSharp
             _stream = context.Stream;
             _waitTime = TimeSpan.FromSeconds(1);
 
-            init();
+            Init();
         }
 
         // As server
@@ -179,7 +180,7 @@ namespace WebSocketSharp
             _stream = context.Stream;
             _waitTime = TimeSpan.FromSeconds(1);
 
-            init();
+            Init();
         }
 
         #endregion
@@ -252,7 +253,7 @@ namespace WebSocketSharp
 
             if (protocols != null && protocols.Length > 0)
             {
-                if (!checkProtocols(protocols, out msg))
+                if (!CheckProtocols(protocols, out msg))
                     throw new ArgumentException(msg, "protocols");
 
                 _protocols = protocols;
@@ -264,7 +265,7 @@ namespace WebSocketSharp
             IsSecure = _uri.Scheme == "wss";
             _waitTime = TimeSpan.FromSeconds(5);
 
-            init();
+            Init();
         }
 
         #endregion
@@ -329,7 +330,7 @@ namespace WebSocketSharp
                     throw new InvalidOperationException(msg);
                 }
 
-                if (!canSet(out msg))
+                if (!CanSet(out msg))
                 {
                     _logger.Warn(msg);
                     return;
@@ -337,7 +338,7 @@ namespace WebSocketSharp
 
                 //lock (_forState)
                 {
-                    if (!canSet(out msg))
+                    if (!CanSet(out msg))
                     {
                         _logger.Warn(msg);
                         return;
@@ -425,7 +426,7 @@ namespace WebSocketSharp
                     throw new InvalidOperationException(msg);
                 }
 
-                if (!canSet(out msg))
+                if (!CanSet(out msg))
                 {
                     _logger.Warn(msg);
                     return;
@@ -433,7 +434,7 @@ namespace WebSocketSharp
 
                 //lock (_forState)
                 {
-                    if (!canSet(out msg))
+                    if (!CanSet(out msg))
                     {
                         _logger.Warn(msg);
                         return;
@@ -568,7 +569,7 @@ namespace WebSocketSharp
                     }
                 }
 
-                if (!canSet(out msg))
+                if (!CanSet(out msg))
                 {
                     _logger.Warn(msg);
                     return;
@@ -576,7 +577,7 @@ namespace WebSocketSharp
 
                 //lock (_forState)
                 {
-                    if (!canSet(out msg))
+                    if (!CanSet(out msg))
                     {
                         _logger.Warn(msg);
                         return;
@@ -669,7 +670,7 @@ namespace WebSocketSharp
                     throw new InvalidOperationException(msg);
                 }
 
-                return getSslConfiguration();
+                return GetSslConfiguration();
             }
         }
 
@@ -719,7 +720,7 @@ namespace WebSocketSharp
                     throw new ArgumentOutOfRangeException("value", "Zero or less.");
 
                 string msg;
-                if (!canSet(out msg))
+                if (!CanSet(out msg))
                 {
                     _logger.Warn(msg);
                     return;
@@ -727,7 +728,7 @@ namespace WebSocketSharp
 
                 //lock (_forState)
                 {
-                    if (!canSet(out msg))
+                    if (!CanSet(out msg))
                     {
                         _logger.Warn(msg);
                         return;
@@ -768,7 +769,7 @@ namespace WebSocketSharp
         #region Private Methods
 
         // As server
-        private async Task<bool> acceptAsync()
+        private async Task<bool> PrivateAcceptAsync(CancellationToken cancellationToken)
         {
             if (_readyState == WebSocketState.Open)
             {
@@ -794,7 +795,7 @@ namespace WebSocketSharp
                     _logger.Error(msg);
 
                     msg = "An interruption has occurred while attempting to accept.";
-                    error(msg, null);
+                    Error(msg, null);
 
                     return false;
                 }
@@ -805,14 +806,14 @@ namespace WebSocketSharp
                     _logger.Error(msg);
 
                     msg = "An interruption has occurred while attempting to accept.";
-                    error(msg, null);
+                    Error(msg, null);
 
                     return false;
                 }
 
                 try
                 {
-                    if (!await acceptHandshakeAsync())
+                    if (!await AcceptHandshakeAsync(cancellationToken))
                         return false;
                 }
                 catch (Exception ex)
@@ -821,7 +822,7 @@ namespace WebSocketSharp
                     _logger.Debug(ex.ToString());
 
                     var msg = "An exception has occurred while attempting to accept.";
-                    await fatalAsync(msg, ex);
+                    await FatalAsync(msg, ex, cancellationToken);
 
                     return false;
                 }
@@ -832,30 +833,32 @@ namespace WebSocketSharp
         }
 
         // As server
-        private async Task<bool> acceptHandshakeAsync()
+        private async Task<bool> AcceptHandshakeAsync(CancellationToken cancellationToken)
         {
             _logger.Debug($"A handshake request from {_context.UserEndPoint}:\n{_context}");
 
             string msg;
-            if (!checkHandshakeRequest(_context, out msg))
+            if (!CheckHandshakeRequest(_context, out msg))
             {
                 _logger.Error(msg);
 
-                await refuseHandshakeAsync(
+                await RefuseHandshakeAsync(
                     CloseStatusCode.ProtocolError,
-                    "A handshake error has occurred while attempting to accept."
+                    "A handshake error has occurred while attempting to accept.",
+                    cancellationToken
                 );
 
                 return false;
             }
 
-            if (!customCheckHandshakeRequest(_context, out msg))
+            if (!CustomCheckHandshakeRequest(_context, out msg))
             {
                 _logger.Error(msg);
 
-                await refuseHandshakeAsync(
+                await RefuseHandshakeAsync(
                   CloseStatusCode.PolicyViolation,
-                  "A handshake error has occurred while attempting to accept."
+                  "A handshake error has occurred while attempting to accept.",
+                  cancellationToken
                 );
 
                 return false;
@@ -866,19 +869,19 @@ namespace WebSocketSharp
             if (_protocol != null)
             {
                 var vals = _context.SecWebSocketProtocols;
-                processSecWebSocketProtocolClientHeader(vals);
+                ProcessSecWebSocketProtocolClientHeader(vals);
             }
 
             if (!IgnoreExtensions)
             {
                 var val = _context.Headers["Sec-WebSocket-Extensions"];
-                processSecWebSocketExtensionsClientHeader(val);
+                ProcessSecWebSocketExtensionsClientHeader(val);
             }
 
-            return await sendHttpResponseAsync(createHandshakeResponse());
+            return await SendHttpResponseAsync(CreateHandshakeResponse(), cancellationToken);
         }
 
-        private bool canSet(out string message)
+        private bool CanSet(out string message)
         {
             message = null;
 
@@ -898,7 +901,7 @@ namespace WebSocketSharp
         }
 
         // As server
-        private bool checkHandshakeRequest(WebSocketContext context, out string message)
+        private bool CheckHandshakeRequest(WebSocketContext context, out string message)
         {
             message = null;
 
@@ -963,7 +966,7 @@ namespace WebSocketSharp
         }
 
         // As client
-        private bool checkHandshakeResponse(HttpResponse response, out string message)
+        private bool CheckHandshakeResponse(HttpResponse response, out string message)
         {
             message = null;
 
@@ -986,25 +989,25 @@ namespace WebSocketSharp
             }
 
             var headers = response.Headers;
-            if (!validateSecWebSocketAcceptHeader(headers["Sec-WebSocket-Accept"]))
+            if (!ValidateSecWebSocketAcceptHeader(headers["Sec-WebSocket-Accept"]))
             {
                 message = "Includes no Sec-WebSocket-Accept header, or it has an invalid value.";
                 return false;
             }
 
-            if (!validateSecWebSocketProtocolServerHeader(headers["Sec-WebSocket-Protocol"]))
+            if (!ValidateSecWebSocketProtocolServerHeader(headers["Sec-WebSocket-Protocol"]))
             {
                 message = "Includes no Sec-WebSocket-Protocol header, or it has an invalid value.";
                 return false;
             }
 
-            if (!validateSecWebSocketExtensionsServerHeader(headers["Sec-WebSocket-Extensions"]))
+            if (!ValidateSecWebSocketExtensionsServerHeader(headers["Sec-WebSocket-Extensions"]))
             {
                 message = "Includes an invalid Sec-WebSocket-Extensions header.";
                 return false;
             }
 
-            if (!validateSecWebSocketVersionServerHeader(headers["Sec-WebSocket-Version"]))
+            if (!ValidateSecWebSocketVersionServerHeader(headers["Sec-WebSocket-Version"]))
             {
                 message = "Includes an invalid Sec-WebSocket-Version header.";
                 return false;
@@ -1013,7 +1016,7 @@ namespace WebSocketSharp
             return true;
         }
 
-        private static bool checkProtocols(string[] protocols, out string message)
+        private static bool CheckProtocols(string[] protocols, out string message)
         {
             message = null;
 
@@ -1035,7 +1038,7 @@ namespace WebSocketSharp
             return true;
         }
 
-        private bool checkReceivedFrame(WebSocketFrame frame, out string message)
+        private bool CheckReceivedFrame(WebSocketFrame frame, out string message)
         {
             message = null;
 
@@ -1079,7 +1082,7 @@ namespace WebSocketSharp
             return true;
         }
 
-        private async Task closeAsync(ushort code, string reason)
+        private async Task InternalCloseAsync(ushort code, string reason, CancellationToken cancellationToken)
         {
             if (_readyState == WebSocketState.Closing)
             {
@@ -1095,15 +1098,15 @@ namespace WebSocketSharp
 
             if (code == 1005)
             { // == no status
-                await closeAsync(PayloadData.Empty, true, true, false);
+                await InternalCloseAsync(PayloadData.Empty, true, true, false, cancellationToken);
                 return;
             }
 
             var send = !code.IsReserved();
-            await closeAsync(new PayloadData(code, reason), send, send, false);
+            await InternalCloseAsync(new PayloadData(code, reason), send, send, false, cancellationToken);
         }
 
-        private async Task closeAsync(PayloadData payloadData, bool send, bool receive, bool received)
+        private async Task InternalCloseAsync(PayloadData payloadData, bool send, bool receive, bool received, CancellationToken cancellationToken)
         {
             //lock (_forState)
             {
@@ -1127,8 +1130,8 @@ namespace WebSocketSharp
 
             _logger.Trace("Begin closing the connection.");
 
-            var res = await closeHandshakeAsync(payloadData, send, receive, received);
-            await releaseResourcesAsync();
+            var res = await CloseHandshakeAsync(payloadData, send, receive, received, cancellationToken);
+            await ReleaseResourcesAsync();
 
             _logger.Trace("End closing the connection.");
 
@@ -1147,21 +1150,32 @@ namespace WebSocketSharp
             }
         }
 
-        private async Task<bool> closeHandshakeAsync(PayloadData payloadData, bool send, bool receive, bool received)
+        private async Task<bool> CloseHandshakeAsync(PayloadData payloadData, bool send, bool receive, bool received, CancellationToken stoppingToken)
         {
+            using var registration = stoppingToken.Register(() => _receivingStoppingToken.Cancel());
+
             var sent = false;
             if (send)
             {
                 var frame = WebSocketFrame.CreateCloseFrame(payloadData, _client);
-                sent = await sendBytesAsync(frame.ToArray());
+                sent = await SendBytesAsync(frame.ToArray(), stoppingToken);
 
                 if (_client)
                     frame.Unmask();
             }
 
-            var wait = !received && sent && receive && _receivingExited != null;
+            var wait = !received && sent && receive; // && _receivingExited != null;
             if (wait)
-                received = _receivingExited.WaitOne(_waitTime);
+            {
+                try
+                {
+                    await Task.Delay(-1, _receivingStoppingToken.Token);
+                }
+                catch
+                {
+                }
+                receive = !stoppingToken.IsCancellationRequested;
+            }
 
             var ret = sent && received;
 
@@ -1171,7 +1185,7 @@ namespace WebSocketSharp
         }
 
         // As client
-        private async Task<bool> connectAsync()
+        private async Task<bool> InternalConnectAsync(CancellationToken cancellationToken)
         {
             if (_readyState == WebSocketState.Open)
             {
@@ -1197,7 +1211,7 @@ namespace WebSocketSharp
                     _logger.Error(msg);
 
                     msg = "An interruption has occurred while attempting to connect.";
-                    error(msg, null);
+                    Error(msg, null);
 
                     return false;
                 }
@@ -1208,7 +1222,7 @@ namespace WebSocketSharp
                     _logger.Error(msg);
 
                     msg = "An interruption has occurred while attempting to connect.";
-                    error(msg, null);
+                    Error(msg, null);
 
                     return false;
                 }
@@ -1217,7 +1231,7 @@ namespace WebSocketSharp
 
                 try
                 {
-                    await doHandshakeAsync();
+                    await DoHandshakeAsync(cancellationToken);
                 }
                 catch (Exception ex)
                 {
@@ -1227,7 +1241,7 @@ namespace WebSocketSharp
                     _logger.Debug(ex.ToString());
 
                     var msg = "An exception has occurred while attempting to connect.";
-                    await fatalAsync(msg, ex);
+                    await FatalAsync(msg, ex, cancellationToken);
 
                     return false;
                 }
@@ -1240,7 +1254,7 @@ namespace WebSocketSharp
         }
 
         // As client
-        private string createExtensions()
+        private string CreateExtensions()
         {
             var buff = new StringBuilder(80);
 
@@ -1263,7 +1277,7 @@ namespace WebSocketSharp
         }
 
         // As server
-        private HttpResponse createHandshakeFailureResponse(HttpStatusCode code)
+        private HttpResponse CreateHandshakeFailureResponse(HttpStatusCode code)
         {
             var ret = HttpResponse.CreateCloseResponse(code);
             ret.Headers["Sec-WebSocket-Version"] = _version;
@@ -1272,7 +1286,7 @@ namespace WebSocketSharp
         }
 
         // As client
-        private HttpRequest createHandshakeRequest()
+        private HttpRequest CreateHandshakeRequest()
         {
             var ret = HttpRequest.CreateWebSocketRequest(_uri);
 
@@ -1288,7 +1302,7 @@ namespace WebSocketSharp
 
             _extensionsRequested = _compression != CompressionMethod.None;
             if (_extensionsRequested)
-                headers["Sec-WebSocket-Extensions"] = createExtensions();
+                headers["Sec-WebSocket-Extensions"] = CreateExtensions();
 
             headers["Sec-WebSocket-Version"] = _version;
 
@@ -1299,7 +1313,7 @@ namespace WebSocketSharp
         }
 
         // As server
-        private HttpResponse createHandshakeResponse()
+        private HttpResponse CreateHandshakeResponse()
         {
             var ret = HttpResponse.CreateWebSocketResponse();
 
@@ -1319,9 +1333,7 @@ namespace WebSocketSharp
         }
 
         // As server
-        private bool customCheckHandshakeRequest(
-          WebSocketContext context, out string message
-        )
+        private bool CustomCheckHandshakeRequest(WebSocketContext context, out string message)
         {
             message = null;
 
@@ -1333,31 +1345,31 @@ namespace WebSocketSharp
         }
 
         // As client
-        private async Task doHandshakeAsync()
+        private async Task DoHandshakeAsync(CancellationToken cancellationToken)
         {
-            setClientStream();
-            var res = await sendHandshakeRequestAsync();
+            await SetClientStreamAsync();
+            var res = await SendHandshakeRequestAsync(cancellationToken);
 
             string msg;
-            if (!checkHandshakeResponse(res, out msg))
+            if (!CheckHandshakeResponse(res, out msg))
                 throw new WebSocketException(CloseStatusCode.ProtocolError, msg);
 
             if (_protocolsRequested)
                 _protocol = res.Headers["Sec-WebSocket-Protocol"];
 
             if (_extensionsRequested)
-                processSecWebSocketExtensionsServerHeader(res.Headers["Sec-WebSocket-Extensions"]);
+                ProcessSecWebSocketExtensionsServerHeader(res.Headers["Sec-WebSocket-Extensions"]);
 
-            processCookies(res.Cookies);
+            ProcessCookies(res.Cookies);
         }
 
-        private void enqueueToMessageEventQueue(MessageEventArgs e)
+        private void EnqueueToMessageEventQueue(MessageEventArgs e)
         {
             //lock (_forMessageEventQueue)
                 _messageEventQueue.Enqueue(e);
         }
 
-        private void error(string message, Exception exception)
+        private void Error(string message, Exception exception)
         {
             try
             {
@@ -1370,28 +1382,28 @@ namespace WebSocketSharp
             }
         }
 
-        private async Task fatalAsync(string message, Exception exception)
+        private async Task FatalAsync(string message, Exception exception, CancellationToken cancellationToken)
         {
             var code = exception is WebSocketException
                 ? ((WebSocketException)exception).Code
                 : CloseStatusCode.Abnormal
             ;
 
-            await fatalAsync(message, (ushort)code);
+            await FatalAsync(message, (ushort)code, cancellationToken);
         }
 
-        private async Task fatalAsync(string message, ushort code)
+        private async Task FatalAsync(string message, ushort code, CancellationToken cancellationToken)
         {
             var payload = new PayloadData(code, message);
-            await closeAsync(payload, !code.IsReserved(), false, false);
+            await InternalCloseAsync(payload, !code.IsReserved(), false, false, cancellationToken);
         }
 
-        private async Task fatalAsync(string message, CloseStatusCode code)
+        private async Task FatalAsync(string message, CloseStatusCode code, CancellationToken cancellationToken)
         {
-            await fatalAsync(message, (ushort)code);
+            await FatalAsync(message, (ushort)code, cancellationToken);
         }
 
-        private ClientSslConfiguration getSslConfiguration()
+        private ClientSslConfiguration GetSslConfiguration()
         {
             if (_sslConfig == null)
                 _sslConfig = new ClientSslConfiguration(_uri.DnsSafeHost);
@@ -1399,7 +1411,7 @@ namespace WebSocketSharp
             return _sslConfig;
         }
 
-        private void init()
+        private void Init()
         {
             _compression = CompressionMethod.None;
             CookieCollection = new CookieCollection();
@@ -1418,7 +1430,7 @@ namespace WebSocketSharp
         //    eventQueueRestartToken.Cancel();
         //}
 
-        private async Task startReceivingDispatcherTaskAsync()
+        private async Task StartReceivingDispatcherTaskAsync()
         {
             do
             {
@@ -1450,19 +1462,19 @@ namespace WebSocketSharp
                 catch (Exception ex)
                 {
                     _logger.Error(ex.ToString());
-                    error("An error has occurred during an OnMessage event.", ex);
+                    Error("An error has occurred during an OnMessage event.", ex);
                 }
             }
             while (true);
         }
 
-        private async Task openAsync()
+        private async Task OpenAsync(CancellationToken cancellationToken)
         {
             _messageEventQueueRestart = new TaskCompletionSource<bool>();
 
             #pragma warning disable CS4014
-            /*await*/ startReceivingAccumulatorTaskAsync();
-            /*await*/ startReceivingDispatcherTaskAsync();
+            /*await*/ StartReceivingAccumulatorTaskAsync(cancellationToken);
+            /*await*/ StartReceivingDispatcherTaskAsync();
             #pragma warning restore CS4014
 
             try
@@ -1473,11 +1485,11 @@ namespace WebSocketSharp
             catch (Exception ex)
             {
                 _logger.Error(ex.ToString());
-                error("An error has occurred during the OnOpen event.", ex);
+                Error("An error has occurred during the OnOpen event.", ex);
             }
         }
 
-        private async Task<bool> pingAsync(byte[] data)
+        private async Task<bool> PingAsync(byte[] data, CancellationToken cancellationToken)
         {
             if (_readyState != WebSocketState.Open)
                 return false;
@@ -1491,7 +1503,7 @@ namespace WebSocketSharp
                 try
                 {
                     pongReceived.Reset();
-                    if (!await sendAsync(Fin.Final, Opcode.Ping, data, false))
+                    if (!await SendAsync(Fin.Final, Opcode.Ping, data, false, cancellationToken))
                         return false;
 
                     return pongReceived.WaitOne(_waitTime);
@@ -1503,16 +1515,16 @@ namespace WebSocketSharp
             }
         }
 
-        private async Task<bool> processCloseFrameAsync(WebSocketFrame frame)
+        private async Task<bool> ProcessCloseFrameAsync(WebSocketFrame frame, CancellationToken cancellationToken)
         {
             var payload = frame.PayloadData;
-            await closeAsync(payload, !payload.HasReservedCode, false, true);
+            await InternalCloseAsync(payload, !payload.HasReservedCode, false, true, cancellationToken);
 
             return false;
         }
 
         // As client
-        private void processCookies(CookieCollection cookies)
+        private void ProcessCookies(CookieCollection cookies)
         {
             if (cookies.Count == 0)
                 return;
@@ -1520,9 +1532,9 @@ namespace WebSocketSharp
             CookieCollection.SetOrRemove(cookies);
         }
 
-        private bool processDataFrame(WebSocketFrame frame)
+        private bool ProcessDataFrame(WebSocketFrame frame)
         {
-            enqueueToMessageEventQueue(
+            EnqueueToMessageEventQueue(
                 frame.IsCompressed
                 ? new MessageEventArgs(frame.Opcode, frame.PayloadData.ApplicationData.Decompress(_compression))
                 : new MessageEventArgs(frame)
@@ -1531,7 +1543,7 @@ namespace WebSocketSharp
             return true;
         }
 
-        private async Task<bool> processFragmentFrameAsync(WebSocketFrame frame)
+        private async Task<bool> ProcessFragmentFrameAsync(WebSocketFrame frame)
         {
             if (!_inContinuation)
             {
@@ -1554,7 +1566,7 @@ namespace WebSocketSharp
                         ? _fragmentsBuffer.DecompressToArray(_compression)
                         : _fragmentsBuffer.ToArray();
 
-                    enqueueToMessageEventQueue(new MessageEventArgs(_fragmentsOpcode, data));
+                    EnqueueToMessageEventQueue(new MessageEventArgs(_fragmentsOpcode, data));
                 }
 
                 _fragmentsBuffer = null;
@@ -1564,7 +1576,7 @@ namespace WebSocketSharp
             return true;
         }
 
-        private async Task<bool> processPingFrameAsync(WebSocketFrame frame)
+        private async Task<bool> ProcessPingFrameAsync(WebSocketFrame frame, CancellationToken cancellationToken)
         {
             _logger.Trace("A ping was received.");
 
@@ -1578,7 +1590,7 @@ namespace WebSocketSharp
                     return true;
                 }
 
-                if (!await sendBytesAsync(pong.ToArray()))
+                if (!await SendBytesAsync(pong.ToArray(), cancellationToken))
                     return false;
             }
 
@@ -1589,13 +1601,13 @@ namespace WebSocketSharp
                 if (_client)
                     pong.Unmask();
 
-                enqueueToMessageEventQueue(new MessageEventArgs(frame));
+                EnqueueToMessageEventQueue(new MessageEventArgs(frame));
             }
 
             return true;
         }
 
-        private bool processPongFrame(WebSocketFrame frame)
+        private bool ProcessPongFrame(WebSocketFrame frame)
         {
             _logger.Trace("A pong was received.");
 
@@ -1623,33 +1635,33 @@ namespace WebSocketSharp
             return true;
         }
 
-        private async Task<bool> processReceivedFrameAsync(WebSocketFrame frame)
+        private async Task<bool> ProcessReceivedFrameAsync(WebSocketFrame frame, CancellationToken cancellationToken)
         {
             string msg;
-            if (!checkReceivedFrame(frame, out msg))
+            if (!CheckReceivedFrame(frame, out msg))
                 throw new WebSocketException(CloseStatusCode.ProtocolError, msg);
 
             frame.Unmask();
             return frame.IsFragment
-                ? await processFragmentFrameAsync(frame)
+                ? await ProcessFragmentFrameAsync(frame)
                 : frame.IsData
 
-                ? processDataFrame(frame)
+                ? ProcessDataFrame(frame)
                 : frame.IsPing
 
-                ? await processPingFrameAsync(frame)
+                ? await ProcessPingFrameAsync(frame, cancellationToken)
                 : frame.IsPong
 
-                ? processPongFrame(frame)
+                ? ProcessPongFrame(frame)
                 : frame.IsClose
 
-                ? await processCloseFrameAsync(frame)
-                : await processUnsupportedFrameAsync(frame)
+                ? await ProcessCloseFrameAsync(frame, cancellationToken)
+                : await ProcessUnsupportedFrameAsync(frame, cancellationToken)
             ;
         }
 
         // As server
-        private void processSecWebSocketExtensionsClientHeader(string value)
+        private void ProcessSecWebSocketExtensionsClientHeader(string value)
         {
             if (value == null)
                 return;
@@ -1690,7 +1702,7 @@ namespace WebSocketSharp
         }
 
         // As client
-        private void processSecWebSocketExtensionsServerHeader(string value)
+        private void ProcessSecWebSocketExtensionsServerHeader(string value)
         {
             if (value == null)
             {
@@ -1702,7 +1714,7 @@ namespace WebSocketSharp
         }
 
         // As server
-        private void processSecWebSocketProtocolClientHeader(IEnumerable<string> values)
+        private void ProcessSecWebSocketProtocolClientHeader(IEnumerable<string> values)
         {
             if (values.Contains(val => val == _protocol))
                 return;
@@ -1710,23 +1722,23 @@ namespace WebSocketSharp
             _protocol = null;
         }
 
-        private async Task<bool> processUnsupportedFrameAsync(WebSocketFrame frame)
+        private async Task<bool> ProcessUnsupportedFrameAsync(WebSocketFrame frame, CancellationToken cancellationToken)
         {
             _logger.Fatal("An unsupported frame:" + frame.PrintToString(false));
-            await fatalAsync("There is no way to handle it.", CloseStatusCode.PolicyViolation);
+            await FatalAsync("There is no way to handle it.", CloseStatusCode.PolicyViolation, cancellationToken);
 
             return false;
         }
 
         // As server
-        private async Task refuseHandshakeAsync(CloseStatusCode code, string reason)
+        private async Task RefuseHandshakeAsync(CloseStatusCode code, string reason, CancellationToken cancellationToken)
         {
             _readyState = WebSocketState.Closing;
 
-            var res = createHandshakeFailureResponse(HttpStatusCode.BadRequest);
-            await sendHttpResponseAsync(res);
+            var res = CreateHandshakeFailureResponse(HttpStatusCode.BadRequest);
+            await SendHttpResponseAsync(res, cancellationToken);
 
-            await releaseServerResourcesAsync();
+            await ReleaseServerResourcesAsync();
 
             _readyState = WebSocketState.Closed;
 
@@ -1744,7 +1756,7 @@ namespace WebSocketSharp
         }
 
         // As client
-        private void releaseClientResources()
+        private void ReleaseClientResources()
         {
             if (_stream != null)
             {
@@ -1759,7 +1771,7 @@ namespace WebSocketSharp
             }
         }
 
-        private void releaseCommonResources()
+        private void ReleaseCommonResources()
         {
             if (_fragmentsBuffer != null)
             {
@@ -1773,26 +1785,20 @@ namespace WebSocketSharp
                 _pongReceived.Close();
                 _pongReceived = null;
             }
-
-            if (_receivingExited != null)
-            {
-                _receivingExited.Close();
-                _receivingExited = null;
-            }
         }
 
-        private async Task releaseResourcesAsync()
+        private async Task ReleaseResourcesAsync()
         {
             if (_client)
-                releaseClientResources();
+                ReleaseClientResources();
             else
-                await releaseServerResourcesAsync();
+                await ReleaseServerResourcesAsync();
 
-            releaseCommonResources();
+            ReleaseCommonResources();
         }
 
         // As server
-        private async Task releaseServerResourcesAsync()
+        private async Task ReleaseServerResourcesAsync()
         {
             if (_closeContext == null)
                 return;
@@ -1803,7 +1809,7 @@ namespace WebSocketSharp
             _context = null;
         }
 
-        private async Task<bool> sendAsync(Opcode opcode, Stream stream)
+        private async Task<bool> SendAsync(Opcode opcode, Stream stream, CancellationToken cancellationToken)
         {
             //lock (_forSend)
             {
@@ -1818,14 +1824,14 @@ namespace WebSocketSharp
                         compressed = true;
                     }
 
-                    sent = await sendAsync(opcode, stream, compressed);
+                    sent = await SendAsync(opcode, stream, compressed, cancellationToken);
                     if (!sent)
-                        error("A send has been interrupted.", null);
+                        Error("A send has been interrupted.", null);
                 }
                 catch (Exception ex)
                 {
                     _logger.Error(ex.ToString());
-                    error("An error has occurred during a send.", ex);
+                    Error("An error has occurred during a send.", ex);
                 }
                 finally
                 {
@@ -1839,11 +1845,11 @@ namespace WebSocketSharp
             }
         }
 
-        private async Task<bool> sendAsync(Opcode opcode, Stream stream, bool compressed)
+        private async Task<bool> SendAsync(Opcode opcode, Stream stream, bool compressed, CancellationToken cancellationToken)
         {
             var len = stream.Length;
             if (len == 0)
-                return await sendAsync(Fin.Final, opcode, EmptyBytes, false);
+                return await SendAsync(Fin.Final, opcode, EmptyBytes, false, cancellationToken);
 
             var quo = len / FragmentLength;
             var rem = (int)(len % FragmentLength);
@@ -1853,14 +1859,14 @@ namespace WebSocketSharp
             {
                 buff = new byte[rem];
                 return stream.Read(buff, 0, rem) == rem
-                       && await sendAsync(Fin.Final, opcode, buff, compressed);
+                       && await SendAsync(Fin.Final, opcode, buff, compressed, cancellationToken);
             }
 
             if (quo == 1 && rem == 0)
             {
                 buff = new byte[FragmentLength];
                 return stream.Read(buff, 0, FragmentLength) == FragmentLength
-                       && await sendAsync(Fin.Final, opcode, buff, compressed);
+                       && await SendAsync(Fin.Final, opcode, buff, compressed, cancellationToken);
             }
 
             /* Send fragments */
@@ -1868,7 +1874,7 @@ namespace WebSocketSharp
             // Begin
             buff = new byte[FragmentLength];
             var sent = stream.Read(buff, 0, FragmentLength) == FragmentLength
-                       && await sendAsync(Fin.More, opcode, buff, compressed);
+                       && await SendAsync(Fin.More, opcode, buff, compressed, cancellationToken);
 
             if (!sent)
                 return false;
@@ -1877,7 +1883,7 @@ namespace WebSocketSharp
             for (long i = 0; i < n; i++)
             {
                 sent = stream.Read(buff, 0, FragmentLength) == FragmentLength
-                       && await sendAsync(Fin.More, Opcode.Cont, buff, false);
+                       && await SendAsync(Fin.More, Opcode.Cont, buff, false, cancellationToken);
 
                 if (!sent)
                     return false;
@@ -1890,10 +1896,10 @@ namespace WebSocketSharp
                 buff = new byte[rem];
 
             return stream.Read(buff, 0, rem) == rem
-                   && await sendAsync(Fin.Final, Opcode.Cont, buff, false);
+                && await SendAsync(Fin.Final, Opcode.Cont, buff, false, cancellationToken);
         }
 
-        private async Task<bool> sendAsync(Fin fin, Opcode opcode, byte[] data, bool compressed)
+        private async Task<bool> SendAsync(Fin fin, Opcode opcode, byte[] data, bool compressed, CancellationToken cancellationToken)
         {
             //lock (_forState)
             {
@@ -1904,15 +1910,15 @@ namespace WebSocketSharp
                 }
 
                 var frame = new WebSocketFrame(fin, opcode, data, compressed, _client);
-                return await sendBytesAsync(frame.ToArray());
+                return await SendBytesAsync(frame.ToArray(), cancellationToken);
             }
         }
 
-        private async Task<bool> sendBytesAsync(byte[] bytes)
+        private async Task<bool> SendBytesAsync(byte[] bytes, CancellationToken cancellationToken)
         {
             try
             {
-                await _stream.WriteAsync(bytes, 0, bytes.Length);
+                await _stream.WriteAsync(bytes, 0, bytes.Length, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -1926,10 +1932,10 @@ namespace WebSocketSharp
         }
 
         // As client
-        private async Task<HttpResponse> sendHandshakeRequestAsync()
+        private async Task<HttpResponse> SendHandshakeRequestAsync(CancellationToken cancellationToken)
         {
-            var req = createHandshakeRequest();
-            var res = await sendHttpRequestAsync(req, 90000);
+            var req = CreateHandshakeRequest();
+            var res = await SendHttpRequestAsync(req, 90000, cancellationToken);
             if (res.IsUnauthorized)
             {
                 var chal = res.Headers["WWW-Authenticate"];
@@ -1968,13 +1974,13 @@ namespace WebSocketSharp
                         return res;
                     }
 
-                    releaseClientResources();
+                    ReleaseClientResources();
 
                     _uri = uri;
                     IsSecure = uri.Scheme == "wss";
 
-                    setClientStream();
-                    return await sendHandshakeRequestAsync();
+                    await SetClientStreamAsync();
+                    return await SendHandshakeRequestAsync(cancellationToken);
                 }
             }
 
@@ -1982,32 +1988,32 @@ namespace WebSocketSharp
         }
 
         // As client
-        private async Task<HttpResponse> sendHttpRequestAsync(HttpRequest request, int millisecondsTimeout)
+        private async Task<HttpResponse> SendHttpRequestAsync(HttpRequest request, int millisecondsTimeout, CancellationToken cancellationToken)
         {
             _logger.Debug("A request to the server:\n" + request.ToString());
-            var res = await request.GetResponseAsync(_stream, millisecondsTimeout);
+            var res = await request.GetResponseAsync(_stream, millisecondsTimeout, cancellationToken);
             _logger.Debug("A response to this request:\n" + res.ToString());
 
             return res;
         }
 
         // As server
-        private async Task<bool> sendHttpResponseAsync(HttpResponse response)
+        private async Task<bool> SendHttpResponseAsync(HttpResponse response, CancellationToken cancellationToken)
         {
             _logger.Debug($"A response to {_context.UserEndPoint}:\n{response}");
 
-            return await sendBytesAsync(response.ToByteArray());
+            return await SendBytesAsync(response.ToByteArray(), cancellationToken);
         }
 
         // As client
-        private void setClientStream()
+        private async Task SetClientStreamAsync()
         {
             _tcpClient = new TcpClient(_uri.DnsSafeHost, _uri.Port);
             _stream = _tcpClient.GetStream();
 
             if (IsSecure)
             {
-                var conf = getSslConfiguration();
+                var conf = GetSslConfiguration();
                 var host = conf.TargetHost;
                 if (host != _uri.DnsSafeHost)
                     throw new WebSocketException(
@@ -2021,11 +2027,14 @@ namespace WebSocketSharp
                       conf.ServerCertificateValidationCallback,
                       conf.ClientCertificateSelectionCallback);
 
-                    sslStream.AuthenticateAsClient(
+                    await sslStream.AuthenticateAsClientAsync(
                       host,
                       conf.ClientCertificates,
                       conf.EnabledSslProtocols,
-                      conf.CheckCertificateRevocation);
+                      conf.CheckCertificateRevocation
+                      //,
+                      //cancellationToken
+                    );
 
                     _stream = sslStream;
                 }
@@ -2036,25 +2045,22 @@ namespace WebSocketSharp
             }
         }
 
-        private async Task startReceivingAccumulatorTaskAsync()
+        private async Task StartReceivingAccumulatorTaskAsync(CancellationToken stoppingToken)
         {
             if (_messageEventQueue.Count > 0)
                 _messageEventQueue.Clear();
 
             _pongReceived = new ManualResetEvent(false);
-            _receivingExited = new ManualResetEvent(false);
 
             do
             {
                 try
                 {
-                    var frame = await WebSocketFrame.ReadFrameAsync(_stream, false);
+                    var frame = await WebSocketFrame.ReadFrameAsync(_stream, false, stoppingToken);
 
-                    if (!await processReceivedFrameAsync(frame) || _readyState == WebSocketState.Closed)
+                    if (!await ProcessReceivedFrameAsync(frame, stoppingToken) || _readyState == WebSocketState.Closed)
                     {
-                        var exited = _receivingExited;
-                        if (exited != null)
-                            exited.Set();
+                        _receivingStoppingToken.Cancel();
                         if (!_messageEventQueueRestart.Task.IsCompleted)
                             _messageEventQueueRestart.SetCanceled();
                         break;
@@ -2069,19 +2075,19 @@ namespace WebSocketSharp
                 catch (Exception ex)
                 {
                     _logger.Fatal(ex.ToString());
-                    await fatalAsync("An exception has occurred while receiving.", ex);
+                    await FatalAsync("An exception has occurred while receiving.", ex, stoppingToken);
                 }
-            } while (true);
+            } while (!_receivingStoppingToken.IsCancellationRequested);
         }
 
         // As client
-        private bool validateSecWebSocketAcceptHeader(string value)
+        private bool ValidateSecWebSocketAcceptHeader(string value)
         {
             return value != null && value == CreateResponseKey(_base64Key);
         }
 
         // As client
-        private bool validateSecWebSocketExtensionsServerHeader(string value)
+        private bool ValidateSecWebSocketExtensionsServerHeader(string value)
         {
             if (value == null)
                 return true;
@@ -2132,7 +2138,7 @@ namespace WebSocketSharp
         }
 
         // As client
-        private bool validateSecWebSocketProtocolServerHeader(string value)
+        private bool ValidateSecWebSocketProtocolServerHeader(string value)
         {
             if (value == null)
                 return !_protocolsRequested;
@@ -2144,7 +2150,7 @@ namespace WebSocketSharp
         }
 
         // As client
-        private bool validateSecWebSocketVersionServerHeader(string value)
+        private bool ValidateSecWebSocketVersionServerHeader(string value)
         {
             return value == null || value == _version;
         }
@@ -2154,24 +2160,24 @@ namespace WebSocketSharp
         #region Internal Methods
 
         // As server
-        internal async Task CloseAsync(HttpResponse response)
+        internal async Task InternalCloseAsync(HttpResponse response, CancellationToken cancellationToken)
         {
             _readyState = WebSocketState.Closing;
 
-            await sendHttpResponseAsync(response);
-            await releaseServerResourcesAsync();
+            await SendHttpResponseAsync(response, cancellationToken);
+            await ReleaseServerResourcesAsync();
 
             _readyState = WebSocketState.Closed;
         }
 
         // As server
-        internal async Task CloseAsync(HttpStatusCode code)
+        internal async Task InternalCloseAsync(HttpStatusCode code, CancellationToken cancellationToken)
         {
-            await CloseAsync(createHandshakeFailureResponse(code));
+            await InternalCloseAsync(CreateHandshakeFailureResponse(code), cancellationToken);
         }
 
         // As server
-        internal async Task CloseAsync(PayloadData payloadData, byte[] frameAsBytes)
+        internal async Task InternalCloseAsync(PayloadData payloadData, byte[] frameAsBytes, CancellationToken stoppingToken)
         {
             //lock (_forState)
             {
@@ -2191,18 +2197,29 @@ namespace WebSocketSharp
             }
 
             _logger.Trace("Begin closing the connection.");
+            using var registration = stoppingToken.Register(() => _receivingStoppingToken.Cancel());
 
-            var sent = frameAsBytes != null && await sendBytesAsync(frameAsBytes);
-            var received = sent && _receivingExited != null
-                ? _receivingExited.WaitOne(_waitTime)
-                : false;
+            bool sent = frameAsBytes != null && await SendBytesAsync(frameAsBytes, stoppingToken);
+            bool received = false;
 
-            var res = sent && received;
+            if (sent)
+            {
+                try
+                {
+                    await Task.Delay(-1, _receivingStoppingToken.Token);
+                }
+                catch
+                {
+                }
+                received = !stoppingToken.IsCancellationRequested;
+            }
+
+            bool res = sent && received;
 
             _logger.Debug($"Was clean?: {res}\n  sent: {sent}\n  received: {received}");
 
-            await releaseServerResourcesAsync();
-            releaseCommonResources();
+            await ReleaseServerResourcesAsync();
+            ReleaseCommonResources();
 
             _logger.Trace("End closing the connection.");
 
@@ -2241,11 +2258,11 @@ namespace WebSocketSharp
         }
 
         // As server
-        internal async Task InternalAcceptAsync()
+        internal async Task InternalAcceptAsync(CancellationToken cancellationToken)
         {
             try
             {
-                if (!await acceptHandshakeAsync())
+                if (!await AcceptHandshakeAsync(cancellationToken))
                     return;
             }
             catch (Exception ex)
@@ -2254,18 +2271,18 @@ namespace WebSocketSharp
                 _logger.Debug(ex.ToString());
 
                 var msg = "An exception has occurred while attempting to accept.";
-                await fatalAsync(msg, ex);
+                await FatalAsync(msg, ex, cancellationToken);
 
                 return;
             }
 
             _readyState = WebSocketState.Open;
 
-            await openAsync();
+            await OpenAsync(cancellationToken);
         }
 
         // As server
-        internal async Task<bool> PingAsync(byte[] frameAsBytes, TimeSpan timeout)
+        internal async Task<bool> InternalPingAsync(byte[] frameAsBytes, TimeSpan timeout, CancellationToken cancellationToken)
         {
             if (_readyState != WebSocketState.Open)
                 return false;
@@ -2285,7 +2302,7 @@ namespace WebSocketSharp
                         if (_readyState != WebSocketState.Open)
                             return false;
 
-                        if (!await sendBytesAsync(frameAsBytes))
+                        if (!await SendBytesAsync(frameAsBytes, cancellationToken))
                             return false;
                     }
 
@@ -2299,7 +2316,7 @@ namespace WebSocketSharp
         }
 
         // As server
-        internal async Task SendAsync(Opcode opcode, byte[] data, Dictionary<CompressionMethod, byte[]> cache)
+        internal async Task InternalSendAsync(Opcode opcode, byte[] data, Dictionary<CompressionMethod, byte[]> cache, CancellationToken cancellationToken)
         {
             //lock (_forSend)
             {
@@ -2326,13 +2343,13 @@ namespace WebSocketSharp
                         cache.Add(_compression, found);
                     }
 
-                    await sendBytesAsync(found);
+                    await SendBytesAsync(found, cancellationToken);
                 }
             }
         }
 
         // As server
-        internal async Task SendAsync(Opcode opcode, Stream stream, Dictionary<CompressionMethod, Stream> cache)
+        internal async Task InternalSendAsync(Opcode opcode, Stream stream, Dictionary<CompressionMethod, Stream> cache, CancellationToken cancellationToken)
         {
             //lock (_forSend)
             {
@@ -2347,7 +2364,7 @@ namespace WebSocketSharp
                     found.Position = 0;
                 }
 
-                await sendAsync(opcode, found, _compression != CompressionMethod.None);
+                await SendAsync(opcode, found, _compression != CompressionMethod.None, cancellationToken);
             }
         }
 
@@ -2379,7 +2396,7 @@ namespace WebSocketSharp
         ///   The connection has already been closed.
         ///   </para>
         /// </exception>
-        public async Task AcceptAsync()
+        public async Task AcceptAsync(CancellationToken cancellationToken)
         {
             if (_client)
             {
@@ -2399,8 +2416,8 @@ namespace WebSocketSharp
                 throw new InvalidOperationException(msg);
             }
 
-            if (await acceptAsync())
-                await openAsync();
+            if (await PrivateAcceptAsync(cancellationToken))
+                await OpenAsync(cancellationToken);
         }
 
         /// <summary>
@@ -2410,9 +2427,9 @@ namespace WebSocketSharp
         /// This method does nothing if the current state of the connection is
         /// Closing or Closed.
         /// </remarks>
-        public async Task CloseAsync()
+        public async Task CloseAsync(CancellationToken cancellationToken)
         {
-            await closeAsync(1005, String.Empty);
+            await CloseAsync(1005, String.Empty, cancellationToken);
         }
 
         /// <summary>
@@ -2445,7 +2462,7 @@ namespace WebSocketSharp
         ///   It cannot be used by servers.
         ///   </para>
         /// </exception>
-        public async Task CloseAsync(CloseStatusCode code)
+        public async Task CloseAsync(CloseStatusCode code, CancellationToken cancellationToken)
         {
             if (_client && code == CloseStatusCode.ServerError)
             {
@@ -2459,7 +2476,7 @@ namespace WebSocketSharp
                 throw new ArgumentException(msg, "code");
             }
 
-            await closeAsync((ushort)code, String.Empty);
+            await CloseAsync((ushort)code, String.Empty, cancellationToken);
         }
 
         /// <summary>
@@ -2524,7 +2541,7 @@ namespace WebSocketSharp
         ///   <paramref name="reason"/> could not be UTF-8-encoded.
         ///   </para>
         /// </exception>
-        public async Task CloseAsync(ushort code, string reason)
+        public async Task CloseAsync(ushort code, string reason, CancellationToken cancellationToken)
         {
             if (!code.IsCloseStatusCode())
             {
@@ -2546,7 +2563,7 @@ namespace WebSocketSharp
 
             if (reason.IsNullOrEmpty())
             {
-                await closeAsync(code, String.Empty);
+                await CloseAsync(code, String.Empty, cancellationToken);
                 return;
             }
 
@@ -2569,7 +2586,7 @@ namespace WebSocketSharp
                 throw new ArgumentOutOfRangeException("reason", msg);
             }
 
-            await closeAsync(code, reason);
+            await CloseAsync(code, reason, cancellationToken);
         }
 
         /// <summary>
@@ -2626,7 +2643,7 @@ namespace WebSocketSharp
         /// <exception cref="ArgumentOutOfRangeException">
         /// The size of <paramref name="reason"/> is greater than 123 bytes.
         /// </exception>
-        public async Task CloseAsync(CloseStatusCode code, string reason)
+        public async Task CloseAsync(CloseStatusCode code, string reason, CancellationToken cancellationToken)
         {
             if (_client && code == CloseStatusCode.ServerError)
             {
@@ -2642,7 +2659,7 @@ namespace WebSocketSharp
 
             if (reason.IsNullOrEmpty())
             {
-                await closeAsync((ushort)code, String.Empty);
+                await CloseAsync((ushort)code, String.Empty, cancellationToken);
                 return;
             }
 
@@ -2665,7 +2682,7 @@ namespace WebSocketSharp
                 throw new ArgumentOutOfRangeException("reason", msg);
             }
 
-            await closeAsync((ushort)code, reason);
+            await CloseAsync((ushort)code, reason, cancellationToken);
         }
 
         /// <summary>
@@ -2691,7 +2708,7 @@ namespace WebSocketSharp
         ///   A series of reconnecting has failed.
         ///   </para>
         /// </exception>
-        public async Task ConnectAsync()
+        public async Task ConnectAsync(CancellationToken stoppingToken)
         {
             if (!_client)
             {
@@ -2711,8 +2728,8 @@ namespace WebSocketSharp
                 throw new InvalidOperationException(msg);
             }
 
-            if (await connectAsync())
-                await openAsync();
+            if (await InternalConnectAsync(stoppingToken))
+                await OpenAsync(stoppingToken);
             else
                 throw new Exception("could not connect");
         }
@@ -2724,9 +2741,9 @@ namespace WebSocketSharp
         /// <c>true</c> if the send has done with no error and a pong has been
         /// received within a time; otherwise, <c>false</c>.
         /// </returns>
-        public async Task<bool> PingAsync()
+        public async Task<bool> PingAsync(CancellationToken cancellationToken)
         {
-            return await pingAsync(EmptyBytes);
+            return await PingAsync(EmptyBytes, cancellationToken);
         }
 
         /// <summary>
@@ -2751,10 +2768,10 @@ namespace WebSocketSharp
         /// <exception cref="ArgumentOutOfRangeException">
         /// The size of <paramref name="message"/> is greater than 125 bytes.
         /// </exception>
-        public async Task<bool> PingAsync(string message)
+        public async Task<bool> PingAsync(string message, CancellationToken cancellationToken)
         {
             if (message.IsNullOrEmpty())
-                return await pingAsync(EmptyBytes);
+                return await PingAsync(EmptyBytes, cancellationToken);
 
             byte[] bytes;
             if (!message.TryGetUTF8EncodedBytes(out bytes))
@@ -2769,7 +2786,7 @@ namespace WebSocketSharp
                 throw new ArgumentOutOfRangeException("message", msg);
             }
 
-            return await pingAsync(bytes);
+            return await PingAsync(bytes, cancellationToken);
         }
 
         /// <summary>
@@ -2784,7 +2801,7 @@ namespace WebSocketSharp
         /// <exception cref="ArgumentNullException">
         /// <paramref name="data"/> is <see langword="null"/>.
         /// </exception>
-        public async Task SendAsync(byte[] data)
+        public async Task SendAsync(byte[] data, CancellationToken cancellationToken)
         {
             if (_readyState != WebSocketState.Open)
             {
@@ -2795,7 +2812,7 @@ namespace WebSocketSharp
             if (data == null)
                 throw new ArgumentNullException("data");
 
-            await sendAsync(Opcode.Binary, new MemoryStream(data));
+            await SendAsync(Opcode.Binary, new MemoryStream(data), cancellationToken);
         }
 
         /// <summary>
@@ -2826,7 +2843,7 @@ namespace WebSocketSharp
         ///   The file could not be opened.
         ///   </para>
         /// </exception>
-        public async Task SendAsync(FileInfo fileInfo)
+        public async Task SendAsync(FileInfo fileInfo, CancellationToken cancellationToken)
         {
             if (_readyState != WebSocketState.Open)
             {
@@ -2850,7 +2867,7 @@ namespace WebSocketSharp
                 throw new ArgumentException(msg, "fileInfo");
             }
 
-            await sendAsync(Opcode.Binary, stream);
+            await SendAsync(Opcode.Binary, stream, cancellationToken);
         }
 
         /// <summary>
@@ -2868,7 +2885,7 @@ namespace WebSocketSharp
         /// <exception cref="ArgumentException">
         /// <paramref name="data"/> could not be UTF-8-encoded.
         /// </exception>
-        public async Task SendAsync(string data)
+        public async Task SendAsync(string data, CancellationToken cancellationToken)
         {
             if (_readyState != WebSocketState.Open)
             {
@@ -2886,7 +2903,7 @@ namespace WebSocketSharp
                 throw new ArgumentException(msg, "data");
             }
 
-            await sendAsync(Opcode.Text, new MemoryStream(bytes));
+            await SendAsync(Opcode.Text, new MemoryStream(bytes), cancellationToken);
         }
 
         /// <summary>
@@ -2926,7 +2943,7 @@ namespace WebSocketSharp
         ///   No data could be read from <paramref name="stream"/>.
         ///   </para>
         /// </exception>
-        public async Task SendAsync(Stream stream, int length)
+        public async Task SendAsync(Stream stream, int length, CancellationToken cancellationToken)
         {
             if (_readyState != WebSocketState.Open)
             {
@@ -2963,7 +2980,7 @@ namespace WebSocketSharp
                 _logger.Warn($"Only {len} byte(s) of data could be read from the stream.");
             }
 
-            await sendAsync(Opcode.Binary, new MemoryStream(bytes));
+            await SendAsync(Opcode.Binary, new MemoryStream(bytes), cancellationToken);
         }
 
         #endregion
@@ -2984,7 +3001,7 @@ namespace WebSocketSharp
         /// </remarks>
         public async ValueTask DisposeAsync()
         {
-            await closeAsync(1001, String.Empty);
+            await CloseAsync(1001, String.Empty, CancellationToken.None);
         }
 
         #endregion

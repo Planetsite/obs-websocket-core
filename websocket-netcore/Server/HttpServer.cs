@@ -41,6 +41,7 @@ using System;
 using System.IO;
 using System.Security.Principal;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using WebSocketSharp.Net;
 using WebSocketSharp.Net.WebSockets;
@@ -78,7 +79,7 @@ namespace WebSocketSharp.Server
         /// </remarks>
         public HttpServer()
         {
-            init("*", System.Net.IPAddress.Any, 80, false);
+            Init("*", System.Net.IPAddress.Any, 80, false);
         }
 
         /// <summary>
@@ -152,7 +153,7 @@ namespace WebSocketSharp.Server
 
             Uri uri;
             string msg;
-            if (!tryCreateUri(url, out uri, out msg))
+            if (!TryCreateUri(url, out uri, out msg))
                 throw new ArgumentException(msg, "url");
 
             var host = uri.GetDnsSafeHost(true);
@@ -170,7 +171,7 @@ namespace WebSocketSharp.Server
                 throw new ArgumentException(msg, "url");
             }
 
-            init(host, addr, uri.Port, uri.Scheme == "https");
+            Init(host, addr, uri.Port, uri.Scheme == "https");
         }
 
         /// <summary>
@@ -200,7 +201,7 @@ namespace WebSocketSharp.Server
                 throw new ArgumentOutOfRangeException("port", msg);
             }
 
-            init("*", System.Net.IPAddress.Any, port, secure);
+            Init("*", System.Net.IPAddress.Any, port, secure);
         }
 
         /// <summary>
@@ -282,7 +283,7 @@ namespace WebSocketSharp.Server
                 throw new ArgumentOutOfRangeException("port", msg);
             }
 
-            init(address.ToString(true), address, port, secure);
+            Init(address.ToString(true), address, port, secure);
         }
 
         #endregion
@@ -328,7 +329,7 @@ namespace WebSocketSharp.Server
             set
             {
                 string msg;
-                if (!canSet(out msg))
+                if (!CanSet(out msg))
                 {
                     Log.Warn(msg);
                     return;
@@ -336,7 +337,7 @@ namespace WebSocketSharp.Server
 
                 lock (_sync)
                 {
-                    if (!canSet(out msg))
+                    if (!CanSet(out msg))
                     {
                         Log.Warn(msg);
                         return;
@@ -432,7 +433,7 @@ namespace WebSocketSharp.Server
                     throw new ArgumentException("An absolute root.", "value");
 
                 string msg;
-                if (!canSet(out msg))
+                if (!CanSet(out msg))
                 {
                     Log.Warn(msg);
                     return;
@@ -440,7 +441,7 @@ namespace WebSocketSharp.Server
 
                 lock (_sync)
                 {
-                    if (!canSet(out msg))
+                    if (!CanSet(out msg))
                     {
                         Log.Warn(msg);
                         return;
@@ -555,7 +556,7 @@ namespace WebSocketSharp.Server
             set
             {
                 string msg;
-                if (!canSet(out msg))
+                if (!CanSet(out msg))
                 {
                     Log.Warn(msg);
                     return;
@@ -563,7 +564,7 @@ namespace WebSocketSharp.Server
 
                 lock (_sync)
                 {
-                    if (!canSet(out msg))
+                    if (!CanSet(out msg))
                     {
                         Log.Warn(msg);
                         return;
@@ -607,7 +608,7 @@ namespace WebSocketSharp.Server
             set
             {
                 string msg;
-                if (!canSet(out msg))
+                if (!CanSet(out msg))
                 {
                     Log.Warn(msg);
                     return;
@@ -615,7 +616,7 @@ namespace WebSocketSharp.Server
 
                 lock (_sync)
                 {
-                    if (!canSet(out msg))
+                    if (!CanSet(out msg))
                     {
                         Log.Warn(msg);
                         return;
@@ -693,7 +694,7 @@ namespace WebSocketSharp.Server
             set
             {
                 string msg;
-                if (!canSet(out msg))
+                if (!CanSet(out msg))
                 {
                     Log.Warn(msg);
                     return;
@@ -701,7 +702,7 @@ namespace WebSocketSharp.Server
 
                 lock (_sync)
                 {
-                    if (!canSet(out msg))
+                    if (!CanSet(out msg))
                     {
                         Log.Warn(msg);
                         return;
@@ -802,7 +803,7 @@ namespace WebSocketSharp.Server
 
         #region Private Methods
 
-        private async Task abortAsync()
+        private async Task PrivateAbortAsync(CancellationToken cancellationToken)
         {
             lock (_sync)
             {
@@ -816,7 +817,7 @@ namespace WebSocketSharp.Server
             {
                 try
                 {
-                    await WebSocketServices.StopAsync(1006, String.Empty);
+                    await WebSocketServices.StopAsync(1006, String.Empty, cancellationToken);
                 }
                 finally
                 {
@@ -830,7 +831,7 @@ namespace WebSocketSharp.Server
             _state = ServerState.Stop;
         }
 
-        private bool canSet(out string message)
+        private bool CanSet(out string message)
         {
             message = null;
 
@@ -849,7 +850,7 @@ namespace WebSocketSharp.Server
             return true;
         }
 
-        private bool checkCertificate(out string message)
+        private bool PrivateCheckCertificate(out string message)
         {
             message = null;
 
@@ -870,7 +871,7 @@ namespace WebSocketSharp.Server
             return true;
         }
 
-        private string createFilePath(string childPath)
+        private string PrivateCreateFilePath(string childPath)
         {
             childPath = childPath.TrimStart('/', '\\');
             return new StringBuilder(_docRootPath, 32)
@@ -879,7 +880,7 @@ namespace WebSocketSharp.Server
                 .Replace('\\', '/');
         }
 
-        private static HttpListener createListener(string hostname, int port, bool secure)
+        private static HttpListener PrivateCreateListener(string hostname, int port, bool secure)
         {
             var lsnr = new HttpListener();
 
@@ -890,7 +891,7 @@ namespace WebSocketSharp.Server
             return lsnr;
         }
 
-        private void init(string hostname, System.Net.IPAddress address, int port, bool secure)
+        private void Init(string hostname, System.Net.IPAddress address, int port, bool secure)
         {
             _hostname = hostname;
             Address = address;
@@ -898,13 +899,13 @@ namespace WebSocketSharp.Server
             IsSecure = secure;
 
             _docRootPath = "./Public";
-            _listener = createListener(_hostname, Port, IsSecure);
+            _listener = PrivateCreateListener(_hostname, Port, IsSecure);
             Log = _listener.Log;
             WebSocketServices = new WebSocketServiceManager(Log);
             _sync = new object();
         }
 
-        private async Task processRequestAsync(HttpListenerContext context)
+        private async Task PrivateProcessRequestAsync(HttpListenerContext context)
         {
             var method = context.Request.HttpMethod;
             var evt = method == "GET"
@@ -941,7 +942,7 @@ namespace WebSocketSharp.Server
             await context.Response.CloseAsync();
         }
 
-        private async Task processRequestAsync(HttpListenerWebSocketContext context)
+        private async Task PrivatePprocessRequestAsync(HttpListenerWebSocketContext context, CancellationToken cancellationToken)
         {
             var uri = context.RequestUri;
             if (uri == null)
@@ -961,10 +962,10 @@ namespace WebSocketSharp.Server
                 return;
             }
 
-            await host.StartSessionAsync(context);
+            await host.StartSessionAsync(context, cancellationToken);
         }
 
-        private async Task receiveRequestAsync()
+        private async Task PrivateReceiveRequestAsync(CancellationToken cancellationToken)
         {
             while (true)
             {
@@ -976,11 +977,11 @@ namespace WebSocketSharp.Server
                     {
                         if (ctx.Request.IsUpgradeRequest("websocket"))
                         {
-                            await processRequestAsync(ctx.AcceptWebSocket(null));
+                            await PrivatePprocessRequestAsync(ctx.AcceptWebSocket(null), cancellationToken);
                             return;
                         }
 
-                        await processRequestAsync(ctx);
+                        await PrivateProcessRequestAsync(ctx);
                     }
                     catch (Exception ex)
                     {
@@ -1013,10 +1014,10 @@ namespace WebSocketSharp.Server
             }
 
             if (_state != ServerState.ShuttingDown)
-                await abortAsync();
+                await PrivateAbortAsync(cancellationToken);
         }
 
-        private async Task startAsync()
+        private async Task PrivateStartAsync(CancellationToken cancellationToken)
         {
             if (_state == ServerState.Start)
             {
@@ -1044,15 +1045,15 @@ namespace WebSocketSharp.Server
                     return;
                 }
 
-                WebSocketServices.Start();
+                WebSocketServices.Start(cancellationToken);
 
                 try
                 {
-                    await startReceiving();
+                    await PrivateStartReceiving(cancellationToken);
                 }
                 catch
                 {
-                    await WebSocketServices.StopAsync(1011, String.Empty);
+                    await WebSocketServices.StopAsync(1011, String.Empty, cancellationToken);
                     throw;
                 }
 
@@ -1060,7 +1061,7 @@ namespace WebSocketSharp.Server
             }
         }
 
-        private async Task startReceiving()
+        private async Task PrivateStartReceiving(CancellationToken cancellationToken)
         {
             try
             {
@@ -1073,11 +1074,11 @@ namespace WebSocketSharp.Server
             }
 
             #pragma warning disable CS4014
-            /*await*/ receiveRequestAsync();
+            /*await*/ PrivateReceiveRequestAsync(cancellationToken);
             #pragma warning restore CS4014
         }
 
-        private async Task stopAsync(ushort code, string reason)
+        private async Task PrivateStopAsync(ushort code, string reason, CancellationToken stoppingToken)
         {
             if (_state == ServerState.Ready)
             {
@@ -1119,7 +1120,7 @@ namespace WebSocketSharp.Server
                 var threw = false;
                 try
                 {
-                    await WebSocketServices.StopAsync(code, reason);
+                    await WebSocketServices.StopAsync(code, reason, stoppingToken);
                 }
                 catch
                 {
@@ -1130,7 +1131,7 @@ namespace WebSocketSharp.Server
                 {
                     try
                     {
-                        await stopReceivingAsync(5000);
+                        await PrivateStopReceivingAsync(5000);
                     }
                     catch
                     {
@@ -1145,15 +1146,13 @@ namespace WebSocketSharp.Server
             }
         }
 
-        private async Task stopReceivingAsync(int millisecondsTimeout)
+        private async Task PrivateStopReceivingAsync(int millisecondsTimeout)
         {
             await _listener.StopAsync();
             //_receiveThread.Join(millisecondsTimeout);
         }
 
-        private static bool tryCreateUri(
-          string uriString, out Uri result, out string message
-        )
+        private static bool TryCreateUri(string uriString, out Uri result, out string message)
         {
             result = null;
             message = null;
@@ -1274,10 +1273,8 @@ namespace WebSocketSharp.Server
         ///   </para>
         /// </exception>
         [Obsolete("This method will be removed. Use added one instead.")]
-        public void AddWebSocketService<TBehavior>(
-          string path, Func<TBehavior> creator
-        )
-          where TBehavior : WebSocketBehavior
+        public void AddWebSocketService<TBehavior>(string path, Func<TBehavior> creator, CancellationToken stoppingToken)
+            where TBehavior : WebSocketBehavior
         {
             if (path == null)
                 throw new ArgumentNullException("path");
@@ -1297,7 +1294,7 @@ namespace WebSocketSharp.Server
                 throw new ArgumentException(msg, "path");
             }
 
-            WebSocketServices.Add<TBehavior>(path, creator);
+            WebSocketServices.Add(path, creator, stoppingToken);
         }
 
         /// <summary>
@@ -1350,10 +1347,10 @@ namespace WebSocketSharp.Server
         ///   <paramref name="path"/> is already in use.
         ///   </para>
         /// </exception>
-        public void AddWebSocketService<TBehaviorWithNew>(string path)
-          where TBehaviorWithNew : WebSocketBehavior, new()
+        public void AddWebSocketService<TBehaviorWithNew>(string path, CancellationToken stoppingToken)
+            where TBehaviorWithNew : WebSocketBehavior, new()
         {
-            WebSocketServices.AddService<TBehaviorWithNew>(path, null);
+            WebSocketServices.AddService<TBehaviorWithNew>(path, null, stoppingToken);
         }
 
         /// <summary>
@@ -1417,12 +1414,10 @@ namespace WebSocketSharp.Server
         ///   <paramref name="path"/> is already in use.
         ///   </para>
         /// </exception>
-        public void AddWebSocketService<TBehaviorWithNew>(
-          string path, Action<TBehaviorWithNew> initializer
-        )
-          where TBehaviorWithNew : WebSocketBehavior, new()
+        public void AddWebSocketService<TBehaviorWithNew>(string path, Action<TBehaviorWithNew> initializer, CancellationToken stoppingToken)
+            where TBehaviorWithNew : WebSocketBehavior, new()
         {
-            WebSocketServices.AddService<TBehaviorWithNew>(path, initializer);
+            WebSocketServices.AddService(path, initializer, stoppingToken);
         }
 
         /// <summary>
@@ -1468,7 +1463,7 @@ namespace WebSocketSharp.Server
             if (path.IndexOf("..") > -1)
                 throw new ArgumentException("It contains '..'.", "path");
 
-            path = createFilePath(path);
+            path = PrivateCreateFilePath(path);
             return File.Exists(path) ? File.ReadAllBytes(path) : null;
         }
 
@@ -1513,9 +1508,9 @@ namespace WebSocketSharp.Server
         ///   query and fragment components.
         ///   </para>
         /// </exception>
-        public async Task<bool> RemoveWebSocketServiceAsync(string path)
+        public async Task<bool> RemoveWebSocketServiceAsync(string path, CancellationToken stoppingToken)
         {
-            return await WebSocketServices.RemoveServiceAsync(path);
+            return await WebSocketServices.RemoveServiceAsync(path, stoppingToken);
         }
 
         /// <summary>
@@ -1536,24 +1531,24 @@ namespace WebSocketSharp.Server
         ///   The underlying <see cref="HttpListener"/> has failed to start.
         ///   </para>
         /// </exception>
-        public async Task StartAsync()
+        public async Task StartAsync(CancellationToken cancellationToken)
         {
             if (IsSecure)
             {
                 string msg;
-                if (!checkCertificate(out msg))
+                if (!PrivateCheckCertificate(out msg))
                     throw new InvalidOperationException(msg);
             }
 
-            await startAsync();
+            await PrivateStartAsync(cancellationToken);
         }
 
         /// <summary>
         /// Stops receiving incoming requests.
         /// </summary>
-        public async Task StopAsync()
+        public async Task StopAsync(CancellationToken stoppingToken)
         {
-            await stopAsync(1001, String.Empty);
+            await PrivateStopAsync(1001, String.Empty, stoppingToken);
         }
 
         /// <summary>
@@ -1607,7 +1602,7 @@ namespace WebSocketSharp.Server
         ///   <paramref name="reason"/> could not be UTF-8-encoded.
         ///   </para>
         /// </exception>
-        public async Task StopAsync(ushort code, string reason)
+        public async Task StopAsync(ushort code, string reason, CancellationToken stoppingToken)
         {
             if (!code.IsCloseStatusCode())
             {
@@ -1643,7 +1638,7 @@ namespace WebSocketSharp.Server
                 }
             }
 
-            await stopAsync(code, reason);
+            await PrivateStopAsync(code, reason, stoppingToken);
         }
 
         /// <summary>
@@ -1689,7 +1684,7 @@ namespace WebSocketSharp.Server
         ///   <paramref name="reason"/> could not be UTF-8-encoded.
         ///   </para>
         /// </exception>
-        public async Task StopAsync(CloseStatusCode code, string reason)
+        public async Task StopAsync(CloseStatusCode code, string reason, CancellationToken stoppingToken)
         {
             if (code == CloseStatusCode.MandatoryExtension)
             {
@@ -1719,7 +1714,7 @@ namespace WebSocketSharp.Server
                 }
             }
 
-            await stopAsync((ushort)code, reason);
+            await PrivateStopAsync((ushort)code, reason, stoppingToken);
         }
 
         #endregion

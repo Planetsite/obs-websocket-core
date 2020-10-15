@@ -34,6 +34,7 @@
 #endregion
 
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using WebSocketSharp.Net.WebSockets;
 
@@ -206,19 +207,19 @@ namespace WebSocketSharp.Server
 
         #region Internal Methods
 
-        internal void Start()
+        internal void Start(CancellationToken stoppingToken)
         {
-            _sessions.Start();
+            _sessions.Start(stoppingToken);
         }
 
-        internal async Task StartSessionAsync(WebSocketContext context)
+        internal async Task StartSessionAsync(WebSocketContext context, CancellationToken cancellationToken)
         {
-            await CreateSession().StartAsync(context, _sessions);
+            await CreateSession().StartAsync(context, _sessions, cancellationToken);
         }
 
-        internal async Task StopAsync(ushort code, string reason)
+        internal async Task StopAsync(ushort code, string reason, CancellationToken stoppingToken)
         {
-            await _sessions.StopAsync(code, reason);
+            await _sessions.StopAsync(code, reason, stoppingToken);
         }
 
         #endregion

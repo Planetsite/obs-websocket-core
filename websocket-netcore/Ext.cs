@@ -73,17 +73,17 @@ namespace WebSocketSharp
 
         #region Private Methods
 
-        private static byte[] compress(this byte[] data)
+        private static byte[] Compress(this byte[] data)
         {
             if (data.LongLength == 0)
                 //return new byte[] { 0x00, 0x00, 0x00, 0xff, 0xff };
                 return data;
 
             using (var input = new MemoryStream(data))
-                return input.compressToArray();
+                return input.CompressToArray();
         }
 
-        private static MemoryStream compress(this Stream stream)
+        private static MemoryStream Compress(this Stream stream)
         {
             var output = new MemoryStream();
             if (stream.Length == 0)
@@ -101,25 +101,25 @@ namespace WebSocketSharp
             }
         }
 
-        private static byte[] compressToArray(this Stream stream)
+        private static byte[] CompressToArray(this Stream stream)
         {
-            using (var output = stream.compress())
+            using (var output = stream.Compress())
             {
                 output.Close();
                 return output.ToArray();
             }
         }
 
-        private static byte[] decompress(this byte[] data)
+        private static byte[] Decompress(this byte[] data)
         {
             if (data.LongLength == 0)
                 return data;
 
             using (var input = new MemoryStream(data))
-                return input.decompressToArray();
+                return input.DecompressToArray();
         }
 
-        private static MemoryStream decompress(this Stream stream)
+        private static MemoryStream Decompress(this Stream stream)
         {
             var output = new MemoryStream();
             if (stream.Length == 0)
@@ -135,16 +135,16 @@ namespace WebSocketSharp
             }
         }
 
-        private static byte[] decompressToArray(this Stream stream)
+        private static byte[] DecompressToArray(this Stream stream)
         {
-            using (var output = stream.decompress())
+            using (var output = stream.Decompress())
             {
                 output.Close();
                 return output.ToArray();
             }
         }
 
-        private static bool isHttpMethod(this string value)
+        private static bool IsHttpMethod(this string value)
         {
             return value == "GET"
                    || value == "HEAD"
@@ -156,7 +156,7 @@ namespace WebSocketSharp
                    || value == "TRACE";
         }
 
-        private static bool isHttpMethod10(this string value)
+        private static bool IsHttpMethod10(this string value)
         {
             return value == "GET"
                    || value == "HEAD"
@@ -195,21 +195,21 @@ namespace WebSocketSharp
         internal static byte[] Compress(this byte[] data, CompressionMethod method)
         {
             return method == CompressionMethod.Deflate
-                   ? data.compress()
+                   ? data.Compress()
                    : data;
         }
 
         internal static Stream Compress(this Stream stream, CompressionMethod method)
         {
             return method == CompressionMethod.Deflate
-                   ? stream.compress()
+                   ? stream.Compress()
                    : stream;
         }
 
         internal static byte[] CompressToArray(this Stream stream, CompressionMethod method)
         {
             return method == CompressionMethod.Deflate
-                   ? stream.compressToArray()
+                   ? stream.CompressToArray()
                    : stream.ToByteArray();
         }
 
@@ -334,21 +334,21 @@ namespace WebSocketSharp
         internal static byte[] Decompress(this byte[] data, CompressionMethod method)
         {
             return method == CompressionMethod.Deflate
-                   ? data.decompress()
+                   ? data.Decompress()
                    : data;
         }
 
         internal static Stream Decompress(this Stream stream, CompressionMethod method)
         {
             return method == CompressionMethod.Deflate
-                   ? stream.decompress()
+                   ? stream.Decompress()
                    : stream;
         }
 
         internal static byte[] DecompressToArray(this Stream stream, CompressionMethod method)
         {
             return method == CompressionMethod.Deflate
-                   ? stream.decompressToArray()
+                   ? stream.DecompressToArray()
                    : stream.ToByteArray();
         }
 
@@ -599,8 +599,8 @@ namespace WebSocketSharp
         internal static bool IsHttpMethod(this string value, Version version)
         {
             return version == HttpVersion.Version10
-                   ? value.isHttpMethod10()
-                   : value.isHttpMethod();
+                   ? value.IsHttpMethod10()
+                   : value.IsHttpMethod();
         }
 
         internal static bool IsPortNumber(this int value)
@@ -724,7 +724,7 @@ namespace WebSocketSharp
             return buff;
         }
 
-        internal static async Task<byte[]> ExtReadBytesRetryAsync(Stream stream, int length)
+        internal static async Task<byte[]> ExtReadBytesRetryAsync(Stream stream, int length, CancellationToken cancellationToken)
         {
             var buff = new byte[length];
             int offset = 0;
@@ -732,7 +732,7 @@ namespace WebSocketSharp
 
             do
             {
-                int nread = await stream.ReadAsync(buff, offset, length);
+                int nread = await stream.ReadAsync(buff, offset, length, cancellationToken);
                 length -= nread;
                 offset += nread;
             } while (length > 0 && retry > 0);
@@ -1038,9 +1038,7 @@ namespace WebSocketSharp
             return true;
         }
 
-        internal static bool TryOpenRead(
-          this FileInfo fileInfo, out FileStream fileStream
-        )
+        internal static bool TryOpenRead(this FileInfo fileInfo, out FileStream fileStream)
         {
             fileStream = null;
 
