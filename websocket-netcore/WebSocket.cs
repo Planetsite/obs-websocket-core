@@ -66,7 +66,7 @@ namespace WebSocketSharp
     ///   <see href="http://tools.ietf.org/html/rfc6455">RFC 6455</see>.
     ///   </para>
     /// </remarks>
-    public class WebSocket : IAsyncDisposable
+    public class WebSocket : IDisposable
     {
         #region Private Fields
 
@@ -1152,36 +1152,37 @@ namespace WebSocketSharp
 
         private async Task<bool> CloseHandshakeAsync(PayloadData payloadData, bool send, bool receive, bool received, CancellationToken stoppingToken)
         {
-            using var registration = stoppingToken.Register(() => _receivingStoppingToken.Cancel());
-
-            var sent = false;
-            if (send)
+            using (var registration = stoppingToken.Register(() => _receivingStoppingToken.Cancel()))
             {
-                var frame = WebSocketFrame.CreateCloseFrame(payloadData, _client);
-                sent = await SendBytesAsync(frame.ToArray(), stoppingToken);
-
-                if (_client)
-                    frame.Unmask();
-            }
-
-            var wait = !received && sent && receive; // && _receivingExited != null;
-            if (wait)
-            {
-                try
+                var sent = false;
+                if (send)
                 {
-                    await Task.Delay(-1, _receivingStoppingToken.Token);
+                    var frame = WebSocketFrame.CreateCloseFrame(payloadData, _client);
+                    sent = await SendBytesAsync(frame.ToArray(), stoppingToken);
+
+                    if (_client)
+                        frame.Unmask();
                 }
-                catch
+
+                var wait = !received && sent && receive; // && _receivingExited != null;
+                if (wait)
                 {
+                    try
+                    {
+                        await Task.Delay(-1, _receivingStoppingToken.Token);
+                    }
+                    catch
+                    {
+                    }
+                    receive = !stoppingToken.IsCancellationRequested;
                 }
-                receive = !stoppingToken.IsCancellationRequested;
+
+                var ret = sent && received;
+
+                _logger.Debug($"Was clean?: {ret}\n  sent: {sent}\n  received: {received}");
+
+                return ret;
             }
-
-            var ret = sent && received;
-
-            _logger.Debug($"Was clean?: {ret}\n  sent: {sent}\n  received: {received}");
-
-            return ret;
         }
 
         // As client
@@ -2197,44 +2198,46 @@ namespace WebSocketSharp
             }
 
             _logger.Trace("Begin closing the connection.");
-            using var registration = stoppingToken.Register(() => _receivingStoppingToken.Cancel());
 
-            bool sent = frameAsBytes != null && await SendBytesAsync(frameAsBytes, stoppingToken);
-            bool received = false;
-
-            if (sent)
+            using (var registration = stoppingToken.Register(() => _receivingStoppingToken.Cancel()))
             {
+                bool sent = frameAsBytes != null && await SendBytesAsync(frameAsBytes, stoppingToken);
+                bool received = false;
+
+                if (sent)
+                {
+                    try
+                    {
+                        await Task.Delay(-1, _receivingStoppingToken.Token);
+                    }
+                    catch
+                    {
+                    }
+                    received = !stoppingToken.IsCancellationRequested;
+                }
+
+                bool res = sent && received;
+
+                _logger.Debug($"Was clean?: {res}\n  sent: {sent}\n  received: {received}");
+
+                await ReleaseServerResourcesAsync();
+                ReleaseCommonResources();
+
+                _logger.Trace("End closing the connection.");
+
+                _readyState = WebSocketState.Closed;
+
+                var e = new CloseEventArgs(payloadData, res);
+
                 try
                 {
-                    await Task.Delay(-1, _receivingStoppingToken.Token);
+                    OnClose.Emit(this, e);
                 }
-                catch
+                catch (Exception ex)
                 {
+                    _logger.Error(ex.Message);
+                    _logger.Debug(ex.ToString());
                 }
-                received = !stoppingToken.IsCancellationRequested;
-            }
-
-            bool res = sent && received;
-
-            _logger.Debug($"Was clean?: {res}\n  sent: {sent}\n  received: {received}");
-
-            await ReleaseServerResourcesAsync();
-            ReleaseCommonResources();
-
-            _logger.Trace("End closing the connection.");
-
-            _readyState = WebSocketState.Closed;
-
-            var e = new CloseEventArgs(payloadData, res);
-
-            try
-            {
-                OnClose.Emit(this, e);
-            }
-            catch (Exception ex)
-            {
-                _logger.Error(ex.Message);
-                _logger.Debug(ex.ToString());
             }
         }
 
@@ -2999,9 +3002,9 @@ namespace WebSocketSharp
         ///   Closing or Closed.
         ///   </para>
         /// </remarks>
-        public async ValueTask DisposeAsync()
+        public void Dispose()
         {
-            await CloseAsync(1001, String.Empty, CancellationToken.None);
+            CloseAsync(1001, String.Empty, CancellationToken.None).Wait();
         }
 
         #endregion

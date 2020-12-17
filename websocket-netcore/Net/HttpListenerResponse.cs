@@ -60,7 +60,7 @@ namespace WebSocketSharp.Net
     /// <remarks>
     /// This class cannot be inherited.
     /// </remarks>
-    public sealed class HttpListenerResponse : IAsyncDisposable
+    public sealed class HttpListenerResponse : IDisposable
     {
         #region Private Fields
 
@@ -1300,12 +1300,12 @@ namespace WebSocketSharp.Net
         /// <summary>
         /// Releases all resources used by this instance.
         /// </summary>
-        public async ValueTask DisposeAsync()
+        public void Dispose()
         {
             if (_disposed)
                 return;
 
-            await closeAsync(true);
+            closeAsync(true).Wait();
         }
 
         #endregion

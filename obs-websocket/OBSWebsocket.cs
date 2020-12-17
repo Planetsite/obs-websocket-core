@@ -429,20 +429,22 @@ namespace OBSWebsocketDotNet
             // Send the message and wait for a response
             // (received and notified by the websocket response handler)
             string bodyAsString = body.ToString();
-            using var registration = cancellationToken.Register(() => tcs.SetCanceled());
-            await WSConnection.SendAsync(bodyAsString, cancellationToken);
-            var result = await tcs.Task;
+            using (var registration = cancellationToken.Register(() => tcs.SetCanceled()))
+            {
+                await WSConnection.SendAsync(bodyAsString, cancellationToken);
+                var result = await tcs.Task;
 
-            if (tcs.Task.IsCanceled)
-                throw new ErrorResponseException("Request canceled");
+                if (tcs.Task.IsCanceled)
+                    throw new ErrorResponseException("Request canceled");
 
-            // Throw an exception if the server returned an error.
-            // An error occurs if authentication fails or one if the request body is invalid.
+                // Throw an exception if the server returned an error.
+                // An error occurs if authentication fails or one if the request body is invalid.
 
-            if ((string)result["status"] == "error")
-                throw new ErrorResponseException((string)result["error"]);
+                if ((string)result["status"] == "error")
+                    throw new ErrorResponseException((string)result["error"]);
 
-            return result;
+                return result;
+            }
         }
 
         /// <summary>

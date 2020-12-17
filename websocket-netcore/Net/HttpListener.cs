@@ -56,7 +56,7 @@ namespace WebSocketSharp.Net
     /// <summary>
     /// Provides a simple, programmatically controlled HTTP listener.
     /// </summary>
-    public sealed class HttpListener : IAsyncDisposable
+    public sealed class HttpListener : IDisposable
     {
         #region Private Fields
 
@@ -870,12 +870,12 @@ namespace WebSocketSharp.Net
         /// <summary>
         /// Releases all resources used by the listener.
         /// </summary>
-        public async ValueTask DisposeAsync()
+        public void Dispose()
         {
             if (_disposed)
                 return;
 
-            await PrivateCloseAsync(true);
+            PrivateCloseAsync(true).Wait();
         }
 
         #endregion

@@ -231,22 +231,21 @@ namespace WebSocketSharp
         internal static bool Contains(this string value, params char[] anyOf)
         {
             return anyOf != null && anyOf.Length > 0
-                   ? value.IndexOfAny(anyOf) > -1
-                   : false;
+                ? value.IndexOfAny(anyOf) > -1
+                : false
+            ;
         }
 
-        internal static bool Contains(
-          this NameValueCollection collection, string name
-        )
+        internal static bool Contains(this NameValueCollection collection, string name)
         {
             return collection[name] != null;
         }
 
         internal static bool Contains(
-          this NameValueCollection collection,
-          string name,
-          string value,
-          StringComparison comparisonTypeForValue
+            this NameValueCollection collection,
+            string name,
+            string value,
+            StringComparison comparisonTypeForValue
         )
         {
             var val = collection[name];
@@ -262,9 +261,7 @@ namespace WebSocketSharp
             return false;
         }
 
-        internal static bool Contains<T>(
-          this IEnumerable<T> source, Func<T, bool> condition
-        )
+        internal static bool Contains<T>(this IEnumerable<T> source, Func<T, bool> condition)
         {
             foreach (T elm in source)
             {
@@ -326,9 +323,11 @@ namespace WebSocketSharp
             do
             {
                 count = await source.ReadAsync(buff, 0, bufferLength);
-                await destination.WriteAsync(buff);
-            } while (count > 0);
-
+                await destination.WriteAsync(buff, 0, bufferLength);
+            }
+            while (count > 0);
+            // ??? completed()
+            // ??? try {} catch(e) { error(e) }
         }
 
         internal static byte[] Decompress(this byte[] data, CompressionMethod method)

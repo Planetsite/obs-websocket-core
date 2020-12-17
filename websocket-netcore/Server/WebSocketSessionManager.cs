@@ -103,13 +103,13 @@ namespace WebSocketSharp.Server
         ///   the collection of the IDs for the active sessions.
         ///   </para>
         /// </value>
-        public async IAsyncEnumerable<string> GetActiveIDsAsync(CancellationToken cancellationToken)
+        public async Task<IEnumerable<string>> GetActiveIDsAsync(CancellationToken cancellationToken)
         {
-            foreach (var res in await PrivateBroadpingAsync(WebSocketFrame.EmptyPingBytes, cancellationToken))
-            {
-                if (res.Value)
-                    yield return res.Key;
-            }
+            var pings = await PrivateBroadpingAsync(WebSocketFrame.EmptyPingBytes, cancellationToken);
+            return pings
+                .Where(_ => !_.Value)
+                .Select(_ => _.Key)
+            ;
         }
 
         /// <summary>
@@ -168,13 +168,13 @@ namespace WebSocketSharp.Server
         ///   the collection of the IDs for the inactive sessions.
         ///   </para>
         /// </value>
-        public async IAsyncEnumerable<string> GetInactiveIDsAsync(CancellationToken cancellationToken)
+        public async Task<IEnumerable<string>> GetInactiveIDsAsync(CancellationToken cancellationToken)
         {
-            foreach (var res in await PrivateBroadpingAsync(WebSocketFrame.EmptyPingBytes, cancellationToken))
-            {
-                if (!res.Value)
-                    yield return res.Key;
-            }
+            var pings = await PrivateBroadpingAsync(WebSocketFrame.EmptyPingBytes, cancellationToken);
+            return pings
+                .Where(_ => !_.Value)
+                .Select(_ => _.Key)
+            ;
         }
 
         /// <summary>
@@ -209,8 +209,7 @@ namespace WebSocketSharp.Server
                 if (id.Length == 0)
                     throw new ArgumentException("An empty string.", "id");
 
-                IWebSocketSession session;
-                PrivateTryGetSession(id, out session);
+                PrivateTryGetSession(id, out IWebSocketSession session);
 
                 return session;
             }
@@ -448,24 +447,28 @@ namespace WebSocketSharp.Server
         {
             int sleepMillisec = (int)interval;
             var stop = _sweepStoppingToken.Token;
-            using var disposeRegistration = stoppingToken.Register(() => _sweepStoppingToken.Cancel());
 
-            try
+            using (var disposeRegistration = stoppingToken.Register(() => _sweepStoppingToken.Cancel()))
             {
-                do
+                try
                 {
-                    using var cts = new CancellationTokenSource(sleepMillisec);
-                    await SweepAsync(cts.Token);
-                    await Task.Delay(sleepMillisec);
+                    do
+                    {
+                        using (var cts = new CancellationTokenSource(sleepMillisec))
+                        {
+                            await SweepAsync(cts.Token);
+                            await Task.Delay(sleepMillisec);
+                        }
+                    }
+                    while (!stop.IsCancellationRequested);
                 }
-                while (!stop.IsCancellationRequested);
-            }
-            catch (TaskCanceledException)
-            {
-            }
-            catch (Exception sweepErr)
-            {
-                _log.Error($"WebSocketSessionManager Sweep loop crash: {sweepErr.Message}\n{sweepErr.StackTrace}");
+                catch (TaskCanceledException)
+                {
+                }
+                catch (Exception sweepErr)
+                {
+                    _log.Error($"WebSocketSessionManager Sweep loop crash: {sweepErr.Message}\n{sweepErr.StackTrace}");
+                }
             }
         }
 
@@ -1481,7 +1484,8 @@ namespace WebSocketSharp.Server
                 _sweeping = true;
             }
 
-            await foreach (var id in GetInactiveIDsAsync(cancellationToken))
+            var inactiveIds = await GetInactiveIDsAsync(cancellationToken);
+            foreach (var id in inactiveIds)
             {
                 if (_state != ServerState.Start)
                     break;

@@ -516,10 +516,11 @@ namespace WebSocketSharp.Net.WebSockets
             return false;
         }
 
-        internal async Task CloseAsync()
+        internal Task CloseAsync()
         {
             _stream.Close();
             _tcpClient.Close();
+            return Task.CompletedTask;
         }
 
         internal async Task CloseAsync(HttpStatusCode code, CancellationToken stoppingToken)

@@ -355,7 +355,7 @@ namespace WebSocketSharp.Net
             //}
         }
 
-        private static async Task OnTimeout(object state) // TODO
+        private static Task OnTimeout(object state) // TODO
         {
             //var conn = (HttpConnection)state;
             //var current = conn._reuses;
@@ -372,6 +372,7 @@ namespace WebSocketSharp.Net
             //
             //    await conn.SendError(null, 408);
             //}
+            return Task.CompletedTask;
         }
 
         // true -> Done processing.
@@ -593,7 +594,7 @@ namespace WebSocketSharp.Net
                     return _outputStream;
 
                 var lsnr = _context.Listener;
-                var ignore = lsnr != null ? lsnr.IgnoreWriteExceptions : true;
+                var ignore = lsnr == null || lsnr.IgnoreWriteExceptions;
                 _outputStream = new ResponseStream(_stream, _context.Response, ignore);
 
                 return _outputStream;

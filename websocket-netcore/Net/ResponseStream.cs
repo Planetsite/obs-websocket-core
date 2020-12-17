@@ -356,9 +356,16 @@ namespace WebSocketSharp.Net
             CloseAsync(false).Wait();
         }
 
-        public override async ValueTask DisposeAsync()
+        //public override async ValueTask DisposeAsync()
+        //{
+        //    await CloseAsync(false);
+        //    await base.DisposeAsync();
+        //}
+
+        public new void Dispose()
         {
-            await CloseAsync(false);
+            CloseAsync(false).Wait();
+            base.Dispose();
         }
 
         public override int EndRead(IAsyncResult asyncResult)
