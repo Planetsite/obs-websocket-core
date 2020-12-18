@@ -2566,7 +2566,7 @@ namespace WebSocketSharp
 
             if (reason.IsNullOrEmpty())
             {
-                await CloseAsync(code, String.Empty, cancellationToken);
+                await InternalCloseAsync(code, String.Empty, cancellationToken);
                 return;
             }
 
@@ -2589,7 +2589,7 @@ namespace WebSocketSharp
                 throw new ArgumentOutOfRangeException("reason", msg);
             }
 
-            await CloseAsync(code, reason, cancellationToken);
+            await InternalCloseAsync(code, reason, cancellationToken);
         }
 
         /// <summary>
