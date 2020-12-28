@@ -260,6 +260,8 @@ namespace OBSWebsocketDotNet
         /// </summary>
         public event BroadcastCustomMessageCallback BroadcastCustomMessageReceived;
 
+        public event PlayPauseMediaMessageCallback PlayPauseMediaMessageReceived;
+
         #endregion
 
         /// <summary>
@@ -743,11 +745,25 @@ namespace OBSWebsocketDotNet
                     if (BroadcastCustomMessageReceived != null)
                         BroadcastCustomMessageReceived(this, (string)body["realm"], (JObject)body["data"]);
                     break;
+
+                case "PlayPauseMedia":
+                    PlayPauseMediaMessageReceived?.Invoke(this, null);
+                    break;
+
+                case "GetRecordingStatus":
+                case "GetSceneItemList":
+                case "GetTransitionSettings":
+                case "SetTransitionSettings":
+                case "StopMedia":
+                case "MediaStopped":
+                case "MediaPlaying":
+                    break;
+
                 default:
-                        var message = $"Unsupported Event: {eventType}\n{body}";
-                        Console.WriteLine(message);
-                        Debug.WriteLine(message);
-                        break;
+                    var message = $"Unsupported Event: {eventType}\n{body}";
+                    //Console.WriteLine(message);
+                    Debug.WriteLine(message);
+                    break;
             }
         }
 

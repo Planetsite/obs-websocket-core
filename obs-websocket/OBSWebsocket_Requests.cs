@@ -1530,5 +1530,109 @@ namespace OBSWebsocketDotNet
 
             await SendRequestAsync("BroadcastCustomMessage", request, cancellationToken);
         }
+
+        public async Task SetTextFreetype2Properties(TextFreetype2Properties properties, CancellationToken cancellationToken = default)
+        {
+            var request = JObject.FromObject(properties);
+            await SendRequestAsync("SetTextFreetype2Properties", request, cancellationToken);
+        }
+
+        public async Task PlayPauseMediaAsync(string sourceName, bool pause, CancellationToken cancellationToken = default)
+        {
+            var request = new JObject();
+            request.Add("sourceName", sourceName);
+            request.Add("playPause", pause);
+            await SendRequestAsync("PlayPauseMedia", request, cancellationToken);
+        }
+
+        public async Task<Types.GetRecordingStatusType> GetRecordingStatusAsync(CancellationToken cancellationToken = default)
+        {
+            var data = await SendRequestAsync("GetRecordingStatus", cancellationToken: cancellationToken);
+            return data.ToObject<GetRecordingStatusType>();
+        }
+
+        public async Task<GetSceneItemListType> GetSceneItemListAsync(string sceneName, CancellationToken cancellationToken = default)
+        {
+            var request = new JObject();
+            request.Add("sceneName", sceneName);
+            var data = await SendRequestAsync("GetSceneItemList", cancellationToken: cancellationToken);
+            return data.ToObject<GetSceneItemListType>();
+        }
+
+        public async Task<TransitionSettingsAll> GetTransitionSettingsAsync(string transitionName, CancellationToken cancellationToken = default)
+        {
+            var request = new JObject();
+            request.Add("transitionName", transitionName);
+            var data = await SendRequestAsync("GetTransitionSettings", request, cancellationToken);
+            return ParseTransitionSettingsAll(data);
+        }
+
+        static public TransitionSettingsAll ParseTransitionSettingsAll(JObject data)
+        {
+            var res = data.ToObject<GetTransitionSettingsType>();
+            var sett = res.TransitionSettings;
+            if (sett.LumaImage != null)
+                sett.LumaMode = MapToLumaWipeType(sett.LumaImage);
+            return sett;
+        }
+
+        static public LumaWipeType MapToLumaWipeType(string serializedType)
+        {
+            switch (serializedType)
+            {
+                case "barndoor-botleft.png": return LumaWipeType.BarndoorBottomLeft;
+                case "barndoor-h.png": return LumaWipeType.BarndoorHorizontal;
+                case "barndoor-topleft.png": return LumaWipeType.BarndoorTopLeft;
+                case "barndoor-v.png": return LumaWipeType.BarndoorVertical;
+                case "blinds-h.png": return LumaWipeType.BlindsHorizontal;
+                case "box-botleft.png": return LumaWipeType.BoxBottomLeft;
+                case "box-botright.png": return LumaWipeType.BoxBottomRight;
+                case "box-topleft.png": return LumaWipeType.BoxTopLeft;
+                case "box-topright.png": return LumaWipeType.BoxTopRight;
+                case "burst.png": return LumaWipeType.Burst;
+                case "checkerboard-small.png": return LumaWipeType.CheckerboardSmall;
+                case "circles.png": return LumaWipeType.Circles;
+                case "clock.png": return LumaWipeType.Clock;
+                case "cloud.png": return LumaWipeType.Cloud;
+                case "curtain.png": return LumaWipeType.Curtain;
+                case "fan.png": return LumaWipeType.Fan;
+                case "fractal.png": return LumaWipeType.Fractal;
+                case "iris.png": return LumaWipeType.Iris;
+                case "linear-h.png": return LumaWipeType.LinearHorizontal;
+                case "linear-topleft.png": return LumaWipeType.LinearTopLeft;
+                case "linear-topright.png": return LumaWipeType.LinearTopRight;
+                case "linear-v.png": return LumaWipeType.LinearVertical;
+                case "parallel-zigzag-h.png": return LumaWipeType.ParallelZigzagHorizontal;
+                case "parallel-zigzag-v.png": return LumaWipeType.ParallelZigzagVertical;
+                case "sinus9.png": return LumaWipeType.Sinus9;
+                case "spiral.png": return LumaWipeType.Spiral;
+                case "square.png": return LumaWipeType.Square;
+                case "squares.png": return LumaWipeType.Squares;
+                case "stripes.png": return LumaWipeType.Stripes;
+                case "strips-h.png": return LumaWipeType.StripsHorizontal;
+                case "strips-v.png": return LumaWipeType.StripsVertical;
+                case "watercolor.png": return LumaWipeType.Watercolor;
+                case "zigzag-h.png": return LumaWipeType.ZigzagHorizontal;
+                case "zigzag-v.png": return LumaWipeType.ZigzagVertical;
+                default: throw new NotImplementedException(serializedType);
+            };
+        }
+
+        public async Task<TransitionSettingsAll> SetTransitionSettingsAsync(string transitionName, TransitionSettingsAll allSettings, CancellationToken cancellationToken = default)
+        {
+            var request = new JObject();
+            var settings = JObject.FromObject(allSettings);
+            request.Add("transitionName", transitionName);
+            request.Add("transitionSettings", settings);
+            var data = await SendRequestAsync("SetTransitionSettings", request, cancellationToken);
+            return ParseTransitionSettingsAll(data);
+        }
+
+        public async Task StopMediaAsync(string sourceName, CancellationToken cancellationToken = default)
+        {
+            var request = new JObject();
+            request.Add("sourceName", sourceName);
+            await SendRequestAsync("StopMedia", request, cancellationToken);
+        }
     }
 }

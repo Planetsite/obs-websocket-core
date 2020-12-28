@@ -7,6 +7,9 @@ namespace OBSWebsocketDotNet.Types
     /// </summary>
     public class TextGDIPlusProperties
     {
+        public TextGDIPlusProperties(string sourceName) =>
+            SourceName = sourceName;
+
         /// <summary>
         /// Source name.
         /// </summary>

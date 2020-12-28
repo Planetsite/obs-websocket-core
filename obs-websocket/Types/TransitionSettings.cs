@@ -35,6 +35,5 @@ namespace OBSWebsocketDotNet.Types
         public TransitionSettings()
         {
         }
-
     }
 }

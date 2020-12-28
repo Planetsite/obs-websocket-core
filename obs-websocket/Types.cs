@@ -273,6 +273,8 @@ namespace OBSWebsocketDotNet
     /// <param name="data">User-defined data</param>
     public delegate void BroadcastCustomMessageCallback(OBSWebsocket sender, string realm, JObject data);
 
+    public delegate void PlayPauseMediaMessageCallback(OBSWebsocket sender, JObject data);
+
     /// <summary>
     /// Thrown if authentication fails
     /// </summary>
