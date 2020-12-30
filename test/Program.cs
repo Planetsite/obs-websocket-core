@@ -47,10 +47,11 @@ namespace test
             //var prop = await so.GetSceneItemPropertiesAsync("aaa", "Scene 2");
             //await so.SetTextFreetype2Properties("txtft2");
             //var v = await so.GetVersionAsync();
-            await so.PlayPauseMediaAsync("ISS", false);
+            //await so.PlayPauseMediaAsync("ISS", false);
             //var r = await so.GetRecordingStatusAsync();
             //var i = await so.GetTransitionSettingsAsync("lw");
-            //await so.StopMediaAsync("Media Source");
+            await so.SetTransitionPosition(0.8, true);
+            await so.ReleaseTransitionBar();
 
             try
             {
@@ -63,7 +64,7 @@ namespace test
                 ;
             }
 
-            //var ss = so.GetSceneList();
+            //var ss = await so.GetSceneListAsync();
             //var s = so.GetCurrentScene();
             try
             {

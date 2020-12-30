@@ -1634,5 +1634,26 @@ namespace OBSWebsocketDotNet
             request.Add("sourceName", sourceName);
             await SendRequestAsync("StopMedia", request, cancellationToken);
         }
+
+        /// <summary>
+        /// kinda crashes
+        /// </summary>
+        /// <param name="pos"></param>
+        /// <param name="release"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        public async Task SetTransitionPosition(double pos, bool? release = null, CancellationToken cancellationToken = default)
+        {
+            var request = new JObject();
+            request.Add("position", pos);
+            if (release.HasValue)
+                request.Add("release", release.Value);
+            await SendRequestAsync("SetTBarPosition", request, cancellationToken);
+        }
+
+        public async Task ReleaseTransitionBar(CancellationToken cancellationToken = default)
+        {
+            await SendRequestAsync("ReleaseTBar", cancellationToken: cancellationToken);
+        }
     }
 }
