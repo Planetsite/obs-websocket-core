@@ -50,8 +50,8 @@ namespace test
             //await so.PlayPauseMediaAsync("ISS", false);
             //var r = await so.GetRecordingStatusAsync();
             //var i = await so.GetTransitionSettingsAsync("lw");
-            await so.SetTransitionPosition(0.8, true);
-            await so.ReleaseTransitionBar();
+            await so.SetTransitionPositionAsync(0.8, true);
+            await so.ReleaseTransitionBarAsync();
 
             try
             {

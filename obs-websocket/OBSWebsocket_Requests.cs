@@ -1642,7 +1642,7 @@ namespace OBSWebsocketDotNet
         /// <param name="release"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public async Task SetTransitionPosition(double pos, bool? release = null, CancellationToken cancellationToken = default)
+        public async Task SetTransitionPositionAsync(double pos, bool? release = null, CancellationToken cancellationToken = default)
         {
             var request = new JObject();
             request.Add("position", pos);
@@ -1651,7 +1651,7 @@ namespace OBSWebsocketDotNet
             await SendRequestAsync("SetTBarPosition", request, cancellationToken);
         }
 
-        public async Task ReleaseTransitionBar(CancellationToken cancellationToken = default)
+        public async Task ReleaseTransitionBarAsync(CancellationToken cancellationToken = default)
         {
             await SendRequestAsync("ReleaseTBar", cancellationToken: cancellationToken);
         }
