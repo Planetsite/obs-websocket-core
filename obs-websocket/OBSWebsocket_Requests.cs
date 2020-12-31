@@ -389,18 +389,46 @@ namespace OBSWebsocketDotNet
         /// Return a list of all filters on a source
         /// </summary>
         /// <param name="sourceName">Source name</param>
-        public async Task<List<FilterSettings>> GetSourceFiltersAsync(string sourceName, CancellationToken cancellationToken = default)
+        public async Task<ICollection<FilterSettings>> GetSourceFiltersAsync(string sourceName, CancellationToken cancellationToken = default)
         {
             var requestFields = new JObject();
             requestFields.Add("sourceName", sourceName);
 
-            JObject response = await SendRequestAsync("GetSourceFilters", requestFields, cancellationToken);
+            var response = await SendRequestAsync("GetSourceFilters", requestFields, cancellationToken);
+            var filters = (JArray)response["filters"];
+            var getSourceFilters = new List<FilterSettings>();
+            foreach (var jt in filters)
+            {
+                var filter = jt.ToObject<FilterSettings>();
+                filter.Settings = DeserializeFilterProperties(filter.Type, (JObject)jt["settings"]);
+                getSourceFilters.Add(filter);
+            }
+            return getSourceFilters;
+        }
 
-            return JsonConvert.DeserializeObject<List<FilterSettings>>(response["filters"].ToString());
+        static public IFilterProperties DeserializeFilterProperties(string filterType, JObject properties)
+        {
+            switch (filterType)
+            {
+                case "color_filter": return properties.ToObject<ColorFilter>();
+                case "clut_filter": return properties.ToObject<ClutFilter>();
+                case "chroma_key_filter": return properties.ToObject<ChromaKeyFilter>();
+                case "crop_filter": return properties.ToObject<CropFilter>();
+                case "mask_filter": return properties.ToObject<MaskFilter>();
+                case "luma_key_filter": return properties.ToObject<LumaKeyFilter>();
+                case "gpu_delay": return properties.ToObject<RenderDelay>();
+                case "scale_filter": return properties.ToObject<ScaleFilter>();
+                case "sharpness_filter": return properties.ToObject<SharpenFilter>();
+                case "premultiplied_alpha_filter": return properties.ToObject<FixAlphaBlending>();
+                case "virtualcam-filter": return properties.ToObject<VirtualCam>();
+                case "ndi_filter": return properties.ToObject<NdiOutput>();
+
+                default: throw new NotImplementedException(filterType);
+            }
         }
 
         /// <summary>
-        /// Return a list of all filters on a source
+        ///
         /// </summary>
         /// <param name="sourceName">Source name</param>
         /// <param name="filterName">Filter name</param>
@@ -410,9 +438,10 @@ namespace OBSWebsocketDotNet
             requestFields.Add("sourceName", sourceName);
             requestFields.Add("filterName", filterName);
 
-            JObject response = await SendRequestAsync("GetSourceFilterInfo", requestFields, cancellationToken);
-
-            return JsonConvert.DeserializeObject<FilterSettings>(response.ToString());
+            var response = await SendRequestAsync("GetSourceFilterInfo", requestFields, cancellationToken);
+            var filter = JsonConvert.DeserializeObject<FilterSettings>(response.ToString());
+            filter.Settings = DeserializeFilterProperties(filter.Type, (JObject)response["settings"]);
+            return filter;
         }
 
         /// <summary>
@@ -430,10 +459,9 @@ namespace OBSWebsocketDotNet
                 await SendRequestAsync("RemoveFilterFromSource", requestFields, cancellationToken);
                 return true;
             }
-            catch (Exception e)
+            catch
             {
                 //TODO exception handling
-                Console.WriteLine(e.Message);
             }
             return false;
         }

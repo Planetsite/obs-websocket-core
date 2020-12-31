@@ -1,5 +1,4 @@
 ﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace OBSWebsocketDotNet.Types
 {
@@ -29,7 +28,7 @@ namespace OBSWebsocketDotNet.Types
         /// <summary>
         /// Settings for the filter
         /// </summary>
-        [JsonProperty(PropertyName = "settings")]
-        public JObject Settings { set; get; }
+        [JsonIgnore]
+        public IFilterProperties Settings { set; get; }
     }
 }
