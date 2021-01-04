@@ -51,7 +51,8 @@ namespace test
             //var r = await so.GetRecordingStatusAsync();
             //var i = await so.GetTransitionSettingsAsync("lw");
             //var ff = await so.GetSourceFilterInfoAsync("Image 2", "colcor");
-            await so.GetSourceFiltersAsync("Image 2");
+            //await so.GetSourceFiltersAsync("Image 2");
+            await so.CreateSceneAsync("c#++");
 
             try
             {
@@ -65,7 +66,7 @@ namespace test
             }
 
             //var ss = await so.GetSceneListAsync();
-            //var s = so.GetCurrentScene();
+            //var s = await so.GetCurrentSceneAsync();
             try
             {
                 //await so.SetCurrentSceneAsync("Scena");

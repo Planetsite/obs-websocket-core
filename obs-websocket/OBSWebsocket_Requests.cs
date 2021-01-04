@@ -1683,5 +1683,12 @@ namespace OBSWebsocketDotNet
         {
             await SendRequestAsync("ReleaseTBar", cancellationToken: cancellationToken);
         }
+
+        public async Task CreateSceneAsync(string sceneName, CancellationToken cancellationToken = default)
+        {
+            var request = new JObject();
+            request.Add("sceneName", sceneName);
+            await SendRequestAsync("CreateScene", request, cancellationToken);
+        }
     }
 }
