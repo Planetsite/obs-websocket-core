@@ -51,7 +51,7 @@ namespace test
             //var r = await so.GetRecordingStatusAsync();
             //var i = await so.GetTransitionSettingsAsync("lw");
             //var ff = await so.GetSourceFilterInfoAsync("Image 2", "colcor");
-            var fi = await so.GetSourceFiltersAsync("overlay");
+            var fi = await so.GetSourceFiltersAsync("aaa");
 
             try
             {

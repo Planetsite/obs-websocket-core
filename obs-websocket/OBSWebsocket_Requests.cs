@@ -388,7 +388,7 @@ namespace OBSWebsocketDotNet
         /// <summary>
         /// Return a list of all filters on a source
         /// </summary>
-        /// <param name="sourceName">Source name</param>
+        /// <param name="sourceName">Source or scene name</param>
         public async Task<ICollection<FilterSettings>> GetSourceFiltersAsync(string sourceName, CancellationToken cancellationToken = default)
         {
             var requestFields = new JObject();
@@ -422,6 +422,7 @@ namespace OBSWebsocketDotNet
                 case "premultiplied_alpha_filter": return properties.ToObject<FixAlphaBlending>();
                 case "virtualcam-filter": return properties.ToObject<VirtualCam>();
                 case "ndi_filter": return properties.ToObject<NdiOutput>();
+                case "scroll_filter": return properties.ToObject<ScrollFilter>();
 
                 default: throw new NotImplementedException(filterType);
             }
@@ -545,6 +546,11 @@ namespace OBSWebsocketDotNet
                 case NdiOutput no:
                     serialized.Add("filterType", "ndi_filter");
                     serialized.Add("filterSettings", new JObject(no));
+                    break;
+
+                case ScrollFilter st:
+                    serialized.Add("filterType", "scroll_filter");
+                    serialized.Add("filterSettings", new JObject(st));
                     break;
             }
         }
