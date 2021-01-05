@@ -4,9 +4,9 @@
     <TargetFrameworks>netstandard2.1;netstandard2.0</TargetFrameworks>
     <RootNamespace>obs_websocket</RootNamespace>
     <Copyright>Copyright © Stéphane Lepin 2020</Copyright>
-    <Version>5.2.3-alpha</Version>
-    <PackageVersion>5.2.3-alpha</PackageVersion>
-    <AssemblyVersion>5.2.3</AssemblyVersion>
+    <Version>5.2.4-alpha</Version>
+    <PackageVersion>5.2.4-alpha</PackageVersion>
+    <AssemblyVersion>5.2.4</AssemblyVersion>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
   </PropertyGroup>
 

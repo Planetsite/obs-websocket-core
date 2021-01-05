@@ -471,17 +471,82 @@ namespace OBSWebsocketDotNet
         /// </summary>
         /// <param name="sourceName">Name of the source for the filter</param>
         /// <param name="filterName">Name of the filter</param>
-        /// <param name="filterType">Type of filter</param>
-        /// <param name="filterSettings">Filter settings object</param>
-        public async Task AddFilterToSourceAsync(string sourceName, string filterName, string filterType, JObject filterSettings, CancellationToken cancellationToken = default)
+        /// <param name="filter">Filter properties interface</param>
+        public async Task AddFilterToSourceAsync(string sourceName, string filterName, IFilterProperties filter, CancellationToken cancellationToken = default)
         {
             var requestFields = new JObject();
             requestFields.Add("sourceName", sourceName);
-            requestFields.Add("filterType", filterType);
             requestFields.Add("filterName", filterName);
-            requestFields.Add("filterSettings", filterSettings);
+
+            SerializeFilterToJObject(filter, requestFields);
 
             await SendRequestAsync("AddFilterToSource", requestFields, cancellationToken);
+        }
+
+        private void SerializeFilterToJObject(IFilterProperties filter, JObject serialized)
+        {
+            switch (filter)
+            {
+                case ColorFilter cf:
+                    serialized.Add("filterType", "color_filter");
+                    serialized.Add("filterSettings", new JObject(cf));
+                    break;
+
+                case ClutFilter ci:
+                    serialized.Add("filterType", "clut_filter");
+                    serialized.Add("filterSettings", new JObject(ci));
+                    break;
+
+                case ChromaKeyFilter ckf:
+                    serialized.Add("filterType", "chroma_key_filter");
+                    serialized.Add("filterSettings", new JObject(ckf));
+                    break;
+
+                case CropFilter cl:
+                    serialized.Add("filterType", "crop_filter");
+                    serialized.Add("filterSettings", new JObject(cl));
+                    break;
+
+                case MaskFilter mf:
+                    serialized.Add("filterType", "mask_filter");
+                    serialized.Add("filterSettings", new JObject(mf));
+                    break;
+
+                case LumaKeyFilter lkf:
+                    serialized.Add("filterType", "luma_key_filter");
+                    serialized.Add("filterSettings", new JObject(lkf));
+                    break;
+
+                case RenderDelay rd:
+                    serialized.Add("filterType", "gpu_delay");
+                    serialized.Add("filterSettings", new JObject(rd));
+                    break;
+
+                case ScaleFilter sf:
+                    serialized.Add("filterType", "scale_filter");
+                    serialized.Add("filterSettings", new JObject(sf));
+                    break;
+
+                case SharpenFilter si:
+                    serialized.Add("filterType", "sharpness_filter");
+                    serialized.Add("filterSettings", new JObject(si));
+                    break;
+
+                case FixAlphaBlending fab:
+                    serialized.Add("filterType", "premultiplied_alpha_filter");
+                    serialized.Add("filterSettings", new JObject(fab));
+                    break;
+
+                case VirtualCam vc:
+                    serialized.Add("filterType", "virtualcam-filter");
+                    serialized.Add("filterSettings", new JObject(vc));
+                    break;
+
+                case NdiOutput no:
+                    serialized.Add("filterType", "ndi_filter");
+                    serialized.Add("filterSettings", new JObject(no));
+                    break;
+            }
         }
 
         /// <summary>
@@ -1604,6 +1669,7 @@ namespace OBSWebsocketDotNet
             return sett;
         }
 
+        // should be config?
         static public LumaWipeType MapToLumaWipeType(string serializedType)
         {
             switch (serializedType)
