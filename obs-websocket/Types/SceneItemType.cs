@@ -7,7 +7,7 @@ namespace OBSWebsocketDotNet.Types
         [JsonProperty(PropertyName = "itemId")]
         public int ItemId;
 
-        [JsonProperty(PropertyName = "sourceKing")]
+        [JsonProperty(PropertyName = "sourceKind")]
         public SceneItemSourceKind SourceKind;
 
         [JsonProperty(PropertyName = "sourceName")]

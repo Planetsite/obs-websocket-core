@@ -1654,7 +1654,7 @@ namespace OBSWebsocketDotNet
         {
             var request = new JObject();
             request.Add("sceneName", sceneName);
-            var data = await SendRequestAsync("GetSceneItemList", cancellationToken: cancellationToken);
+            var data = await SendRequestAsync("GetSceneItemList", request, cancellationToken: cancellationToken);
             return data.ToObject<GetSceneItemListType>();
         }
 
