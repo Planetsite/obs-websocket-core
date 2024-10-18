@@ -24,7 +24,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
+
 
 using System;
 using System.Collections;
@@ -54,7 +54,7 @@ namespace WebSocketSharp.Server
         private object _sync;
         private TimeSpan _waitTime;
 
-        #endregion
+        
 
         #region Internal Constructors
 
@@ -69,7 +69,7 @@ namespace WebSocketSharp.Server
             _waitTime = TimeSpan.FromSeconds(1);
         }
 
-        #endregion
+        
 
         #region Public Properties
 
@@ -317,7 +317,7 @@ namespace WebSocketSharp.Server
             }
         }
 
-        #endregion
+        
 
         #region Private Methods
 
@@ -424,7 +424,7 @@ namespace WebSocketSharp.Server
             return true;
         }
 
-        #endregion
+        
 
         #region Internal Methods
 
@@ -488,7 +488,7 @@ namespace WebSocketSharp.Server
             }
         }
 
-        #endregion
+        
 
         #region Public Methods
 
@@ -1106,6 +1106,6 @@ namespace WebSocketSharp.Server
             return InternalTryGetServiceHost(path, out host);
         }
 
-        #endregion
+        
     }
 }

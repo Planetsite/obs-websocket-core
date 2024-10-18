@@ -28,14 +28,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
+
 
 #region Authors
 /*
  * Authors:
  * - Gonzalo Paniagua Javier <gonzalo@novell.com>
  */
-#endregion
+
 
 #region Contributors
 /*
@@ -43,7 +43,7 @@
  * - Liryna <liryna.stark@gmail.com>
  * - Rohan Singh <rohan-singh@hotmail.com>
  */
-#endregion
+
 
 using System;
 using System.IO;
@@ -83,7 +83,7 @@ namespace WebSocketSharp.Net
         //private Dictionary<int, bool> _timeoutCanceled;
         //private Timer _timer;
 
-        #endregion
+        
 
         #region Internal Constructors
 
@@ -127,7 +127,7 @@ namespace WebSocketSharp.Net
             Init();
         }
 
-        #endregion
+        
 
         #region Public Properties
 
@@ -187,7 +187,7 @@ namespace WebSocketSharp.Net
             }
         }
 
-        #endregion
+        
 
         #region Private Methods
 
@@ -476,7 +476,7 @@ namespace WebSocketSharp.Net
             _contextRegistered = false;
         }
 
-        #endregion
+        
 
         #region Internal Methods
 
@@ -522,7 +522,7 @@ namespace WebSocketSharp.Net
             }
         }
 
-        #endregion
+        
 
         #region Public Methods
 
@@ -643,6 +643,6 @@ namespace WebSocketSharp.Net
             }
         }
 
-        #endregion
+        
     }
 }

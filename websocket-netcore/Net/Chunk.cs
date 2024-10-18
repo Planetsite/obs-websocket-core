@@ -1,4 +1,3 @@
-#region License
 /*
  * Chunk.cs
  *
@@ -28,66 +27,41 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
 
-#region Authors
+
 /*
  * Authors:
  * - Gonzalo Paniagua Javier <gonzalo@ximian.com>
  */
-#endregion
 
 using System;
 
-namespace WebSocketSharp.Net
+namespace WebSocketSharp.Net;
+
+internal class Chunk
 {
-    internal class Chunk
+    private byte[] _data;
+    private int _offset;
+
+    public Chunk(byte[] data)
     {
-        #region Private Fields
+        _data = data;
+    }
 
-        private byte[] _data;
-        private int _offset;
+    public int ReadLeft => _data.Length - _offset;
 
-        #endregion
+    public int Read(byte[] buffer, int offset, int count)
+    {
+        var left = _data.Length - _offset;
+        if (left == 0)
+            return left;
 
-        #region Public Constructors
+        if (count > left)
+            count = left;
 
-        public Chunk(byte[] data)
-        {
-            _data = data;
-        }
+        Buffer.BlockCopy(_data, _offset, buffer, offset, count);
+        _offset += count;
 
-        #endregion
-
-        #region Public Properties
-
-        public int ReadLeft
-        {
-            get
-            {
-                return _data.Length - _offset;
-            }
-        }
-
-        #endregion
-
-        #region Public Methods
-
-        public int Read(byte[] buffer, int offset, int count)
-        {
-            var left = _data.Length - _offset;
-            if (left == 0)
-                return left;
-
-            if (count > left)
-                count = left;
-
-            Buffer.BlockCopy(_data, _offset, buffer, offset, count);
-            _offset += count;
-
-            return count;
-        }
-
-        #endregion
+        return count;
     }
 }

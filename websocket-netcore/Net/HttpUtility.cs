@@ -28,7 +28,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
+
 
 #region Authors
 /*
@@ -38,7 +38,7 @@
  * - Tim Coleman <tim@timcoleman.com>
  * - Gonzalo Paniagua Javier <gonzalo@ximian.com>
  */
-#endregion
+
 
 using System;
 using System.Collections;
@@ -59,7 +59,7 @@ namespace WebSocketSharp.Net
     private static char[]                   _hexChars;
     private static object                   _sync;
 
-    #endregion
+    
 
     #region Static Constructor
 
@@ -69,7 +69,7 @@ namespace WebSocketSharp.Net
       _sync = new object ();
     }
 
-    #endregion
+    
 
     #region Private Methods
 
@@ -689,7 +689,7 @@ namespace WebSocketSharp.Net
       }
     }
 
-    #endregion
+    
 
     #region Internal Methods
 
@@ -844,7 +844,7 @@ namespace WebSocketSharp.Net
       return result != null;
     }
 
-    #endregion
+    
 
     #region Public Methods
 
@@ -1141,6 +1141,6 @@ namespace WebSocketSharp.Net
       return count > 0 ? urlEncodeToBytes (bytes, offset, count) : new byte[0];
     }
 
-    #endregion
+    
   }
 }

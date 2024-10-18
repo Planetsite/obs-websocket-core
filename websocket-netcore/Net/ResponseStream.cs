@@ -28,14 +28,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
+
 
 #region Authors
 /*
  * Authors:
  * - Gonzalo Paniagua Javier <gonzalo@novell.com>
  */
-#endregion
+
 
 using System;
 using System.IO;
@@ -60,7 +60,7 @@ namespace WebSocketSharp.Net
         private Action<byte[], int, int> _writeBody;
         private Action<byte[], int, int> _writeChunked;
 
-        #endregion
+        
 
         #region Static Constructor
 
@@ -71,7 +71,7 @@ namespace WebSocketSharp.Net
             _maxHeadersLength = 32768;
         }
 
-        #endregion
+        
 
         #region Internal Constructors
 
@@ -98,7 +98,7 @@ namespace WebSocketSharp.Net
             _bodyBuffer = new MemoryStream();
         }
 
-        #endregion
+        
 
         #region Public Properties
 
@@ -147,7 +147,7 @@ namespace WebSocketSharp.Net
             }
         }
 
-        #endregion
+        
 
         #region Private Methods
 
@@ -287,7 +287,7 @@ namespace WebSocketSharp.Net
             }
         }
 
-        #endregion
+        
 
         #region Internal Methods
 
@@ -329,7 +329,7 @@ namespace WebSocketSharp.Net
             _write(buffer, offset, count);
         }
 
-        #endregion
+        
 
         #region Public Methods
 
@@ -425,6 +425,6 @@ namespace WebSocketSharp.Net
             throw new NotImplementedException();
         }
 
-        #endregion
+        
     }
 }

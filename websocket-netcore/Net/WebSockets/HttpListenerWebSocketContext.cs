@@ -24,7 +24,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
+
 
 using System;
 using System.Collections.Generic;
@@ -46,7 +46,7 @@ namespace WebSocketSharp.Net.WebSockets
         private HttpListenerContext _context;
         private WebSocket _websocket;
 
-        #endregion
+        
 
         #region Internal Constructors
 
@@ -58,7 +58,7 @@ namespace WebSocketSharp.Net.WebSockets
             _websocket = new WebSocket(this, protocol);
         }
 
-        #endregion
+        
 
         #region Internal Properties
 
@@ -78,7 +78,7 @@ namespace WebSocketSharp.Net.WebSockets
             }
         }
 
-        #endregion
+        
 
         #region Public Properties
 
@@ -399,7 +399,7 @@ namespace WebSocketSharp.Net.WebSockets
             }
         }
 
-        #endregion
+        
 
         #region Internal Methods
 
@@ -413,7 +413,7 @@ namespace WebSocketSharp.Net.WebSockets
             _context.Response.Close(code);
         }
 
-        #endregion
+        
 
         #region Public Methods
 
@@ -429,6 +429,6 @@ namespace WebSocketSharp.Net.WebSockets
             return _context.Request.ToString();
         }
 
-        #endregion
+        
     }
 }

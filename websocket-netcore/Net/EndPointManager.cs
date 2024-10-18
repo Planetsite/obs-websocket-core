@@ -28,21 +28,21 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
+
 
 #region Authors
 /*
  * Authors:
  * - Gonzalo Paniagua Javier <gonzalo@ximian.com>
  */
-#endregion
+
 
 #region Contributors
 /*
  * Contributors:
  * - Liryna <liryna.stark@gmail.com>
  */
-#endregion
+
 
 using System;
 using System.Collections.Generic;
@@ -57,7 +57,7 @@ namespace WebSocketSharp.Net
 
         private static readonly Dictionary<IPEndPoint, EndPointListener> _endpoints;
 
-        #endregion
+        
 
         #region Static Constructor
 
@@ -66,7 +66,7 @@ namespace WebSocketSharp.Net
             _endpoints = new Dictionary<IPEndPoint, EndPointListener>();
         }
 
-        #endregion
+        
 
         #region Private Constructors
 
@@ -74,7 +74,7 @@ namespace WebSocketSharp.Net
         {
         }
 
-        #endregion
+        
 
         #region Private Methods
 
@@ -176,7 +176,7 @@ namespace WebSocketSharp.Net
             await lsnr.RemovePrefixAsync(pref, listener);
         }
 
-        #endregion
+        
 
         #region Internal Methods
 
@@ -195,7 +195,7 @@ namespace WebSocketSharp.Net
             }
         }
 
-        #endregion
+        
 
         #region Public Methods
 
@@ -243,6 +243,6 @@ namespace WebSocketSharp.Net
                 await removePrefixAsync(uriPrefix, listener);
         }
 
-        #endregion
+        
     }
 }

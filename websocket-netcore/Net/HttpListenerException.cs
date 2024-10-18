@@ -28,14 +28,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
+
 
 #region Authors
 /*
  * Authors:
  * - Gonzalo Paniagua Javier <gonzalo@novell.com>
  */
-#endregion
+
 
 using System;
 using System.ComponentModel;
@@ -68,7 +68,7 @@ namespace WebSocketSharp.Net
     {
     }
 
-    #endregion
+    
 
     #region Public Constructors
 
@@ -106,7 +106,7 @@ namespace WebSocketSharp.Net
     {
     }
 
-    #endregion
+    
 
     #region Public Properties
 
@@ -122,6 +122,6 @@ namespace WebSocketSharp.Net
       }
     }
 
-    #endregion
+    
   }
 }

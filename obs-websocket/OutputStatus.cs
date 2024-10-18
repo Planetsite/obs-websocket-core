@@ -1,33 +1,32 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace OBSWebsocketDotNet
+namespace OBSWebsocketDotNet;
+
+/// <summary>
+/// Status of streaming output and recording output
+/// </summary>
+public sealed class OutputStatus
 {
     /// <summary>
-    /// Status of streaming output and recording output
+    /// True if streaming is started and running, false otherwise
     /// </summary>
-    public class OutputStatus
+    [JsonProperty(PropertyName = "streaming")]
+
+    public readonly bool IsStreaming;
+
+    /// <summary>
+    /// True if recording is started and running, false otherwise
+    /// </summary>
+    [JsonProperty(PropertyName = "recording")]
+    public readonly bool IsRecording;
+
+    /// <summary>
+    /// Builds the object from the JSON response body
+    /// </summary>
+    /// <param name="data">JSON response body as a <see cref="JObject"/></param>
+    public OutputStatus(JObject data)
     {
-        /// <summary>
-        /// True if streaming is started and running, false otherwise
-        /// </summary>
-        [JsonProperty(PropertyName = "streaming")]
-
-        public readonly bool IsStreaming;
-
-        /// <summary>
-        /// True if recording is started and running, false otherwise
-        /// </summary>
-        [JsonProperty(PropertyName = "recording")]
-        public readonly bool IsRecording;
-
-        /// <summary>
-        /// Builds the object from the JSON response body
-        /// </summary>
-        /// <param name="data">JSON response body as a <see cref="JObject"/></param>
-        public OutputStatus(JObject data)
-        {
-            JsonConvert.PopulateObject(data.ToString(), this);
-        }
+        JsonConvert.PopulateObject(data.ToString(), this);
     }
 }

@@ -24,14 +24,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
+
 
 #region Contributors
 /*
  * Contributors:
  * - Liryna <liryna.stark@gmail.com>
  */
-#endregion
+
 
 using System;
 using System.Collections.Generic;
@@ -66,7 +66,7 @@ namespace WebSocketSharp.Net.WebSockets
         private System.Net.EndPoint _userEndPoint;
         private WebSocket _websocket;
 
-        #endregion
+        
 
         #region Internal Constructors
 
@@ -113,7 +113,7 @@ namespace WebSocketSharp.Net.WebSockets
             _websocket = new WebSocket(this, protocol);
         }
 
-        #endregion
+        
 
         #region Internal Properties
 
@@ -133,7 +133,7 @@ namespace WebSocketSharp.Net.WebSockets
             }
         }
 
-        #endregion
+        
 
         #region Public Properties
 
@@ -473,7 +473,7 @@ namespace WebSocketSharp.Net.WebSockets
             }
         }
 
-        #endregion
+        
 
         #region Private Methods
 
@@ -486,7 +486,7 @@ namespace WebSocketSharp.Net.WebSockets
             return await HttpRequest.ReadAsync(_stream, 15000);
         }
 
-        #endregion
+        
 
         #region Internal Methods
 
@@ -533,7 +533,7 @@ namespace WebSocketSharp.Net.WebSockets
             _tcpClient.Close();
         }
 
-        #endregion
+        
 
         #region Public Methods
 
@@ -549,6 +549,6 @@ namespace WebSocketSharp.Net.WebSockets
             return _request.ToString();
         }
 
-        #endregion
+        
     }
 }

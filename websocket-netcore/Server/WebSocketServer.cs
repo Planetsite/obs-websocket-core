@@ -24,7 +24,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
+
 
 #region Contributors
 /*
@@ -34,7 +34,7 @@
  * - Liryna <liryna.stark@gmail.com>
  * - Rohan Singh <rohan-singh@hotmail.com>
  */
-#endregion
+
 
 using System;
 using System.Net.Sockets;
@@ -79,7 +79,7 @@ namespace WebSocketSharp.Server
         private Func<IIdentity, NetworkCredential> _userCredFinder;
         private CancellationTokenSource _receiveStoppingToken = new CancellationTokenSource();
 
-        #endregion
+        
 
         #region Static Constructor
 
@@ -88,7 +88,7 @@ namespace WebSocketSharp.Server
             _defaultRealm = "SECRET AREA";
         }
 
-        #endregion
+        
 
         #region Public Constructors
 
@@ -311,7 +311,7 @@ namespace WebSocketSharp.Server
             Init(address.ToString(), address, port, secure);
         }
 
-        #endregion
+        
 
         #region Public Properties
 
@@ -752,7 +752,7 @@ namespace WebSocketSharp.Server
             }
         }
 
-        #endregion
+        
 
         #region Private Methods
 
@@ -1129,7 +1129,7 @@ namespace WebSocketSharp.Server
             return true;
         }
 
-        #endregion
+        
 
         #region Public Methods
 
@@ -1612,6 +1612,6 @@ namespace WebSocketSharp.Server
             await PrivateStopAsync((ushort)code, reason, cancellationToken);
         }
 
-        #endregion
+        
     }
 }

@@ -24,7 +24,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
+
 
 using System;
 using System.Collections.Generic;
@@ -57,7 +57,7 @@ namespace WebSocketSharp.Server
         //private object _sync;
         private TimeSpan _waitTime;
 
-        #endregion
+        
 
         #region Internal Constructors
 
@@ -75,7 +75,7 @@ namespace WebSocketSharp.Server
             //setSweepTimerNotAsync(60000, CancellationToken.None);
         }
 
-        #endregion
+        
 
         #region Internal Properties
 
@@ -87,7 +87,7 @@ namespace WebSocketSharp.Server
             }
         }
 
-        #endregion
+        
 
         #region Public Properties
 
@@ -331,7 +331,7 @@ namespace WebSocketSharp.Server
             }
         }
 
-        #endregion
+        
 
         #region Private Methods
 
@@ -506,7 +506,7 @@ namespace WebSocketSharp.Server
             }
         }
 
-        #endregion
+        
 
         #region Internal Methods
 
@@ -600,7 +600,7 @@ namespace WebSocketSharp.Server
             await PrivateStopAsync(new PayloadData(code, reason), !code.IsReserved(), stoppingToken);
         }
 
-        #endregion
+        
 
         #region Public Methods
 
@@ -1549,6 +1549,6 @@ namespace WebSocketSharp.Server
             return PrivateTryGetSession(id, out session);
         }
 
-        #endregion
+        
     }
 }

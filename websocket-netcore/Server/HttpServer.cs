@@ -26,7 +26,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
+
 
 #region Contributors
 /*
@@ -35,7 +35,7 @@
  * - Liryna <liryna.stark@gmail.com>
  * - Rohan Singh <rohan-singh@hotmail.com>
  */
-#endregion
+
 
 using System;
 using System.IO;
@@ -66,7 +66,7 @@ namespace WebSocketSharp.Server
         private volatile ServerState _state;
         private object _sync;
 
-        #endregion
+        
 
         #region Public Constructors
 
@@ -286,7 +286,7 @@ namespace WebSocketSharp.Server
             Init(address.ToString(true), address, port, secure);
         }
 
-        #endregion
+        
 
         #region Public Properties
 
@@ -755,7 +755,7 @@ namespace WebSocketSharp.Server
         /// </value>
         public WebSocketServiceManager WebSocketServices { get; private set; }
 
-        #endregion
+        
 
         #region Public Events
 
@@ -799,7 +799,7 @@ namespace WebSocketSharp.Server
         /// </summary>
         public event EventHandler<HttpRequestEventArgs> OnTrace;
 
-        #endregion
+        
 
         #region Private Methods
 
@@ -1199,7 +1199,7 @@ namespace WebSocketSharp.Server
             return true;
         }
 
-        #endregion
+        
 
         #region Public Methods
 
@@ -1717,6 +1717,6 @@ namespace WebSocketSharp.Server
             await PrivateStopAsync((ushort)code, reason, stoppingToken);
         }
 
-        #endregion
+        
     }
 }

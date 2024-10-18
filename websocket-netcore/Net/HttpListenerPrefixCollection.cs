@@ -28,14 +28,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
+
 
 #region Authors
 /*
  * Authors:
  * - Gonzalo Paniagua Javier <gonzalo@novell.com>
  */
-#endregion
+
 
 using System;
 using System.Collections;
@@ -59,7 +59,7 @@ namespace WebSocketSharp.Net
         private HttpListener _listener;
         private List<string> _prefixes;
 
-        #endregion
+        
 
         #region Internal Constructors
 
@@ -69,7 +69,7 @@ namespace WebSocketSharp.Net
             _prefixes = new List<string>();
         }
 
-        #endregion
+        
 
         #region Public Properties
 
@@ -117,7 +117,7 @@ namespace WebSocketSharp.Net
             }
         }
 
-        #endregion
+        
 
         #region Public Methods
 
@@ -299,7 +299,7 @@ namespace WebSocketSharp.Net
             return ret;
         }
 
-        #endregion
+        
 
         #region Explicit Interface Implementations
 
@@ -315,6 +315,6 @@ namespace WebSocketSharp.Net
             return _prefixes.GetEnumerator();
         }
 
-        #endregion
+        
     }
 }

@@ -28,21 +28,21 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
+
 
 #region Authors
 /*
  * Authors:
  * - Gonzalo Paniagua Javier <gonzalo@novell.com>
  */
-#endregion
+
 
 #region Contributors
 /*
  * Contributors:
  * - Liryna <liryna.stark@gmail.com>
  */
-#endregion
+
 
 using System;
 using System.Collections;
@@ -82,7 +82,7 @@ namespace WebSocketSharp.Net
         private List<HttpListenerAsyncResult> _waitQueue;
         private object _waitQueueSync;
 
-        #endregion
+        
 
         #region Static Constructor
 
@@ -91,7 +91,7 @@ namespace WebSocketSharp.Net
             _defaultRealm = "SECRET AREA";
         }
 
-        #endregion
+        
 
         #region Public Constructors
 
@@ -119,7 +119,7 @@ namespace WebSocketSharp.Net
             _waitQueueSync = ((ICollection)_waitQueue).SyncRoot;
         }
 
-        #endregion
+        
 
         #region Internal Properties
 
@@ -144,7 +144,7 @@ namespace WebSocketSharp.Net
             }
         }
 
-        #endregion
+        
 
         #region Public Properties
 
@@ -447,7 +447,7 @@ namespace WebSocketSharp.Net
             }
         }
 
-        #endregion
+        
 
         #region Private Methods
 
@@ -568,7 +568,7 @@ namespace WebSocketSharp.Net
             return ctx;
         }
 
-        #endregion
+        
 
         #region Internal Methods
 
@@ -671,7 +671,7 @@ namespace WebSocketSharp.Net
                 _ctxRegistry.Remove(context);
         }
 
-        #endregion
+        
 
         #region Public Methods
 
@@ -863,7 +863,7 @@ namespace WebSocketSharp.Net
             CleanupWaitQueue(new HttpListenerException(995, "The listener is stopped."));
         }
 
-        #endregion
+        
 
         #region Explicit Interface Implementations
 
@@ -878,6 +878,6 @@ namespace WebSocketSharp.Net
             PrivateCloseAsync(true).Wait();
         }
 
-        #endregion
+        
     }
 }

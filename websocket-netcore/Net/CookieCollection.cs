@@ -28,7 +28,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
+
 
 #region Authors
 /*
@@ -37,7 +37,7 @@
  * - Gonzalo Paniagua Javier <gonzalo@ximian.com>
  * - Sebastien Pouliot <sebastien@ximian.com>
  */
-#endregion
+
 
 using System;
 using System.Collections;
@@ -59,7 +59,7 @@ namespace WebSocketSharp.Net
         private bool _readOnly;
         private object _sync;
 
-        #endregion
+        
 
         #region Public Constructors
 
@@ -72,7 +72,7 @@ namespace WebSocketSharp.Net
             _sync = ((ICollection)_list).SyncRoot;
         }
 
-        #endregion
+        
 
         #region Internal Properties
 
@@ -96,7 +96,7 @@ namespace WebSocketSharp.Net
             }
         }
 
-        #endregion
+        
 
         #region Public Properties
 
@@ -234,7 +234,7 @@ namespace WebSocketSharp.Net
             }
         }
 
-        #endregion
+        
 
         #region Private Methods
 
@@ -620,7 +620,7 @@ namespace WebSocketSharp.Net
             }
         }
 
-        #endregion
+        
 
         #region Internal Methods
 
@@ -671,7 +671,7 @@ namespace WebSocketSharp.Net
                 _list.Sort(compareForSort);
         }
 
-        #endregion
+        
 
         #region Public Methods
 
@@ -857,7 +857,7 @@ namespace WebSocketSharp.Net
             return true;
         }
 
-        #endregion
+        
 
         #region Explicit Interface Implementations
 
@@ -873,6 +873,6 @@ namespace WebSocketSharp.Net
             return _list.GetEnumerator();
         }
 
-        #endregion
+        
     }
 }

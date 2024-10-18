@@ -27,14 +27,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
+
 
 #region Authors
 /*
  * Authors:
  * - Lawrence Pit <loz@cable.a2000.nl>
  */
-#endregion
+
 
 using System;
 using System.Runtime.Serialization;
@@ -60,7 +60,7 @@ namespace WebSocketSharp.Net
     {
     }
 
-    #endregion
+    
 
     #region Protected Constructors
 
@@ -85,7 +85,7 @@ namespace WebSocketSharp.Net
     {
     }
 
-    #endregion
+    
 
     #region Public Constructors
 
@@ -97,7 +97,7 @@ namespace WebSocketSharp.Net
     {
     }
 
-    #endregion
+    
 
     #region Public Methods
 
@@ -128,7 +128,7 @@ namespace WebSocketSharp.Net
       base.GetObjectData (serializationInfo, streamingContext);
     }
 
-    #endregion
+    
 
     #region Explicit Interface Implementation
 
@@ -160,6 +160,6 @@ namespace WebSocketSharp.Net
       base.GetObjectData (serializationInfo, streamingContext);
     }
 
-    #endregion
+    
   }
 }

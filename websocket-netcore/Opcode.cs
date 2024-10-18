@@ -24,22 +24,20 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
 
-using System;
 
-namespace WebSocketSharp
+namespace WebSocketSharp;
+
+/// <summary>
+/// Indicates the WebSocket frame type.
+/// </summary>
+/// <remarks>
+/// The values of this enumeration are defined in
+/// <see href="http://tools.ietf.org/html/rfc6455#section-5.2">
+/// Section 5.2</see> of RFC 6455.
+/// </remarks>
+internal enum Opcode : byte
 {
-  /// <summary>
-  /// Indicates the WebSocket frame type.
-  /// </summary>
-  /// <remarks>
-  /// The values of this enumeration are defined in
-  /// <see href="http://tools.ietf.org/html/rfc6455#section-5.2">
-  /// Section 5.2</see> of RFC 6455.
-  /// </remarks>
-  internal enum Opcode : byte
-  {
     /// <summary>
     /// Equivalent to numeric value 0. Indicates continuation frame.
     /// </summary>
@@ -64,5 +62,4 @@ namespace WebSocketSharp
     /// Equivalent to numeric value 10. Indicates pong frame.
     /// </summary>
     Pong = 0xa
-  }
 }

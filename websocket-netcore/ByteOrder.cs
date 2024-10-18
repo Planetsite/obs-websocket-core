@@ -1,4 +1,3 @@
-#region License
 /*
  * ByteOrder.cs
  *
@@ -24,17 +23,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
 
-using System;
+namespace WebSocketSharp;
 
-namespace WebSocketSharp
+/// <summary>
+/// Specifies the byte order.
+/// </summary>
+public enum ByteOrder
 {
-  /// <summary>
-  /// Specifies the byte order.
-  /// </summary>
-  public enum ByteOrder
-  {
     /// <summary>
     /// Specifies Little-endian.
     /// </summary>
@@ -43,5 +39,4 @@ namespace WebSocketSharp
     /// Specifies Big-endian.
     /// </summary>
     Big
-  }
 }

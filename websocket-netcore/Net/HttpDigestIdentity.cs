@@ -24,7 +24,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
+
 
 using System;
 using System.Collections.Specialized;
@@ -42,7 +42,7 @@ namespace WebSocketSharp.Net
 
     private NameValueCollection _parameters;
 
-    #endregion
+    
 
     #region Internal Constructors
 
@@ -52,7 +52,7 @@ namespace WebSocketSharp.Net
       _parameters = parameters;
     }
 
-    #endregion
+    
 
     #region Public Properties
 
@@ -164,7 +164,7 @@ namespace WebSocketSharp.Net
       }
     }
 
-    #endregion
+    
 
     #region Internal Methods
 
@@ -182,6 +182,6 @@ namespace WebSocketSharp.Net
       return _parameters["response"] == expected;
     }
 
-    #endregion
+    
   }
 }

@@ -24,7 +24,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
+
 
 using System;
 using WebSocketSharp.Net.WebSockets;
@@ -86,6 +86,6 @@ namespace WebSocketSharp.Server
         /// </value>
         DateTime StartTime { get; }
 
-        #endregion
+        
     }
 }

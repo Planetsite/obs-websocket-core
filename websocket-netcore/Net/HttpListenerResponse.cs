@@ -28,21 +28,21 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
+
 
 #region Authors
 /*
  * Authors:
  * - Gonzalo Paniagua Javier <gonzalo@novell.com>
  */
-#endregion
+
 
 #region Contributors
 /*
  * Contributors:
  * - Nicholas Devenish
  */
-#endregion
+
 
 using System;
 using System.Collections.Generic;
@@ -81,7 +81,7 @@ namespace WebSocketSharp.Net
         private string _statusDescription;
         private Version _version;
 
-        #endregion
+        
 
         #region Internal Constructors
 
@@ -94,7 +94,7 @@ namespace WebSocketSharp.Net
             _version = HttpVersion.Version11;
         }
 
-        #endregion
+        
 
         #region Internal Properties
 
@@ -237,7 +237,7 @@ namespace WebSocketSharp.Net
             }
         }
 
-        #endregion
+        
 
         #region Public Properties
 
@@ -881,7 +881,7 @@ namespace WebSocketSharp.Net
             }
         }
 
-        #endregion
+        
 
         #region Private Methods
 
@@ -971,7 +971,7 @@ namespace WebSocketSharp.Net
             return true;
         }
 
-        #endregion
+        
 
         #region Public Methods
 
@@ -1293,7 +1293,7 @@ namespace WebSocketSharp.Net
             Headers.Set(name, value);
         }
 
-        #endregion
+        
 
         #region Explicit Interface Implementations
 
@@ -1308,6 +1308,6 @@ namespace WebSocketSharp.Net
             closeAsync(true).Wait();
         }
 
-        #endregion
+        
     }
 }

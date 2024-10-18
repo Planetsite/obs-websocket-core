@@ -24,7 +24,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
+
 
 using System;
 using System.IO;
@@ -59,7 +59,7 @@ namespace WebSocketSharp.Server
     private HttpListenerContext _context;
     private string              _docRootPath;
 
-    #endregion
+    
 
     #region Internal Constructors
 
@@ -71,7 +71,7 @@ namespace WebSocketSharp.Server
       _docRootPath = documentRootPath;
     }
 
-    #endregion
+    
 
     #region Public Properties
 
@@ -120,7 +120,7 @@ namespace WebSocketSharp.Server
       }
     }
 
-    #endregion
+    
 
     #region Private Methods
 
@@ -150,7 +150,7 @@ namespace WebSocketSharp.Server
       return true;
     }
 
-    #endregion
+    
 
     #region Public Methods
 
@@ -250,6 +250,6 @@ namespace WebSocketSharp.Server
       return tryReadFile (createFilePath (path), out contents);
     }
 
-    #endregion
+    
   }
 }

@@ -28,7 +28,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
+
 
 #region Authors
 /*
@@ -38,7 +38,7 @@
  * - Tim Coleman <tim@timcoleman.com>
  * - Gonzalo Paniagua Javier <gonzalo@ximian.com>
  */
-#endregion
+
 
 using System;
 using System.Collections.Specialized;
@@ -59,7 +59,7 @@ namespace WebSocketSharp.Net
     {
     }
 
-    #endregion
+    
 
     #region Private Methods
 
@@ -70,7 +70,7 @@ namespace WebSocketSharp.Net
              : s;
     }
 
-    #endregion
+    
 
     #region Public Methods
 
@@ -145,6 +145,6 @@ namespace WebSocketSharp.Net
       return buff.ToString ();
     }
 
-    #endregion
+    
   }
 }

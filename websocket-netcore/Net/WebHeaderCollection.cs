@@ -29,7 +29,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
+
 
 #region Authors
 /*
@@ -38,7 +38,7 @@
  * - Gonzalo Paniagua Javier <gonzalo@ximian.com>
  * - Miguel de Icaza <miguel@novell.com>
  */
-#endregion
+
 
 using System;
 using System.Collections;
@@ -65,7 +65,7 @@ namespace WebSocketSharp.Net
     private bool                                               _internallyUsed;
     private HttpHeaderType                                     _state;
 
-    #endregion
+    
 
     #region Static Constructor
 
@@ -545,7 +545,7 @@ namespace WebSocketSharp.Net
         };
     }
 
-    #endregion
+    
 
     #region Internal Constructors
 
@@ -555,7 +555,7 @@ namespace WebSocketSharp.Net
       _internallyUsed = internallyUsed;
     }
 
-    #endregion
+    
 
     #region Protected Constructors
 
@@ -604,7 +604,7 @@ namespace WebSocketSharp.Net
       }
     }
 
-    #endregion
+    
 
     #region Public Constructors
 
@@ -616,7 +616,7 @@ namespace WebSocketSharp.Net
     {
     }
 
-    #endregion
+    
 
     #region Internal Properties
 
@@ -626,7 +626,7 @@ namespace WebSocketSharp.Net
       }
     }
 
-    #endregion
+    
 
     #region Public Properties
 
@@ -759,7 +759,7 @@ namespace WebSocketSharp.Net
       }
     }
 
-    #endregion
+    
 
     #region Private Methods
 
@@ -929,7 +929,7 @@ namespace WebSocketSharp.Net
       _state = headerType;
     }
 
-    #endregion
+    
 
     #region Internal Methods
 
@@ -1005,7 +1005,7 @@ namespace WebSocketSharp.Net
       return buff.ToString ();
     }
 
-    #endregion
+    
 
     #region Protected Methods
 
@@ -1063,7 +1063,7 @@ namespace WebSocketSharp.Net
       add (headerName, headerValue, headerType);
     }
 
-    #endregion
+    
 
     #region Public Methods
 
@@ -1852,7 +1852,7 @@ namespace WebSocketSharp.Net
       return buff.ToString ();
     }
 
-    #endregion
+    
 
     #region Explicit Interface Implementations
 
@@ -1884,6 +1884,6 @@ namespace WebSocketSharp.Net
       GetObjectData (serializationInfo, streamingContext);
     }
 
-    #endregion
+    
   }
 }

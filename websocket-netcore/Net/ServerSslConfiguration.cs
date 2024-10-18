@@ -25,14 +25,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
+
 
 #region Authors
 /*
  * Authors:
  * - Liryna <liryna.stark@gmail.com>
  */
-#endregion
+
 
 using System;
 using System.Net.Security;
@@ -54,7 +54,7 @@ namespace WebSocketSharp.Net
     private SslProtocols                        _enabledSslProtocols;
     private X509Certificate2                    _serverCert;
 
-    #endregion
+    
 
     #region Public Constructors
 
@@ -102,7 +102,7 @@ namespace WebSocketSharp.Net
       _serverCert = configuration._serverCert;
     }
 
-    #endregion
+    
 
     #region Public Properties
 
@@ -226,7 +226,7 @@ namespace WebSocketSharp.Net
       }
     }
 
-    #endregion
+    
 
     #region Private Methods
 
@@ -240,6 +240,6 @@ namespace WebSocketSharp.Net
       return true;
     }
 
-    #endregion
+    
   }
 }

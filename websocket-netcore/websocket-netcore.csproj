@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.1;netstandard2.0</TargetFrameworks>
+    <TargetFrameworks>net6</TargetFrameworks>
     <RootNamespace>websocket_netcore</RootNamespace>
     <Copyright>sta.blockhead</Copyright>
     <Version>2.1.1.1-alpha</Version>

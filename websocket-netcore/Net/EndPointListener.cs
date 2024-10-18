@@ -28,14 +28,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
+
 
 #region Authors
 /*
  * Authors:
  * - Gonzalo Paniagua Javier <gonzalo@novell.com>
  */
-#endregion
+
 
 #region Contributors
 /*
@@ -43,7 +43,7 @@
  * - Liryna <liryna.stark@gmail.com>
  * - Nicholas Devenish
  */
-#endregion
+
 
 using System;
 using System.Collections;
@@ -73,7 +73,7 @@ namespace WebSocketSharp.Net
         private Dictionary<HttpConnection, HttpConnection> _unregistered;
         private object _unregisteredSync;
 
-        #endregion
+        
 
         #region Static Constructor
 
@@ -83,7 +83,7 @@ namespace WebSocketSharp.Net
               Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         }
 
-        #endregion
+        
 
         #region Internal Constructors
 
@@ -127,7 +127,7 @@ namespace WebSocketSharp.Net
             #pragma warning restore CS4014
         }
 
-        #endregion
+        
 
         #region Public Properties
 
@@ -163,7 +163,7 @@ namespace WebSocketSharp.Net
             }
         }
 
-        #endregion
+        
 
         #region Private Methods
 
@@ -319,7 +319,7 @@ namespace WebSocketSharp.Net
             return bestMatch;
         }
 
-        #endregion
+        
 
         #region Internal Methods
 
@@ -401,7 +401,7 @@ namespace WebSocketSharp.Net
             return listener != null;
         }
 
-        #endregion
+        
 
         #region Public Methods
 
@@ -538,6 +538,6 @@ namespace WebSocketSharp.Net
             await leaveIfNoPrefixAsync();
         }
 
-        #endregion
+        
     }
 }

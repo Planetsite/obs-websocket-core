@@ -24,7 +24,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
+
 
 using System;
 using System.Collections.Specialized;
@@ -52,7 +52,7 @@ namespace WebSocketSharp.Server
         private string _protocol;
         private WebSocket _websocket;
 
-        #endregion
+        
 
         #region Protected Constructors
 
@@ -64,7 +64,7 @@ namespace WebSocketSharp.Server
             StartTime = DateTime.MaxValue;
         }
 
-        #endregion
+        
 
         #region Protected Properties
 
@@ -144,7 +144,7 @@ namespace WebSocketSharp.Server
         /// </value>
         protected WebSocketSessionManager Sessions { get; private set; }
 
-        #endregion
+        
 
         #region Public Properties
 
@@ -371,7 +371,7 @@ namespace WebSocketSharp.Server
         /// </value>
         public DateTime StartTime { get; private set; }
 
-        #endregion
+        
 
         #region Private Methods
 
@@ -426,7 +426,7 @@ namespace WebSocketSharp.Server
             OnOpen();
         }
 
-        #endregion
+        
 
         #region Internal Methods
 
@@ -461,7 +461,7 @@ namespace WebSocketSharp.Server
             await _websocket.InternalAcceptAsync(cancellationToken);
         }
 
-        #endregion
+        
 
         #region Protected Methods
 
@@ -820,6 +820,6 @@ namespace WebSocketSharp.Server
             await _websocket.SendAsync(stream, length, cancellationToken);
         }
 
-        #endregion
+        
     }
 }

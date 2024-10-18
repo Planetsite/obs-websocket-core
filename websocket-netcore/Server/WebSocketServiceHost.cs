@@ -24,14 +24,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
+
 
 #region Contributors
 /*
  * Contributors:
  * - Juan Manuel Lallana <juan.manuel.lallana@gmail.com>
  */
-#endregion
+
 
 using System;
 using System.Threading;
@@ -56,7 +56,7 @@ namespace WebSocketSharp.Server
         private string _path;
         private WebSocketSessionManager _sessions;
 
-        #endregion
+        
 
         #region Protected Constructors
 
@@ -78,7 +78,7 @@ namespace WebSocketSharp.Server
             _sessions = new WebSocketSessionManager(log);
         }
 
-        #endregion
+        
 
         #region Internal Properties
 
@@ -90,7 +90,7 @@ namespace WebSocketSharp.Server
             }
         }
 
-        #endregion
+        
 
         #region Protected Properties
 
@@ -108,7 +108,7 @@ namespace WebSocketSharp.Server
             }
         }
 
-        #endregion
+        
 
         #region Public Properties
 
@@ -203,7 +203,7 @@ namespace WebSocketSharp.Server
             }
         }
 
-        #endregion
+        
 
         #region Internal Methods
 
@@ -222,7 +222,7 @@ namespace WebSocketSharp.Server
             await _sessions.StopAsync(code, reason, stoppingToken);
         }
 
-        #endregion
+        
 
         #region Protected Methods
 
@@ -235,6 +235,6 @@ namespace WebSocketSharp.Server
         /// </returns>
         protected abstract WebSocketBehavior CreateSession();
 
-        #endregion
+        
     }
 }

@@ -28,7 +28,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
+
 
 #region Authors
 /*
@@ -36,7 +36,7 @@
  * - Gonzalo Paniagua Javier <gonzalo@novell.com>
  * - Oleg Mihailik <mihailik@gmail.com>
  */
-#endregion
+
 
 using System;
 using System.Net;
@@ -55,7 +55,7 @@ namespace WebSocketSharp.Net
     private string       _prefix;
     private bool         _secure;
 
-    #endregion
+    
 
     #region Internal Constructors
 
@@ -75,7 +75,7 @@ namespace WebSocketSharp.Net
       parse (uriPrefix);
     }
 
-    #endregion
+    
 
     #region Public Properties
 
@@ -119,7 +119,7 @@ namespace WebSocketSharp.Net
       }
     }
 
-    #endregion
+    
 
     #region Private Methods
 
@@ -148,7 +148,7 @@ namespace WebSocketSharp.Net
         String.Format ("http{0}://{1}:{2}{3}", _secure ? "s" : "", _host, _port, _path);
     }
 
-    #endregion
+    
 
     #region Public Methods
 
@@ -249,6 +249,6 @@ namespace WebSocketSharp.Net
       return _prefix;
     }
 
-    #endregion
+    
   }
 }

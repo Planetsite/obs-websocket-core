@@ -1,4 +1,3 @@
-#region License
 /*
  * CloseStatusCode.cs
  *
@@ -24,28 +23,25 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
 
-using System;
+namespace WebSocketSharp;
 
-namespace WebSocketSharp
+/// <summary>
+/// Indicates the status code for the WebSocket connection close.
+/// </summary>
+/// <remarks>
+///   <para>
+///   The values of this enumeration are defined in
+///   <see href="http://tools.ietf.org/html/rfc6455#section-7.4">
+///   Section 7.4</see> of RFC 6455.
+///   </para>
+///   <para>
+///   "Reserved value" cannot be sent as a status code in
+///   closing handshake by an endpoint.
+///   </para>
+/// </remarks>
+public enum CloseStatusCode : ushort
 {
-  /// <summary>
-  /// Indicates the status code for the WebSocket connection close.
-  /// </summary>
-  /// <remarks>
-  ///   <para>
-  ///   The values of this enumeration are defined in
-  ///   <see href="http://tools.ietf.org/html/rfc6455#section-7.4">
-  ///   Section 7.4</see> of RFC 6455.
-  ///   </para>
-  ///   <para>
-  ///   "Reserved value" cannot be sent as a status code in
-  ///   closing handshake by an endpoint.
-  ///   </para>
-  /// </remarks>
-  public enum CloseStatusCode : ushort
-  {
     /// <summary>
     /// Equivalent to close status 1000. Indicates normal close.
     /// </summary>
@@ -116,5 +112,4 @@ namespace WebSocketSharp
     /// closed due to a failure to perform a TLS handshake. A Reserved value.
     /// </summary>
     TlsHandshakeFailure = 1015
-  }
 }

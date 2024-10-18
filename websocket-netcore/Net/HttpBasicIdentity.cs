@@ -28,14 +28,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
+
 
 #region Authors
 /*
  * Authors:
  * - Gonzalo Paniagua Javier <gonzalo@novell.com>
  */
-#endregion
+
 
 using System;
 using System.Security.Principal;
@@ -51,7 +51,7 @@ namespace WebSocketSharp.Net
 
     private string _password;
 
-    #endregion
+    
 
     #region Internal Constructors
 
@@ -61,7 +61,7 @@ namespace WebSocketSharp.Net
       _password = password;
     }
 
-    #endregion
+    
 
     #region Public Properties
 
@@ -77,6 +77,6 @@ namespace WebSocketSharp.Net
       }
     }
 
-    #endregion
+    
   }
 }

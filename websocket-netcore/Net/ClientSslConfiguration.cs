@@ -1,5 +1,4 @@
-﻿#region License
-/*
+﻿/*
  * ClientSslConfiguration.cs
  *
  * The MIT License
@@ -25,46 +24,39 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
 
-#region Authors
+
 /*
  * Authors:
  * - Liryna <liryna.stark@gmail.com>
  */
-#endregion
+
 
 using System;
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
-namespace WebSocketSharp.Net
+namespace WebSocketSharp.Net;
+
+/// <summary>
+/// Stores the parameters for the <see cref="SslStream"/> used by clients.
+/// </summary>
+public class ClientSslConfiguration
 {
-  /// <summary>
-  /// Stores the parameters for the <see cref="SslStream"/> used by clients.
-  /// </summary>
-  public class ClientSslConfiguration
-  {
-    #region Private Fields
-
-    private bool                                _checkCertRevocation;
-    private LocalCertificateSelectionCallback   _clientCertSelectionCallback;
-    private X509CertificateCollection           _clientCerts;
-    private SslProtocols                        _enabledSslProtocols;
+    private bool _checkCertRevocation;
+    private LocalCertificateSelectionCallback _clientCertSelectionCallback;
+    private X509CertificateCollection _clientCerts;
+    private SslProtocols _enabledSslProtocols;
     private RemoteCertificateValidationCallback _serverCertValidationCallback;
-    private string                              _targetHost;
-
-    #endregion
-
-    #region Public Constructors
+    private string _targetHost;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ClientSslConfiguration"/> class.
     /// </summary>
-    public ClientSslConfiguration ()
+    public ClientSslConfiguration()
     {
-      _enabledSslProtocols = SslProtocols.Default;
+        _enabledSslProtocols = SslProtocols.Default;
     }
 
     /// <summary>
@@ -74,10 +66,10 @@ namespace WebSocketSharp.Net
     /// <param name="targetHost">
     /// A <see cref="string"/> that represents the target host server name.
     /// </param>
-    public ClientSslConfiguration (string targetHost)
+    public ClientSslConfiguration(string targetHost)
     {
-      _targetHost = targetHost;
-      _enabledSslProtocols = SslProtocols.Default;
+        _targetHost = targetHost;
+        _enabledSslProtocols = SslProtocols.Default;
     }
 
     /// <summary>
@@ -90,22 +82,18 @@ namespace WebSocketSharp.Net
     /// <exception cref="ArgumentNullException">
     /// <paramref name="configuration"/> is <see langword="null"/>.
     /// </exception>
-    public ClientSslConfiguration (ClientSslConfiguration configuration)
+    public ClientSslConfiguration(ClientSslConfiguration configuration)
     {
-      if (configuration == null)
-        throw new ArgumentNullException ("configuration");
+        if (configuration == null)
+            throw new ArgumentNullException("configuration");
 
-      _checkCertRevocation = configuration._checkCertRevocation;
-      _clientCertSelectionCallback = configuration._clientCertSelectionCallback;
-      _clientCerts = configuration._clientCerts;
-      _enabledSslProtocols = configuration._enabledSslProtocols;
-      _serverCertValidationCallback = configuration._serverCertValidationCallback;
-      _targetHost = configuration._targetHost;
+        _checkCertRevocation = configuration._checkCertRevocation;
+        _clientCertSelectionCallback = configuration._clientCertSelectionCallback;
+        _clientCerts = configuration._clientCerts;
+        _enabledSslProtocols = configuration._enabledSslProtocols;
+        _serverCertValidationCallback = configuration._serverCertValidationCallback;
+        _targetHost = configuration._targetHost;
     }
-
-    #endregion
-
-    #region Public Properties
 
     /// <summary>
     /// Gets or sets a value indicating whether the certificate revocation
@@ -120,14 +108,11 @@ namespace WebSocketSharp.Net
     ///   The default value is <c>false</c>.
     ///   </para>
     /// </value>
-    public bool CheckCertificateRevocation {
-      get {
-        return _checkCertRevocation;
-      }
+    public bool CheckCertificateRevocation
+    {
+        get => _checkCertRevocation;
 
-      set {
-        _checkCertRevocation = value;
-      }
+        set => _checkCertRevocation = value;
     }
 
     /// <summary>
@@ -145,14 +130,11 @@ namespace WebSocketSharp.Net
     ///   The default value is <see langword="null"/>.
     ///   </para>
     /// </value>
-    public X509CertificateCollection ClientCertificates {
-      get {
-        return _clientCerts;
-      }
+    public X509CertificateCollection ClientCertificates
+    {
+        get => _clientCerts;
 
-      set {
-        _clientCerts = value;
-      }
+        set => _clientCerts = value;
     }
 
     /// <summary>
@@ -173,17 +155,20 @@ namespace WebSocketSharp.Net
     ///   only returns <see langword="null"/>.
     ///   </para>
     /// </value>
-    public LocalCertificateSelectionCallback ClientCertificateSelectionCallback {
-      get {
-        if (_clientCertSelectionCallback == null)
-          _clientCertSelectionCallback = defaultSelectClientCertificate;
+    public LocalCertificateSelectionCallback ClientCertificateSelectionCallback
+    {
+        get
+        {
+            if (_clientCertSelectionCallback == null)
+                _clientCertSelectionCallback = defaultSelectClientCertificate;
 
-        return _clientCertSelectionCallback;
-      }
+            return _clientCertSelectionCallback;
+        }
 
-      set {
-        _clientCertSelectionCallback = value;
-      }
+        set
+        {
+            _clientCertSelectionCallback = value;
+        }
     }
 
     /// <summary>
@@ -198,14 +183,11 @@ namespace WebSocketSharp.Net
     ///   The default value is <see cref="SslProtocols.Default"/>.
     ///   </para>
     /// </value>
-    public SslProtocols EnabledSslProtocols {
-      get {
-        return _enabledSslProtocols;
-      }
+    public SslProtocols EnabledSslProtocols
+    {
+        get => _enabledSslProtocols;
 
-      set {
-        _enabledSslProtocols = value;
-      }
+        set => _enabledSslProtocols = value;
     }
 
     /// <summary>
@@ -225,17 +207,20 @@ namespace WebSocketSharp.Net
     ///   only returns <c>true</c>.
     ///   </para>
     /// </value>
-    public RemoteCertificateValidationCallback ServerCertificateValidationCallback {
-      get {
-        if (_serverCertValidationCallback == null)
-          _serverCertValidationCallback = defaultValidateServerCertificate;
+    public RemoteCertificateValidationCallback ServerCertificateValidationCallback
+    {
+        get
+        {
+            if (_serverCertValidationCallback == null)
+                _serverCertValidationCallback = defaultValidateServerCertificate;
 
-        return _serverCertValidationCallback;
-      }
+            return _serverCertValidationCallback;
+        }
 
-      set {
-        _serverCertValidationCallback = value;
-      }
+        set
+        {
+            _serverCertValidationCallback = value;
+        }
     }
 
     /// <summary>
@@ -251,21 +236,14 @@ namespace WebSocketSharp.Net
     ///   will share a secure connection with a client.
     ///   </para>
     /// </value>
-    public string TargetHost {
-      get {
-        return _targetHost;
-      }
+    public string TargetHost
+    {
+        get => _targetHost;
 
-      set {
-        _targetHost = value;
-      }
+        set => _targetHost = value;
     }
 
-    #endregion
-
-    #region Private Methods
-
-    private static X509Certificate defaultSelectClientCertificate (
+    private static X509Certificate defaultSelectClientCertificate(
       object sender,
       string targetHost,
       X509CertificateCollection clientCertificates,
@@ -273,19 +251,16 @@ namespace WebSocketSharp.Net
       string[] acceptableIssuers
     )
     {
-      return null;
+        return null;
     }
 
-    private static bool defaultValidateServerCertificate (
+    private static bool defaultValidateServerCertificate(
       object sender,
       X509Certificate certificate,
       X509Chain chain,
       SslPolicyErrors sslPolicyErrors
     )
     {
-      return true;
+        return true;
     }
-
-    #endregion
-  }
 }

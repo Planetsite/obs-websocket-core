@@ -27,14 +27,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
+
 
 #region Authors
 /*
  * Authors:
  * - Lawrence Pit <loz@cable.a2000.nl>
  */
-#endregion
+
 
 using System;
 
@@ -57,7 +57,7 @@ namespace WebSocketSharp.Net
     /// </summary>
     public static readonly Version Version11 = new Version (1, 1);
 
-    #endregion
+    
 
     #region Public Constructors
 
@@ -68,6 +68,6 @@ namespace WebSocketSharp.Net
     {
     }
 
-    #endregion
+    
   }
 }

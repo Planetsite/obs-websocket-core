@@ -24,7 +24,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
+
 
 using System;
 
@@ -43,7 +43,7 @@ namespace WebSocketSharp.Net
     private string[]                 _roles;
     private string                   _username;
 
-    #endregion
+    
 
     #region Static Constructor
 
@@ -52,7 +52,7 @@ namespace WebSocketSharp.Net
       _noRoles = new string[0];
     }
 
-    #endregion
+    
 
     #region Public Constructors
 
@@ -122,7 +122,7 @@ namespace WebSocketSharp.Net
       _roles = roles;
     }
 
-    #endregion
+    
 
     #region Public Properties
 
@@ -204,6 +204,6 @@ namespace WebSocketSharp.Net
       }
     }
 
-    #endregion
+    
   }
 }

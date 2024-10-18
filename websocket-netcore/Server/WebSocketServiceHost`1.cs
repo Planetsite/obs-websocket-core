@@ -24,7 +24,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
+
 
 using System;
 
@@ -37,7 +37,7 @@ namespace WebSocketSharp.Server
 
         private Func<TBehavior> _creator;
 
-        #endregion
+        
 
         #region Internal Constructors
 
@@ -59,7 +59,7 @@ namespace WebSocketSharp.Server
             _creator = createCreator(creator, initializer);
         }
 
-        #endregion
+        
 
         #region Public Properties
 
@@ -71,7 +71,7 @@ namespace WebSocketSharp.Server
             }
         }
 
-        #endregion
+        
 
         #region Private Methods
 
@@ -91,7 +91,7 @@ namespace WebSocketSharp.Server
             };
         }
 
-        #endregion
+        
 
         #region Protected Methods
 
@@ -100,6 +100,6 @@ namespace WebSocketSharp.Server
             return _creator();
         }
 
-        #endregion
+        
     }
 }

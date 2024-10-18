@@ -24,7 +24,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
+
 
 using System;
 
@@ -37,7 +37,7 @@ namespace WebSocketSharp.Net
     private string         _headerName;
     private HttpHeaderType _headerType;
 
-    #endregion
+    
 
     #region Internal Constructors
 
@@ -47,7 +47,7 @@ namespace WebSocketSharp.Net
       _headerType = headerType;
     }
 
-    #endregion
+    
 
     #region Internal Properties
 
@@ -67,7 +67,7 @@ namespace WebSocketSharp.Net
       }
     }
 
-    #endregion
+    
 
     #region Public Properties
 
@@ -99,7 +99,7 @@ namespace WebSocketSharp.Net
       }
     }
 
-    #endregion
+    
 
     #region Public Methods
 
@@ -123,6 +123,6 @@ namespace WebSocketSharp.Net
       return response ? IsResponse : IsRequest;
     }
 
-    #endregion
+    
   }
 }

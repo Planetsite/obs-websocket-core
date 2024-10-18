@@ -28,21 +28,21 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#endregion
+
 
 #region Authors
 /*
  * Authors:
  * - Gonzalo Paniagua Javier <gonzalo@ximian.com>
  */
-#endregion
+
 
 #region Contributors
 /*
  * Contributors:
  * - Nicholas Devenish
  */
-#endregion
+
 
 using System;
 using System.Threading;
@@ -64,7 +64,7 @@ namespace WebSocketSharp.Net
     private bool                _syncCompleted;
     private ManualResetEvent    _waitHandle;
 
-    #endregion
+    
 
     #region Internal Constructors
 
@@ -75,7 +75,7 @@ namespace WebSocketSharp.Net
       _sync = new object ();
     }
 
-    #endregion
+    
 
     #region Internal Properties
 
@@ -99,7 +99,7 @@ namespace WebSocketSharp.Net
       }
     }
 
-    #endregion
+    
 
     #region Public Properties
 
@@ -129,7 +129,7 @@ namespace WebSocketSharp.Net
       }
     }
 
-    #endregion
+    
 
     #region Private Methods
 
@@ -159,7 +159,7 @@ namespace WebSocketSharp.Net
       );
     }
 
-    #endregion
+    
 
     #region Internal Methods
 
@@ -193,6 +193,6 @@ namespace WebSocketSharp.Net
       return _context;
     }
 
-    #endregion
+    
   }
 }
