@@ -1,8 +1,7 @@
-﻿namespace OBSWebsocketDotNet.Types
+﻿namespace OBSWebsocketDotNet.Types;
+
+public sealed class ScrollFilter : IFilterProperties
 {
-    public class ScrollFilter : IFilterProperties
-    {
-        public bool limit_cx;
-        public float speed_x;
-    }
+    public bool limit_cx;
+    public float speed_x;
 }

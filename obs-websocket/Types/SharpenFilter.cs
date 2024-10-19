@@ -1,7 +1,6 @@
-﻿namespace OBSWebsocketDotNet.Types
+﻿namespace OBSWebsocketDotNet.Types;
+
+public sealed class SharpenFilter : IFilterProperties
 {
-    public class SharpenFilter : IFilterProperties
-    {
-        public float sharpness;
-    }
+    public float sharpness;
 }

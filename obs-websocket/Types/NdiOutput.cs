@@ -1,6 +1,5 @@
-﻿namespace OBSWebsocketDotNet.Types
+﻿namespace OBSWebsocketDotNet.Types;
+
+public class NdiOutput : IFilterProperties
 {
-    public class NdiOutput : IFilterProperties
-    {
-    }
 }

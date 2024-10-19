@@ -1,7 +1,6 @@
-﻿namespace OBSWebsocketDotNet.Types
+﻿namespace OBSWebsocketDotNet.Types;
+
+public class ClutFilter : IFilterProperties
 {
-    public class ClutFilter : IFilterProperties
-    {
-        public float? clut_amount;
-    }
+    public float? clut_amount;
 }

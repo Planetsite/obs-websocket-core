@@ -1,6 +1,5 @@
-﻿namespace OBSWebsocketDotNet.Types
+﻿namespace OBSWebsocketDotNet.Types;
+
+public sealed class VirtualCam : IFilterProperties
 {
-    public class VirtualCam : IFilterProperties
-    {
-    }
 }

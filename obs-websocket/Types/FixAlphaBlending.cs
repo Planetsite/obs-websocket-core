@@ -1,6 +1,5 @@
-﻿namespace OBSWebsocketDotNet.Types
+﻿namespace OBSWebsocketDotNet.Types;
+
+public class FixAlphaBlending : IFilterProperties
 {
-    public class FixAlphaBlending : IFilterProperties
-    {
-    }
 }

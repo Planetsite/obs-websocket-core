@@ -1,7 +1,6 @@
-﻿namespace OBSWebsocketDotNet.Types
+﻿namespace OBSWebsocketDotNet.Types;
+
+public class LumaKeyFilter : IFilterProperties
 {
-    public class LumaKeyFilter : IFilterProperties
-    {
-        public float luma_max_smooth;
-    }
+    public float luma_max_smooth;
 }

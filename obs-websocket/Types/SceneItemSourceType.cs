@@ -1,9 +1,8 @@
-﻿namespace OBSWebsocketDotNet.Types
+﻿namespace OBSWebsocketDotNet.Types;
+
+public enum SceneItemSourceType
 {
-    public enum SceneItemSourceType
-    {
-        input,
-        group,
-        scene
-    }
+    input,
+    group,
+    scene
 }

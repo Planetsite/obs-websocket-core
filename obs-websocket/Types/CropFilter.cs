@@ -1,10 +1,9 @@
-﻿namespace OBSWebsocketDotNet.Types
+﻿namespace OBSWebsocketDotNet.Types;
+
+public class CropFilter : IFilterProperties
 {
-    public class CropFilter : IFilterProperties
-    {
-        public int bottom;
-        public int top;
-        public int right;
-        public int left;
-    }
+    public int bottom;
+    public int top;
+    public int right;
+    public int left;
 }

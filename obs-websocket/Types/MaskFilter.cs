@@ -1,7 +1,6 @@
-﻿namespace OBSWebsocketDotNet.Types
+﻿namespace OBSWebsocketDotNet.Types;
+
+public class MaskFilter : IFilterProperties
 {
-    public class MaskFilter : IFilterProperties
-    {
-        public int opacity;
-    }
+    public int opacity;
 }

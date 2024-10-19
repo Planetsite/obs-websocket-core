@@ -1,10 +1,9 @@
-﻿namespace OBSWebsocketDotNet.Types
+﻿namespace OBSWebsocketDotNet.Types;
+
+public enum ChromaKeyFilterColorType
 {
-    public enum ChromaKeyFilterColorType
-    {
-        custom,
-        green,
-        blue,
-        magenta
-    }
+    custom,
+    green,
+    blue,
+    magenta
 }

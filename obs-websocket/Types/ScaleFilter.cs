@@ -1,7 +1,6 @@
-﻿namespace OBSWebsocketDotNet.Types
+﻿namespace OBSWebsocketDotNet.Types;
+
+public class ScaleFilter : IFilterProperties
 {
-    public class ScaleFilter : IFilterProperties
-    {
-        public string resolution;
-    }
+    public string resolution;
 }

@@ -1,6 +1,5 @@
-﻿namespace OBSWebsocketDotNet.Types
+﻿namespace OBSWebsocketDotNet.Types;
+
+public interface IFilterProperties
 {
-    public interface IFilterProperties
-    {
-    }
 }

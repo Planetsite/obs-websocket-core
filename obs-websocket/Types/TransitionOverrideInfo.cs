@@ -1,26 +1,21 @@
 ﻿using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
-namespace OBSWebsocketDotNet.Types
+namespace OBSWebsocketDotNet.Types;
+
+/// <summary>
+/// Scene transition override settings
+/// </summary>
+public sealed class TransitionOverrideInfo
 {
     /// <summary>
-    /// Scene transition override settings
+    /// Name of the current overriding transition. Empty string if no override is set.
     /// </summary>
-    public class TransitionOverrideInfo
-    {
-        /// <summary>
-        /// Name of the current overriding transition. Empty string if no override is set.
-        /// </summary>
-        [JsonProperty(PropertyName = "transitionName")]
-        public string Name { internal set; get; }
+    [JsonProperty(PropertyName = "transitionName")]
+    public string Name { internal set; get; }
 
-        /// <summary>
-        /// Transition duration in milliseconds. -1 if no override is set.
-        /// </summary>
-        [JsonProperty(PropertyName = "transitionDuration")]
-        public int Duration { internal set; get; }
-    }
+    /// <summary>
+    /// Transition duration in milliseconds. -1 if no override is set.
+    /// </summary>
+    [JsonProperty(PropertyName = "transitionDuration")]
+    public int Duration { internal set; get; }
 }

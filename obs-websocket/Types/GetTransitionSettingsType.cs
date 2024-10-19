@@ -1,10 +1,9 @@
 ﻿using Newtonsoft.Json;
 
-namespace OBSWebsocketDotNet.Types
+namespace OBSWebsocketDotNet.Types;
+
+internal class GetTransitionSettingsType
 {
-    internal class GetTransitionSettingsType
-    {
-        [JsonProperty(PropertyName = "transitionSettings")]
-        public TransitionSettingsAll TransitionSettings { get; set; }
-    }
+    [JsonProperty(PropertyName = "transitionSettings")]
+    public TransitionSettingsAll TransitionSettings { get; set; }
 }
