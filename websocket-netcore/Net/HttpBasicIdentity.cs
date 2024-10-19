@@ -1,4 +1,3 @@
-#region License
 /*
  * HttpBasicIdentity.cs
  *
@@ -29,41 +28,27 @@
  * THE SOFTWARE.
  */
 
-
-#region Authors
 /*
  * Authors:
  * - Gonzalo Paniagua Javier <gonzalo@novell.com>
  */
 
-
-using System;
 using System.Security.Principal;
 
-namespace WebSocketSharp.Net
-{
-  /// <summary>
-  /// Holds the username and password from an HTTP Basic authentication attempt.
-  /// </summary>
-  public class HttpBasicIdentity : GenericIdentity
-  {
-    #region Private Fields
+namespace WebSocketSharp.Net;
 
+/// <summary>
+/// Holds the username and password from an HTTP Basic authentication attempt.
+/// </summary>
+public class HttpBasicIdentity : GenericIdentity
+{
     private string _password;
 
-    
-
-    #region Internal Constructors
-
-    internal HttpBasicIdentity (string username, string password)
-      : base (username, "Basic")
+    internal HttpBasicIdentity(string username, string password)
+      : base(username, "Basic")
     {
-      _password = password;
+        _password = password;
     }
-
-    
-
-    #region Public Properties
 
     /// <summary>
     /// Gets the password from a basic authentication attempt.
@@ -71,12 +56,5 @@ namespace WebSocketSharp.Net
     /// <value>
     /// A <see cref="string"/> that represents the password.
     /// </value>
-    public virtual string Password {
-      get {
-        return _password;
-      }
-    }
-
-    
-  }
+    public virtual string Password => _password;
 }

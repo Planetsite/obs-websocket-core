@@ -1,4 +1,3 @@
-#region License
 /*
  * WebSocketServiceHost`1.cs
  *
@@ -25,81 +24,51 @@
  * THE SOFTWARE.
  */
 
-
 using System;
 
-namespace WebSocketSharp.Server
+namespace WebSocketSharp.Server;
+
+internal class WebSocketServiceHost<TBehavior> : WebSocketServiceHost
+  where TBehavior : WebSocketBehavior
 {
-    internal class WebSocketServiceHost<TBehavior> : WebSocketServiceHost
-      where TBehavior : WebSocketBehavior
+    private Func<TBehavior> _creator;
+
+    internal WebSocketServiceHost(
+      string path, Func<TBehavior> creator, Logger log
+    )
+      : this(path, creator, null, log)
     {
-        #region Private Fields
+    }
 
-        private Func<TBehavior> _creator;
+    internal WebSocketServiceHost(
+      string path,
+      Func<TBehavior> creator,
+      Action<TBehavior> initializer,
+      Logger log
+    )
+      : base(path, log)
+    {
+        _creator = createCreator(creator, initializer);
+    }
 
-        
+    public override Type BehaviorType => typeof(TBehavior);
 
-        #region Internal Constructors
+    private Func<TBehavior> createCreator(Func<TBehavior> creator, Action<TBehavior> initializer)
+    {
+        if (initializer == null)
+            return creator;
 
-        internal WebSocketServiceHost(
-          string path, Func<TBehavior> creator, Logger log
-        )
-          : this(path, creator, null, log)
+        return () =>
         {
-        }
+            var ret = creator();
+            initializer(ret);
 
-        internal WebSocketServiceHost(
-          string path,
-          Func<TBehavior> creator,
-          Action<TBehavior> initializer,
-          Logger log
-        )
-          : base(path, log)
-        {
-            _creator = createCreator(creator, initializer);
-        }
+            return ret;
+        };
+    }
 
-        
-
-        #region Public Properties
-
-        public override Type BehaviorType
-        {
-            get
-            {
-                return typeof(TBehavior);
-            }
-        }
-
-        
-
-        #region Private Methods
-
-        private Func<TBehavior> createCreator(
-          Func<TBehavior> creator, Action<TBehavior> initializer
-        )
-        {
-            if (initializer == null)
-                return creator;
-
-            return () =>
-            {
-                var ret = creator();
-                initializer(ret);
-
-                return ret;
-            };
-        }
-
-        
-
-        #region Protected Methods
-
-        protected override WebSocketBehavior CreateSession()
-        {
-            return _creator();
-        }
-
-        
+    protected override WebSocketBehavior CreateSession()
+    {
+        return _creator();
     }
 }

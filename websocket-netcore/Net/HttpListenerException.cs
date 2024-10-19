@@ -1,4 +1,3 @@
-#region License
 /*
  * HttpListenerException.cs
  *
@@ -29,29 +28,24 @@
  * THE SOFTWARE.
  */
 
-
-#region Authors
 /*
  * Authors:
  * - Gonzalo Paniagua Javier <gonzalo@novell.com>
  */
 
-
 using System;
 using System.ComponentModel;
 using System.Runtime.Serialization;
 
-namespace WebSocketSharp.Net
-{
-  /// <summary>
-  /// The exception that is thrown when a <see cref="HttpListener"/> gets an error
-  /// processing an HTTP request.
-  /// </summary>
-  [Serializable]
-  public class HttpListenerException : Win32Exception
-  {
-    #region Protected Constructors
+namespace WebSocketSharp.Net;
 
+/// <summary>
+/// The exception that is thrown when a <see cref="HttpListener"/> gets an error
+/// processing an HTTP request.
+/// </summary>
+[Serializable]
+public class HttpListenerException : Win32Exception
+{
     /// <summary>
     /// Initializes a new instance of the <see cref="HttpListenerException"/> class from
     /// the specified <see cref="SerializationInfo"/> and <see cref="StreamingContext"/>.
@@ -62,20 +56,16 @@ namespace WebSocketSharp.Net
     /// <param name="streamingContext">
     /// A <see cref="StreamingContext"/> that specifies the source for the deserialization.
     /// </param>
-    protected HttpListenerException (
+    protected HttpListenerException(
       SerializationInfo serializationInfo, StreamingContext streamingContext)
-      : base (serializationInfo, streamingContext)
+      : base(serializationInfo, streamingContext)
     {
     }
-
-    
-
-    #region Public Constructors
 
     /// <summary>
     /// Initializes a new instance of the <see cref="HttpListenerException"/> class.
     /// </summary>
-    public HttpListenerException ()
+    public HttpListenerException()
     {
     }
 
@@ -86,8 +76,8 @@ namespace WebSocketSharp.Net
     /// <param name="errorCode">
     /// An <see cref="int"/> that identifies the error.
     /// </param>
-    public HttpListenerException (int errorCode)
-      : base (errorCode)
+    public HttpListenerException(int errorCode)
+      : base(errorCode)
     {
     }
 
@@ -101,14 +91,10 @@ namespace WebSocketSharp.Net
     /// <param name="message">
     /// A <see cref="string"/> that describes the error.
     /// </param>
-    public HttpListenerException (int errorCode, string message)
-      : base (errorCode, message)
+    public HttpListenerException(int errorCode, string message)
+      : base(errorCode, message)
     {
     }
-
-    
-
-    #region Public Properties
 
     /// <summary>
     /// Gets the error code that identifies the error that occurred.
@@ -116,12 +102,5 @@ namespace WebSocketSharp.Net
     /// <value>
     /// An <see cref="int"/> that identifies the error.
     /// </value>
-    public override int ErrorCode {
-      get {
-        return NativeErrorCode;
-      }
-    }
-
-    
-  }
+    public override int ErrorCode => NativeErrorCode;
 }

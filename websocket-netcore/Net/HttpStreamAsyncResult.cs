@@ -1,4 +1,3 @@
-#region License
 /*
  * HttpStreamAsyncResult.cs
  *
@@ -29,182 +28,122 @@
  * THE SOFTWARE.
  */
 
-
-#region Authors
 /*
  * Authors:
  * - Gonzalo Paniagua Javier <gonzalo@novell.com>
  */
 
-
 using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace WebSocketSharp.Net
+namespace WebSocketSharp.Net;
+
+internal class HttpStreamAsyncResult : IAsyncResult
 {
-    internal class HttpStreamAsyncResult : IAsyncResult
+    private byte[] _buffer;
+    private Func<Task> _callbackAsync;
+    private bool _completed;
+    private int _count;
+    private Exception _exception;
+    private int _offset;
+    private object _state;
+    //private object _sync;
+    private int _syncRead;
+    private ManualResetEvent _waitHandle;
+
+
+
+
+    internal HttpStreamAsyncResult(Func<Task> callback, object state)
     {
-        #region Private Fields
+        _callbackAsync = callback;
+        _state = state;
+        //_sync = new object();
+    }
 
-        private byte[] _buffer;
-        private Func<Task> _callbackAsync;
-        private bool _completed;
-        private int _count;
-        private Exception _exception;
-        private int _offset;
-        private object _state;
-        //private object _sync;
-        private int _syncRead;
-        private ManualResetEvent _waitHandle;
 
-        
 
-        #region Internal Constructors
 
-        internal HttpStreamAsyncResult(Func<Task> callback, object state)
+    internal byte[] Buffer
+    {
+        get
         {
-            _callbackAsync = callback;
-            _state = state;
-            //_sync = new object();
+            return _buffer;
         }
 
-        
-
-        #region Internal Properties
-
-        internal byte[] Buffer
+        set
         {
-            get
-            {
-                return _buffer;
-            }
+            _buffer = value;
+        }
+    }
 
-            set
-            {
-                _buffer = value;
-            }
+    internal int Count
+    {
+        get
+        {
+            return _count;
         }
 
-        internal int Count
+        set
         {
-            get
-            {
-                return _count;
-            }
-
-            set
-            {
-                _count = value;
-            }
+            _count = value;
         }
+    }
 
-        internal Exception Exception
+    internal Exception Exception
+    {
+        get
         {
-            get
-            {
-                return _exception;
-            }
+            return _exception;
         }
+    }
 
-        internal bool HasException
+    internal bool HasException => _exception != null;
+
+    internal int Offset
+    {
+        get => _offset;
+
+        set => _offset = value;
+    }
+
+    internal int SyncRead
+    {
+        get => _syncRead;
+
+        set => _syncRead = value;
+    }
+
+    public object AsyncState => _state;
+
+    //lock (_sync)
+    public WaitHandle AsyncWaitHandle => _waitHandle ??= new ManualResetEvent(_completed);
+
+    public bool CompletedSynchronously => _syncRead == _count;
+
+    //lock (_sync)
+    public bool IsCompleted => _completed;
+
+    internal async Task CompleteAsync()
+    {
+        //lock (_sync)
         {
-            get
-            {
-                return _exception != null;
-            }
+            if (_completed)
+                return;
+
+            _completed = true;
+            if (_waitHandle != null)
+                _waitHandle.Set();
+
+            if (_callbackAsync != null)
+                await _callbackAsync();
         }
+    }
 
-        internal int Offset
-        {
-            get
-            {
-                return _offset;
-            }
-
-            set
-            {
-                _offset = value;
-            }
-        }
-
-        internal int SyncRead
-        {
-            get
-            {
-                return _syncRead;
-            }
-
-            set
-            {
-                _syncRead = value;
-            }
-        }
-
-        
-
-        #region Public Properties
-
-        public object AsyncState
-        {
-            get
-            {
-                return _state;
-            }
-        }
-
-        public WaitHandle AsyncWaitHandle
-        {
-            get
-            {
-                //lock (_sync)
-                    return _waitHandle ?? (_waitHandle = new ManualResetEvent(_completed));
-            }
-        }
-
-        public bool CompletedSynchronously
-        {
-            get
-            {
-                return _syncRead == _count;
-            }
-        }
-
-        public bool IsCompleted
-        {
-            get
-            {
-                //lock (_sync)
-                    return _completed;
-            }
-        }
-
-        
-
-        #region Internal Methods
-
-        internal async Task CompleteAsync()
-        {
-            //lock (_sync)
-            {
-                if (_completed)
-                    return;
-
-                _completed = true;
-                if (_waitHandle != null)
-                    _waitHandle.Set();
-
-                if (_callbackAsync != null)
-                    await _callbackAsync();
-            }
-        }
-
-        internal async Task CompleteAsync(Exception exception)
-        {
-            _exception = exception;
-            await CompleteAsync();
-        }
-
-        
+    internal async Task CompleteAsync(Exception exception)
+    {
+        _exception = exception;
+        await CompleteAsync();
     }
 }

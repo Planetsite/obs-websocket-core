@@ -1,5 +1,4 @@
-﻿#region License
-/*
+﻿/*
  * ServerSslConfiguration.cs
  *
  * The MIT License
@@ -26,44 +25,33 @@
  * THE SOFTWARE.
  */
 
-
-#region Authors
 /*
  * Authors:
  * - Liryna <liryna.stark@gmail.com>
  */
-
 
 using System;
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
-namespace WebSocketSharp.Net
+namespace WebSocketSharp.Net;
+
+/// <summary>
+/// Stores the parameters for the <see cref="SslStream"/> used by servers.
+/// </summary>
+public class ServerSslConfiguration
 {
-  /// <summary>
-  /// Stores the parameters for the <see cref="SslStream"/> used by servers.
-  /// </summary>
-  public class ServerSslConfiguration
-  {
-    #region Private Fields
-
-    private bool                                _checkCertRevocation;
-    private bool                                _clientCertRequired;
     private RemoteCertificateValidationCallback _clientCertValidationCallback;
-    private SslProtocols                        _enabledSslProtocols;
-    private X509Certificate2                    _serverCert;
-
-    
-
-    #region Public Constructors
+    private SslProtocols _enabledSslProtocols;
+    private X509Certificate2 _serverCert;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ServerSslConfiguration"/> class.
     /// </summary>
-    public ServerSslConfiguration ()
+    public ServerSslConfiguration()
     {
-      _enabledSslProtocols = SslProtocols.Default;
+        _enabledSslProtocols = SslProtocols.Default;
     }
 
     /// <summary>
@@ -74,10 +62,10 @@ namespace WebSocketSharp.Net
     /// A <see cref="X509Certificate2"/> that represents the certificate used to
     /// authenticate the server.
     /// </param>
-    public ServerSslConfiguration (X509Certificate2 serverCertificate)
+    public ServerSslConfiguration(X509Certificate2 serverCertificate)
     {
-      _serverCert = serverCertificate;
-      _enabledSslProtocols = SslProtocols.Default;
+        _serverCert = serverCertificate;
+        _enabledSslProtocols = SslProtocols.Default;
     }
 
     /// <summary>
@@ -90,21 +78,17 @@ namespace WebSocketSharp.Net
     /// <exception cref="ArgumentNullException">
     /// <paramref name="configuration"/> is <see langword="null"/>.
     /// </exception>
-    public ServerSslConfiguration (ServerSslConfiguration configuration)
+    public ServerSslConfiguration(ServerSslConfiguration configuration)
     {
-      if (configuration == null)
-        throw new ArgumentNullException ("configuration");
+        if (configuration == null)
+            throw new ArgumentNullException("configuration");
 
-      _checkCertRevocation = configuration._checkCertRevocation;
-      _clientCertRequired = configuration._clientCertRequired;
-      _clientCertValidationCallback = configuration._clientCertValidationCallback;
-      _enabledSslProtocols = configuration._enabledSslProtocols;
-      _serverCert = configuration._serverCert;
+        CheckCertificateRevocation = configuration.CheckCertificateRevocation;
+        ClientCertificateRequired = configuration.ClientCertificateRequired;
+        _clientCertValidationCallback = configuration._clientCertValidationCallback;
+        _enabledSslProtocols = configuration._enabledSslProtocols;
+        _serverCert = configuration._serverCert;
     }
-
-    
-
-    #region Public Properties
 
     /// <summary>
     /// Gets or sets a value indicating whether the certificate revocation
@@ -119,15 +103,7 @@ namespace WebSocketSharp.Net
     ///   The default value is <c>false</c>.
     ///   </para>
     /// </value>
-    public bool CheckCertificateRevocation {
-      get {
-        return _checkCertRevocation;
-      }
-
-      set {
-        _checkCertRevocation = value;
-      }
-    }
+    public bool CheckCertificateRevocation { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the client is asked for
@@ -142,15 +118,7 @@ namespace WebSocketSharp.Net
     ///   The default value is <c>false</c>.
     ///   </para>
     /// </value>
-    public bool ClientCertificateRequired {
-      get {
-        return _clientCertRequired;
-      }
-
-      set {
-        _clientCertRequired = value;
-      }
-    }
+    public bool ClientCertificateRequired { get; set; }
 
     /// <summary>
     /// Gets or sets the callback used to validate the certificate
@@ -169,17 +137,11 @@ namespace WebSocketSharp.Net
     ///   only returns <c>true</c>.
     ///   </para>
     /// </value>
-    public RemoteCertificateValidationCallback ClientCertificateValidationCallback {
-      get {
-        if (_clientCertValidationCallback == null)
-          _clientCertValidationCallback = defaultValidateClientCertificate;
+    public RemoteCertificateValidationCallback ClientCertificateValidationCallback
+    {
+        get => _clientCertValidationCallback ??= defaultValidateClientCertificate;
 
-        return _clientCertValidationCallback;
-      }
-
-      set {
-        _clientCertValidationCallback = value;
-      }
+        set => _clientCertValidationCallback = value;
     }
 
     /// <summary>
@@ -194,14 +156,11 @@ namespace WebSocketSharp.Net
     ///   The default value is <see cref="SslProtocols.Default"/>.
     ///   </para>
     /// </value>
-    public SslProtocols EnabledSslProtocols {
-      get {
-        return _enabledSslProtocols;
-      }
+    public SslProtocols EnabledSslProtocols
+    {
+        get => _enabledSslProtocols;
 
-      set {
-        _enabledSslProtocols = value;
-      }
+        set => _enabledSslProtocols = value;
     }
 
     /// <summary>
@@ -216,30 +175,20 @@ namespace WebSocketSharp.Net
     ///   That instance represents an X.509 certificate.
     ///   </para>
     /// </value>
-    public X509Certificate2 ServerCertificate {
-      get {
-        return _serverCert;
-      }
+    public X509Certificate2 ServerCertificate
+    {
+        get => _serverCert;
 
-      set {
-        _serverCert = value;
-      }
+        set => _serverCert = value;
     }
 
-    
-
-    #region Private Methods
-
-    private static bool defaultValidateClientCertificate (
+    private static bool defaultValidateClientCertificate(
       object sender,
       X509Certificate certificate,
       X509Chain chain,
       SslPolicyErrors sslPolicyErrors
     )
     {
-      return true;
+        return true;
     }
-
-    
-  }
 }

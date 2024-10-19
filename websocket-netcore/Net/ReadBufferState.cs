@@ -1,4 +1,3 @@
-#region License
 /*
  * ReadBufferState.cs
  *
@@ -29,96 +28,32 @@
  * THE SOFTWARE.
  */
 
-
-#region Authors
 /*
  * Authors:
  * - Gonzalo Paniagua Javier <gonzalo@novell.com>
  */
 
+namespace WebSocketSharp.Net;
 
-using System;
-
-namespace WebSocketSharp.Net
+internal sealed class ReadBufferState
 {
-  internal class ReadBufferState
-  {
-    #region Private Fields
-
-    private HttpStreamAsyncResult _asyncResult;
-    private byte[]                _buffer;
-    private int                   _count;
-    private int                   _initialCount;
-    private int                   _offset;
-
-    
-
-    #region Public Constructors
-
-    public ReadBufferState (
+    public ReadBufferState(
       byte[] buffer, int offset, int count, HttpStreamAsyncResult asyncResult)
     {
-      _buffer = buffer;
-      _offset = offset;
-      _count = count;
-      _initialCount = count;
-      _asyncResult = asyncResult;
+        Buffer = buffer;
+        Offset = offset;
+        Count = count;
+        InitialCount = count;
+        AsyncResult = asyncResult;
     }
 
-    
+    public HttpStreamAsyncResult AsyncResult { get; set; }
 
-    #region Public Properties
+    public byte[] Buffer { get; set; }
 
-    public HttpStreamAsyncResult AsyncResult {
-      get {
-        return _asyncResult;
-      }
+    public int Count { get; set; }
 
-      set {
-        _asyncResult = value;
-      }
-    }
+    public int InitialCount { get; set; }
 
-    public byte[] Buffer {
-      get {
-        return _buffer;
-      }
-
-      set {
-        _buffer = value;
-      }
-    }
-
-    public int Count {
-      get {
-        return _count;
-      }
-
-      set {
-        _count = value;
-      }
-    }
-
-    public int InitialCount {
-      get {
-        return _initialCount;
-      }
-
-      set {
-        _initialCount = value;
-      }
-    }
-
-    public int Offset {
-      get {
-        return _offset;
-      }
-
-      set {
-        _offset = value;
-      }
-    }
-
-    
-  }
+    public int Offset { get; set; }
 }

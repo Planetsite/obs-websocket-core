@@ -1,4 +1,3 @@
-#region License
 /*
  * PayloadData.cs
  *
@@ -25,7 +24,6 @@
  * THE SOFTWARE.
  */
 
-
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -34,15 +32,8 @@ namespace WebSocketSharp;
 
 internal class PayloadData : IEnumerable<byte>
 {
-    #region Private Fields
-
     private byte[] _data;
-    private long _extDataLength;
     private long _length;
-
-    
-
-    #region Public Fields
 
     /// <summary>
     /// Represents the empty payload data.
@@ -65,19 +56,11 @@ internal class PayloadData : IEnumerable<byte>
     /// </remarks>
     public static readonly ulong MaxLength;
 
-    
-
-    #region Static Constructor
-
     static PayloadData()
     {
         Empty = new PayloadData(WebSocket.EmptyBytes, 0);
         MaxLength = Int64.MaxValue;
     }
-
-    
-
-    #region Internal Constructors
 
     internal PayloadData(byte[] data)
       : this(data, data.LongLength)
@@ -96,40 +79,13 @@ internal class PayloadData : IEnumerable<byte>
         _length = _data.LongLength;
     }
 
-    
+    internal ushort Code => _length >= 2
+        ? _data.SubArray(0, 2).ToUInt16(ByteOrder.Big)
+        : (ushort)1005;
 
-    #region Internal Properties
+    internal long ExtensionDataLength { get; set; }
 
-    internal ushort Code
-    {
-        get
-        {
-            return _length >= 2
-                   ? _data.SubArray(0, 2).ToUInt16(ByteOrder.Big)
-                   : (ushort)1005;
-        }
-    }
-
-    internal long ExtensionDataLength
-    {
-        get
-        {
-            return _extDataLength;
-        }
-
-        set
-        {
-            _extDataLength = value;
-        }
-    }
-
-    internal bool HasReservedCode
-    {
-        get
-        {
-            return _length >= 2 && Code.IsReserved();
-        }
-    }
+    internal bool HasReservedCode => _length >= 2 && Code.IsReserved();
 
     internal string Reason
     {
@@ -142,56 +98,26 @@ internal class PayloadData : IEnumerable<byte>
 
             string reason;
             return raw.TryGetUTF8DecodedString(out reason)
-                   ? reason
-                   : String.Empty;
+                ? reason
+                : String.Empty;
         }
     }
 
-    
+    public byte[] ApplicationData => ExtensionDataLength > 0
+        ? _data.SubArray(ExtensionDataLength, _length - ExtensionDataLength)
+        : _data;
 
-    #region Public Properties
+    public byte[] ExtensionData => ExtensionDataLength > 0
+        ? _data.SubArray(0, ExtensionDataLength)
+        : WebSocket.EmptyBytes;
 
-    public byte[] ApplicationData
-    {
-        get
-        {
-            return _extDataLength > 0
-                   ? _data.SubArray(_extDataLength, _length - _extDataLength)
-                   : _data;
-        }
-    }
-
-    public byte[] ExtensionData
-    {
-        get
-        {
-            return _extDataLength > 0
-                   ? _data.SubArray(0, _extDataLength)
-                   : WebSocket.EmptyBytes;
-        }
-    }
-
-    public ulong Length
-    {
-        get
-        {
-            return (ulong)_length;
-        }
-    }
-
-    
-
-    #region Internal Methods
+    public ulong Length => (ulong)_length;
 
     internal void Mask(byte[] key)
     {
         for (long i = 0; i < _length; i++)
             _data[i] = (byte)(_data[i] ^ key[i % 4]);
     }
-
-    
-
-    #region Public Methods
 
     public IEnumerator<byte> GetEnumerator()
     {
@@ -209,14 +135,8 @@ internal class PayloadData : IEnumerable<byte>
         return BitConverter.ToString(_data);
     }
 
-    
-
-    #region Explicit Interface Implementations
-
     IEnumerator IEnumerable.GetEnumerator()
     {
         return GetEnumerator();
     }
-
-    
 }

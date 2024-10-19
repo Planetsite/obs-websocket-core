@@ -1,4 +1,3 @@
-#region License
 /*
  * HttpStatusCode.cs
  *
@@ -35,18 +34,17 @@
  * THE SOFTWARE.
  */
 
+namespace WebSocketSharp.Net;
 
-namespace WebSocketSharp.Net
+/// <summary>
+/// Indicates the HTTP status code that can be specified in a server response.
+/// </summary>
+/// <remarks>
+/// The values of this enumeration are defined in
+/// <see href="http://tools.ietf.org/html/rfc2616#section-10">RFC 2616</see>.
+/// </remarks>
+public enum HttpStatusCode
 {
-  /// <summary>
-  /// Indicates the HTTP status code that can be specified in a server response.
-  /// </summary>
-  /// <remarks>
-  /// The values of this enumeration are defined in
-  /// <see href="http://tools.ietf.org/html/rfc2616#section-10">RFC 2616</see>.
-  /// </remarks>
-  public enum HttpStatusCode
-  {
     /// <summary>
     /// Equivalent to status code 100. Indicates that the client should continue
     /// with its request.
@@ -342,5 +340,4 @@ namespace WebSocketSharp.Net
     /// support the HTTP version used in the client's request.
     /// </summary>
     HttpVersionNotSupported = 505,
-  }
 }

@@ -1,4 +1,3 @@
-#region License
 /*
  * NetworkCredential.cs
  *
@@ -25,36 +24,25 @@
  * THE SOFTWARE.
  */
 
-
 using System;
 
-namespace WebSocketSharp.Net
+namespace WebSocketSharp.Net;
+
+/// <summary>
+/// Provides the credentials for the password-based authentication.
+/// </summary>
+public class NetworkCredential
 {
-  /// <summary>
-  /// Provides the credentials for the password-based authentication.
-  /// </summary>
-  public class NetworkCredential
-  {
-    #region Private Fields
-
-    private string                   _domain;
+    private string _domain;
     private static readonly string[] _noRoles;
-    private string                   _password;
-    private string[]                 _roles;
-    private string                   _username;
+    private string _password;
+    private string[] _roles;
+    private string _username;
 
-    
-
-    #region Static Constructor
-
-    static NetworkCredential ()
+    static NetworkCredential()
     {
-      _noRoles = new string[0];
+        _noRoles = new string[0];
     }
-
-    
-
-    #region Public Constructors
 
     /// <summary>
     /// Initializes a new instance of the <see cref="NetworkCredential"/> class with
@@ -74,8 +62,8 @@ namespace WebSocketSharp.Net
     /// <exception cref="ArgumentException">
     /// <paramref name="username"/> is empty.
     /// </exception>
-    public NetworkCredential (string username, string password)
-      : this (username, password, null, null)
+    public NetworkCredential(string username, string password)
+      : this(username, password, null, null)
     {
     }
 
@@ -106,25 +94,24 @@ namespace WebSocketSharp.Net
     /// <exception cref="ArgumentException">
     /// <paramref name="username"/> is empty.
     /// </exception>
-    public NetworkCredential (
+    public NetworkCredential(
       string username, string password, string domain, params string[] roles
     )
     {
-      if (username == null)
-        throw new ArgumentNullException ("username");
+        if (username == null)
+            throw new ArgumentNullException("username");
 
-      if (username.Length == 0)
-        throw new ArgumentException ("An empty string.", "username");
+        if (username.Length == 0)
+            throw new ArgumentException("An empty string.", "username");
 
-      _username = username;
-      _password = password;
-      _domain = domain;
-      _roles = roles;
+        _username = username;
+        _password = password;
+        _domain = domain;
+        _roles = roles;
     }
 
-    
 
-    #region Public Properties
+
 
     /// <summary>
     /// Gets the domain associated with the credentials.
@@ -137,14 +124,17 @@ namespace WebSocketSharp.Net
     /// A <see cref="string"/> that represents the domain name
     /// to which the username belongs.
     /// </value>
-    public string Domain {
-      get {
-        return _domain ?? String.Empty;
-      }
+    public string Domain
+    {
+        get
+        {
+            return _domain ?? String.Empty;
+        }
 
-      internal set {
-        _domain = value;
-      }
+        internal set
+        {
+            _domain = value;
+        }
     }
 
     /// <summary>
@@ -157,14 +147,17 @@ namespace WebSocketSharp.Net
     /// <value>
     /// A <see cref="string"/> that represents the password.
     /// </value>
-    public string Password {
-      get {
-        return _password ?? String.Empty;
-      }
+    public string Password
+    {
+        get
+        {
+            return _password ?? String.Empty;
+        }
 
-      internal set {
-        _password = value;
-      }
+        internal set
+        {
+            _password = value;
+        }
     }
 
     /// <summary>
@@ -178,14 +171,11 @@ namespace WebSocketSharp.Net
     /// An array of <see cref="string"/> that represents the role names
     /// to which the username belongs.
     /// </value>
-    public string[] Roles {
-      get {
-        return _roles ?? _noRoles;
-      }
+    public string[] Roles
+    {
+        get => _roles ?? _noRoles;
 
-      internal set {
-        _roles = value;
-      }
+        internal set => _roles = value;
     }
 
     /// <summary>
@@ -194,16 +184,10 @@ namespace WebSocketSharp.Net
     /// <value>
     /// A <see cref="string"/> that represents the username.
     /// </value>
-    public string Username {
-      get {
-        return _username;
-      }
+    public string Username
+    {
+        get => _username;
 
-      internal set {
-        _username = value;
-      }
+        internal set => _username = value;
     }
-
-    
-  }
 }

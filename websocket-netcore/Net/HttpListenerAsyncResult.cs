@@ -1,4 +1,3 @@
-#region License
 /*
  * HttpListenerAsyncResult.cs
  *
@@ -29,170 +28,120 @@
  * THE SOFTWARE.
  */
 
-
-#region Authors
 /*
  * Authors:
  * - Gonzalo Paniagua Javier <gonzalo@ximian.com>
  */
 
-
-#region Contributors
 /*
  * Contributors:
  * - Nicholas Devenish
  */
 
-
 using System;
 using System.Threading;
 
-namespace WebSocketSharp.Net
+namespace WebSocketSharp.Net;
+
+internal class HttpListenerAsyncResult : IAsyncResult
 {
-  internal class HttpListenerAsyncResult : IAsyncResult
-  {
-    #region Private Fields
-
-    private AsyncCallback       _callback;
-    private bool                _completed;
+    private AsyncCallback _callback;
+    private bool _completed;
     private HttpListenerContext _context;
-    private bool                _endCalled;
-    private Exception           _exception;
-    private bool                _inGet;
-    private object              _state;
-    private object              _sync;
-    private bool                _syncCompleted;
-    private ManualResetEvent    _waitHandle;
+    private Exception _exception;
+    private object _sync;
+    private ManualResetEvent _waitHandle;
 
-    
-
-    #region Internal Constructors
-
-    internal HttpListenerAsyncResult (AsyncCallback callback, object state)
+    internal HttpListenerAsyncResult(AsyncCallback callback, object state)
     {
-      _callback = callback;
-      _state = state;
-      _sync = new object ();
+        _callback = callback;
+        AsyncState = state;
+        _sync = new object();
     }
 
-    
+    internal bool EndCalled { get; set; }
 
-    #region Internal Properties
+    internal bool InGet { get; set; }
 
-    internal bool EndCalled {
-      get {
-        return _endCalled;
-      }
+    public object AsyncState { get; }
 
-      set {
-        _endCalled = value;
-      }
-    }
-
-    internal bool InGet {
-      get {
-        return _inGet;
-      }
-
-      set {
-        _inGet = value;
-      }
-    }
-
-    
-
-    #region Public Properties
-
-    public object AsyncState {
-      get {
-        return _state;
-      }
-    }
-
-    public WaitHandle AsyncWaitHandle {
-      get {
-        lock (_sync)
-          return _waitHandle ?? (_waitHandle = new ManualResetEvent (_completed));
-      }
-    }
-
-    public bool CompletedSynchronously {
-      get {
-        return _syncCompleted;
-      }
-    }
-
-    public bool IsCompleted {
-      get {
-        lock (_sync)
-          return _completed;
-      }
-    }
-
-    
-
-    #region Private Methods
-
-    private static void complete (HttpListenerAsyncResult asyncResult)
+    public WaitHandle AsyncWaitHandle
     {
-      lock (asyncResult._sync) {
-        asyncResult._completed = true;
-
-        var waitHandle = asyncResult._waitHandle;
-        if (waitHandle != null)
-          waitHandle.Set ();
-      }
-
-      var callback = asyncResult._callback;
-      if (callback == null)
-        return;
-
-      ThreadPool.QueueUserWorkItem (
-        state => {
-          try {
-            callback (asyncResult);
-          }
-          catch {
-          }
-        },
-        null
-      );
+        get
+        {
+            lock (_sync)
+                return _waitHandle ?? (_waitHandle = new ManualResetEvent(_completed));
+        }
     }
 
-    
+    public bool CompletedSynchronously { get; private set; }
 
-    #region Internal Methods
-
-    internal void Complete (Exception exception)
+    public bool IsCompleted
     {
-      _exception = _inGet && (exception is ObjectDisposedException)
-                   ? new HttpListenerException (995, "The listener is closed.")
-                   : exception;
-
-      complete (this);
+        get
+        {
+            lock (_sync)
+                return _completed;
+        }
     }
 
-    internal void Complete (HttpListenerContext context)
+    private static void complete(HttpListenerAsyncResult asyncResult)
     {
-      Complete (context, false);
+        lock (asyncResult._sync)
+        {
+            asyncResult._completed = true;
+
+            var waitHandle = asyncResult._waitHandle;
+            if (waitHandle != null)
+                waitHandle.Set();
+        }
+
+        var callback = asyncResult._callback;
+        if (callback == null)
+            return;
+
+        ThreadPool.QueueUserWorkItem(
+          state =>
+          {
+              try
+              {
+                  callback(asyncResult);
+              }
+              catch
+              {
+              }
+          },
+          null
+        );
     }
 
-    internal void Complete (HttpListenerContext context, bool syncCompleted)
+    internal void Complete(Exception exception)
     {
-      _context = context;
-      _syncCompleted = syncCompleted;
+        _exception = InGet && (exception is ObjectDisposedException)
+                     ? new HttpListenerException(995, "The listener is closed.")
+                     : exception;
 
-      complete (this);
+        complete(this);
     }
 
-    internal HttpListenerContext GetContext ()
+    internal void Complete(HttpListenerContext context)
     {
-      if (_exception != null)
-        throw _exception;
-
-      return _context;
+        Complete(context, false);
     }
 
-    
-  }
+    internal void Complete(HttpListenerContext context, bool syncCompleted)
+    {
+        _context = context;
+        CompletedSynchronously = syncCompleted;
+
+        complete(this);
+    }
+
+    internal HttpListenerContext GetContext()
+    {
+        if (_exception != null)
+            throw _exception;
+
+        return _context;
+    }
 }

@@ -1,4 +1,3 @@
-#region License
 /*
  * HttpResponseHeader.cs
  *
@@ -29,26 +28,23 @@
  * THE SOFTWARE.
  */
 
-
-#region Authors
 /*
  * Authors:
  * - Gonzalo Paniagua Javier <gonzalo@novell.com>
  */
 
+namespace WebSocketSharp.Net;
 
-namespace WebSocketSharp.Net
+/// <summary>
+/// Indicates the HTTP header that can be specified in a server response.
+/// </summary>
+/// <remarks>
+/// The headers of this enumeration are defined in
+/// <see href="http://tools.ietf.org/html/rfc2616#section-14">RFC 2616</see> or
+/// <see href="http://tools.ietf.org/html/rfc6455#section-11.3">RFC 6455</see>.
+/// </remarks>
+public enum HttpResponseHeader
 {
-  /// <summary>
-  /// Indicates the HTTP header that can be specified in a server response.
-  /// </summary>
-  /// <remarks>
-  /// The headers of this enumeration are defined in
-  /// <see href="http://tools.ietf.org/html/rfc2616#section-14">RFC 2616</see> or
-  /// <see href="http://tools.ietf.org/html/rfc6455#section-11.3">RFC 6455</see>.
-  /// </remarks>
-  public enum HttpResponseHeader
-  {
     /// <summary>
     /// Indicates the Cache-Control header.
     /// </summary>
@@ -185,5 +181,4 @@ namespace WebSocketSharp.Net
     /// Indicates the Sec-WebSocket-Version header.
     /// </summary>
     SecWebSocketVersion
-  }
 }

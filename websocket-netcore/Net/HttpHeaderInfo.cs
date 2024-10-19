@@ -1,4 +1,3 @@
-#region License
 /*
  * HttpHeaderInfo.cs
  *
@@ -25,104 +24,45 @@
  * THE SOFTWARE.
  */
 
+namespace WebSocketSharp.Net;
 
-using System;
-
-namespace WebSocketSharp.Net
+internal class HttpHeaderInfo
 {
-  internal class HttpHeaderInfo
-  {
-    #region Private Fields
-
-    private string         _headerName;
-    private HttpHeaderType _headerType;
-
-    
-
-    #region Internal Constructors
-
-    internal HttpHeaderInfo (string headerName, HttpHeaderType headerType)
+    internal HttpHeaderInfo(string headerName, HttpHeaderType headerType)
     {
-      _headerName = headerName;
-      _headerType = headerType;
+        HeaderName = headerName;
+        HeaderType = headerType;
     }
 
-    
+    internal bool IsMultiValueInRequest => (HeaderType & HttpHeaderType.MultiValueInRequest) == HttpHeaderType.MultiValueInRequest;
 
-    #region Internal Properties
+    internal bool IsMultiValueInResponse => (HeaderType & HttpHeaderType.MultiValueInResponse) == HttpHeaderType.MultiValueInResponse;
 
-    internal bool IsMultiValueInRequest {
-      get {
-        var headerType = _headerType & HttpHeaderType.MultiValueInRequest;
+    public string HeaderName { get; }
 
-        return headerType == HttpHeaderType.MultiValueInRequest;
-      }
-    }
+    public HttpHeaderType HeaderType { get; }
 
-    internal bool IsMultiValueInResponse {
-      get {
-        var headerType = _headerType & HttpHeaderType.MultiValueInResponse;
+    public bool IsRequest => (HeaderType & HttpHeaderType.Request) == HttpHeaderType.Request;
 
-        return headerType == HttpHeaderType.MultiValueInResponse;
-      }
-    }
+    public bool IsResponse => (HeaderType & HttpHeaderType.Response) == HttpHeaderType.Response;
 
-    
-
-    #region Public Properties
-
-    public string HeaderName {
-      get {
-        return _headerName;
-      }
-    }
-
-    public HttpHeaderType HeaderType {
-      get {
-        return _headerType;
-      }
-    }
-
-    public bool IsRequest {
-      get {
-        var headerType = _headerType & HttpHeaderType.Request;
-
-        return headerType == HttpHeaderType.Request;
-      }
-    }
-
-    public bool IsResponse {
-      get {
-        var headerType = _headerType & HttpHeaderType.Response;
-
-        return headerType == HttpHeaderType.Response;
-      }
-    }
-
-    
-
-    #region Public Methods
-
-    public bool IsMultiValue (bool response)
+    public bool IsMultiValue(bool response)
     {
-      var headerType = _headerType & HttpHeaderType.MultiValue;
+        var headerType = HeaderType & HttpHeaderType.MultiValue;
 
-      if (headerType != HttpHeaderType.MultiValue)
-        return response ? IsMultiValueInResponse : IsMultiValueInRequest;
+        if (headerType != HttpHeaderType.MultiValue)
+            return response ? IsMultiValueInResponse : IsMultiValueInRequest;
 
-      return response ? IsResponse : IsRequest;
+        return response ? IsResponse : IsRequest;
     }
 
-    public bool IsRestricted (bool response)
+    public bool IsRestricted(bool response)
     {
-      var headerType = _headerType & HttpHeaderType.Restricted;
+        var headerType = HeaderType & HttpHeaderType.Restricted;
 
-      if (headerType != HttpHeaderType.Restricted)
-        return false;
+        if (headerType != HttpHeaderType.Restricted)
+            return false;
 
-      return response ? IsResponse : IsRequest;
+        return response ? IsResponse : IsRequest;
     }
-
-    
-  }
 }

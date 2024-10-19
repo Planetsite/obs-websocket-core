@@ -1,4 +1,3 @@
-#region License
 /*
  * HttpListenerPrefix.cs
  *
@@ -29,35 +28,25 @@
  * THE SOFTWARE.
  */
 
-
-#region Authors
 /*
  * Authors:
  * - Gonzalo Paniagua Javier <gonzalo@novell.com>
  * - Oleg Mihailik <mihailik@gmail.com>
  */
 
-
 using System;
-using System.Net;
 
-namespace WebSocketSharp.Net
+namespace WebSocketSharp.Net;
+
+internal sealed class HttpListenerPrefix
 {
-  internal sealed class HttpListenerPrefix
-  {
-    #region Private Fields
-
-    private string       _host;
+    private string _host;
     private HttpListener _listener;
-    private string       _original;
-    private string       _path;
-    private string       _port;
-    private string       _prefix;
-    private bool         _secure;
-
-    
-
-    #region Internal Constructors
+    private string _original;
+    private string _path;
+    private string _port;
+    private string _prefix;
+    private bool _secure;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="HttpListenerPrefix"/> class
@@ -69,146 +58,120 @@ namespace WebSocketSharp.Net
     /// <param name="uriPrefix">
     /// A <see cref="string"/> that specifies the URI prefix.
     /// </param>
-    internal HttpListenerPrefix (string uriPrefix)
+    internal HttpListenerPrefix(string uriPrefix)
     {
-      _original = uriPrefix;
-      parse (uriPrefix);
+        _original = uriPrefix;
+        parse(uriPrefix);
     }
 
-    
+    public string Host => _host;
 
-    #region Public Properties
+    public bool IsSecure => _secure;
 
-    public string Host {
-      get {
-        return _host;
-      }
-    }
-
-    public bool IsSecure {
-      get {
-        return _secure;
-      }
-    }
-
-    public HttpListener Listener {
-      get {
-        return _listener;
-      }
-
-      set {
-        _listener = value;
-      }
-    }
-
-    public string Original {
-      get {
-        return _original;
-      }
-    }
-
-    public string Path {
-      get {
-        return _path;
-      }
-    }
-
-    public string Port {
-      get {
-        return _port;
-      }
-    }
-
-    
-
-    #region Private Methods
-
-    private void parse (string uriPrefix)
+    public HttpListener Listener
     {
-      if (uriPrefix.StartsWith ("https"))
-        _secure = true;
+        get => _listener;
 
-      var len = uriPrefix.Length;
-      var startHost = uriPrefix.IndexOf (':') + 3;
-      var root = uriPrefix.IndexOf ('/', startHost + 1, len - startHost - 1);
-
-      var colon = uriPrefix.LastIndexOf (':', root - 1, root - startHost - 1);
-      if (uriPrefix[root - 1] != ']' && colon > startHost) {
-        _host = uriPrefix.Substring (startHost, colon - startHost);
-        _port = uriPrefix.Substring (colon + 1, root - colon - 1);
-      }
-      else {
-        _host = uriPrefix.Substring (startHost, root - startHost);
-        _port = _secure ? "443" : "80";
-      }
-
-      _path = uriPrefix.Substring (root);
-
-      _prefix =
-        String.Format ("http{0}://{1}:{2}{3}", _secure ? "s" : "", _host, _port, _path);
+        set => _listener = value;
     }
 
-    
+    public string Original => _original;
 
-    #region Public Methods
+    public string Path => _path;
 
-    public static void CheckPrefix (string uriPrefix)
+    public string Port => _port;
+
+    private void parse(string uriPrefix)
     {
-      if (uriPrefix == null)
-        throw new ArgumentNullException ("uriPrefix");
+        if (uriPrefix.StartsWith("https"))
+            _secure = true;
 
-      var len = uriPrefix.Length;
+        var len = uriPrefix.Length;
+        var startHost = uriPrefix.IndexOf(':') + 3;
+        var root = uriPrefix.IndexOf('/', startHost + 1, len - startHost - 1);
 
-      if (len == 0) {
-        var msg = "An empty string.";
+        var colon = uriPrefix.LastIndexOf(':', root - 1, root - startHost - 1);
+        if (uriPrefix[root - 1] != ']' && colon > startHost)
+        {
+            _host = uriPrefix.Substring(startHost, colon - startHost);
+            _port = uriPrefix.Substring(colon + 1, root - colon - 1);
+        }
+        else
+        {
+            _host = uriPrefix.Substring(startHost, root - startHost);
+            _port = _secure ? "443" : "80";
+        }
 
-        throw new ArgumentException (msg, "uriPrefix");
-      }
+        _path = uriPrefix.Substring(root);
 
-      var schm = uriPrefix.StartsWith ("http://")
-                 || uriPrefix.StartsWith ("https://");
+        _prefix =
+          String.Format("http{0}://{1}:{2}{3}", _secure ? "s" : "", _host, _port, _path);
+    }
 
-      if (!schm) {
-        var msg = "The scheme is not 'http' or 'https'.";
+    public static void CheckPrefix(string uriPrefix)
+    {
+        if (uriPrefix == null)
+            throw new ArgumentNullException("uriPrefix");
 
-        throw new ArgumentException (msg, "uriPrefix");
-      }
+        var len = uriPrefix.Length;
 
-      var end = len - 1;
+        if (len == 0)
+        {
+            var msg = "An empty string.";
 
-      if (uriPrefix[end] != '/') {
-        var msg = "It ends without '/'.";
+            throw new ArgumentException(msg, "uriPrefix");
+        }
 
-        throw new ArgumentException (msg, "uriPrefix");
-      }
+        var schm = uriPrefix.StartsWith("http://")
+                   || uriPrefix.StartsWith("https://");
 
-      var host = uriPrefix.IndexOf (':') + 3;
+        if (!schm)
+        {
+            var msg = "The scheme is not 'http' or 'https'.";
 
-      if (host >= end) {
-        var msg = "No host is specified.";
+            throw new ArgumentException(msg, "uriPrefix");
+        }
 
-        throw new ArgumentException (msg, "uriPrefix");
-      }
+        var end = len - 1;
 
-      if (uriPrefix[host] == ':') {
-        var msg = "No host is specified.";
+        if (uriPrefix[end] != '/')
+        {
+            var msg = "It ends without '/'.";
 
-        throw new ArgumentException (msg, "uriPrefix");
-      }
+            throw new ArgumentException(msg, "uriPrefix");
+        }
 
-      var root = uriPrefix.IndexOf ('/', host, len - host);
+        var host = uriPrefix.IndexOf(':') + 3;
 
-      if (uriPrefix[root - 1] == ':') {
-        var msg = "No port is specified.";
+        if (host >= end)
+        {
+            var msg = "No host is specified.";
 
-        throw new ArgumentException (msg, "uriPrefix");
-      }
+            throw new ArgumentException(msg, "uriPrefix");
+        }
 
-      if (root == end - 1) {
-        var msg = "No path is specified.";
+        if (uriPrefix[host] == ':')
+        {
+            var msg = "No host is specified.";
 
-        throw new ArgumentException (msg, "uriPrefix");
-      }
+            throw new ArgumentException(msg, "uriPrefix");
+        }
+
+        var root = uriPrefix.IndexOf('/', host, len - host);
+
+        if (uriPrefix[root - 1] == ':')
+        {
+            var msg = "No port is specified.";
+
+            throw new ArgumentException(msg, "uriPrefix");
+        }
+
+        if (root == end - 1)
+        {
+            var msg = "No path is specified.";
+
+            throw new ArgumentException(msg, "uriPrefix");
+        }
     }
 
     /// <summary>
@@ -224,10 +187,10 @@ namespace WebSocketSharp.Net
     /// <c>true</c> if <paramref name="obj"/> is a <see cref="HttpListenerPrefix"/> and
     /// its value is the same as this instance; otherwise, <c>false</c>.
     /// </returns>
-    public override bool Equals (Object obj)
+    public override bool Equals(Object obj)
     {
-      var pref = obj as HttpListenerPrefix;
-      return pref != null && pref._prefix == _prefix;
+        var pref = obj as HttpListenerPrefix;
+        return pref != null && pref._prefix == _prefix;
     }
 
     /// <summary>
@@ -239,16 +202,13 @@ namespace WebSocketSharp.Net
     /// <returns>
     /// An <see cref="int"/> that represents the hash code.
     /// </returns>
-    public override int GetHashCode ()
+    public override int GetHashCode()
     {
-      return _prefix.GetHashCode ();
+        return _prefix.GetHashCode();
     }
 
-    public override string ToString ()
+    public override string ToString()
     {
-      return _prefix;
+        return _prefix;
     }
-
-    
-  }
 }

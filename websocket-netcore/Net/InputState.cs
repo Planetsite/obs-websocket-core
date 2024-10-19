@@ -1,4 +1,3 @@
-#region License
 /*
  * InputState.cs
  *
@@ -29,21 +28,15 @@
  * THE SOFTWARE.
  */
 
-
-#region Authors
 /*
  * Authors:
  * - Gonzalo Paniagua Javier <gonzalo@novell.com>
  */
 
+namespace WebSocketSharp.Net;
 
-using System;
-
-namespace WebSocketSharp.Net
+internal enum InputState
 {
-  internal enum InputState
-  {
     RequestLine,
     Headers
-  }
 }

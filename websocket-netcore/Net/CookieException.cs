@@ -1,4 +1,3 @@
-#region License
 /*
  * CookieException.cs
  *
@@ -28,41 +27,32 @@
  * THE SOFTWARE.
  */
 
-
-#region Authors
 /*
  * Authors:
  * - Lawrence Pit <loz@cable.a2000.nl>
  */
 
-
 using System;
 using System.Runtime.Serialization;
 using System.Security.Permissions;
 
-namespace WebSocketSharp.Net
+namespace WebSocketSharp.Net;
+
+/// <summary>
+/// The exception that is thrown when a <see cref="Cookie"/> gets an error.
+/// </summary>
+[Serializable]
+public class CookieException : FormatException, ISerializable
 {
-  /// <summary>
-  /// The exception that is thrown when a <see cref="Cookie"/> gets an error.
-  /// </summary>
-  [Serializable]
-  public class CookieException : FormatException, ISerializable
-  {
-    #region Internal Constructors
-
-    internal CookieException (string message)
-      : base (message)
+    internal CookieException(string message)
+      : base(message)
     {
     }
 
-    internal CookieException (string message, Exception innerException)
-      : base (message, innerException)
+    internal CookieException(string message, Exception innerException)
+      : base(message, innerException)
     {
     }
-
-    
-
-    #region Protected Constructors
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CookieException"/> class
@@ -78,28 +68,20 @@ namespace WebSocketSharp.Net
     /// <exception cref="ArgumentNullException">
     /// <paramref name="serializationInfo"/> is <see langword="null"/>.
     /// </exception>
-    protected CookieException (
+    protected CookieException(
       SerializationInfo serializationInfo, StreamingContext streamingContext
     )
-      : base (serializationInfo, streamingContext)
+      : base(serializationInfo, streamingContext)
     {
     }
-
-    
-
-    #region Public Constructors
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CookieException"/> class.
     /// </summary>
-    public CookieException ()
-      : base ()
+    public CookieException()
+      : base()
     {
     }
-
-    
-
-    #region Public Methods
 
     /// <summary>
     /// Populates the specified <see cref="SerializationInfo"/> instance with
@@ -116,21 +98,17 @@ namespace WebSocketSharp.Net
     /// <paramref name="serializationInfo"/> is <see langword="null"/>.
     /// </exception>
     [
-      SecurityPermission (
+      SecurityPermission(
         SecurityAction.LinkDemand,
         Flags = SecurityPermissionFlag.SerializationFormatter
       )
     ]
-    public override void GetObjectData (
+    public override void GetObjectData(
       SerializationInfo serializationInfo, StreamingContext streamingContext
     )
     {
-      base.GetObjectData (serializationInfo, streamingContext);
+        base.GetObjectData(serializationInfo, streamingContext);
     }
-
-    
-
-    #region Explicit Interface Implementation
 
     /// <summary>
     /// Populates the specified <see cref="SerializationInfo"/> instance with
@@ -147,19 +125,14 @@ namespace WebSocketSharp.Net
     /// <paramref name="serializationInfo"/> is <see langword="null"/>.
     /// </exception>
     [
-      SecurityPermission (
+      SecurityPermission(
         SecurityAction.LinkDemand,
         Flags = SecurityPermissionFlag.SerializationFormatter,
         SerializationFormatter = true
       )
     ]
-    void ISerializable.GetObjectData (
-      SerializationInfo serializationInfo, StreamingContext streamingContext
-    )
+    void ISerializable.GetObjectData(SerializationInfo serializationInfo, StreamingContext streamingContext)
     {
-      base.GetObjectData (serializationInfo, streamingContext);
+        base.GetObjectData(serializationInfo, streamingContext);
     }
-
-    
-  }
 }
