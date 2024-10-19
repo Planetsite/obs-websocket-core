@@ -4,9 +4,9 @@
     <TargetFrameworks>net6</TargetFrameworks>
     <RootNamespace>websocket_netcore</RootNamespace>
     <Copyright>sta.blockhead</Copyright>
-    <Version>2.1.1.1-alpha</Version>
-    <AssemblyVersion>2.1.1.1</AssemblyVersion>
-    <PackageVersion>2.1.1.1-alpha</PackageVersion>
+    <Version>2.1.2-alpha</Version>
+    <AssemblyVersion>2.1.2</AssemblyVersion>
+    <PackageVersion>2.1.2-alpha</PackageVersion>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <Description>A C# implementation of the WebSocket protocol client and server</Description>
   </PropertyGroup>
