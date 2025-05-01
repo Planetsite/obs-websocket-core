@@ -9,6 +9,7 @@
     <PackageVersion>2.2.0</PackageVersion>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <Description>A C# implementation of the WebSocket protocol client and server</Description>
+    <BaseOutputPath>..\..\bin\WebSocketSharp\</BaseOutputPath>
   </PropertyGroup>
 
 </Project>
