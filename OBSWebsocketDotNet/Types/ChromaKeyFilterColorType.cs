@@ -2,8 +2,8 @@
 
 public enum ChromaKeyFilterColorType
 {
+    blue,
     custom,
     green,
-    blue,
     magenta
 }
