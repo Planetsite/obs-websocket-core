@@ -10,6 +10,7 @@ using Newtonsoft.Json;
 using System.Collections.Concurrent;
 using System.Threading;
 using Microsoft.Extensions.Logging;
+using ObsWebsocket.Events;
 
 namespace ObsWebsocket;
 
@@ -34,6 +35,9 @@ public sealed partial class OBSWebsocket
     /// Emitted every 2 seconds after enabling it by calling SetHeartbeat
     /// </summary>
     public event HeartBeatCallback Heartbeat;
+
+    public bool IsConnected =>
+        WSConnection != null && WSConnection.IsConnected;
 
     /// <summary>
     /// Triggered when OBS exits
@@ -237,8 +241,7 @@ public sealed partial class OBSWebsocket
     /// </summary>
     public event TransitionVideoEndCallback TransitionVideoEnd;
 
-    public bool IsConnected =>
-        WSConnection != null && WSConnection.IsConnected;
+    public Func<UnsupportedEventArgs, Task>? UnsupportedEventAsync;
 
     /// <summary>
     /// Underlying WebSocket connection to an obs-websocket server. Value is null when disconnected.
@@ -288,7 +291,7 @@ public sealed partial class OBSWebsocket
 
         WSConnection = new WebSocket(_loggerWebsocket, url);
         WSConnection.WaitTime = _websocketTimeout;
-        WSConnection.OnMessage += WebsocketMessageHandler;
+        WSConnection.OnMessage += WebsocketMessageHandlerAsync;
         WSConnection.OnClose += (s, e) =>
         {
             Disconnected?.Invoke(this, e);
@@ -330,7 +333,7 @@ public sealed partial class OBSWebsocket
 
     // This callback handles incoming JSON messages and determines if it's
     // a request response or an event ("Update" in obs-websocket terminology)
-    private void WebsocketMessageHandler(object sender, MessageEventArgs e)
+    private async void WebsocketMessageHandlerAsync(object sender, MessageEventArgs e)
     {
         if (!e.IsText)
             return;
@@ -354,7 +357,7 @@ public sealed partial class OBSWebsocket
         {
             // Handle an event
             string eventType = body["update-type"].ToString();
-            ProcessEventType(eventType, body);
+            await ProcessEventTypeAsync(eventType, body);
         }
     }
 
@@ -469,7 +472,7 @@ public sealed partial class OBSWebsocket
     /// </summary>
     /// <param name="eventType">Value of "event-type" in the JSON body</param>
     /// <param name="body">full JSON message body</param>
-    protected void ProcessEventType(string eventType, JObject body)
+    protected async Task ProcessEventTypeAsync(string eventType, JObject body)
     {
         StreamStatus status;
 
@@ -728,8 +731,7 @@ public sealed partial class OBSWebsocket
                 break;
 
             default:
-                var message = $"Unsupported Event: {eventType}\n{body}";
-                //Console.WriteLine(message);
+                if (UnsupportedEventAsync != null) await UnsupportedEventAsync(new UnsupportedEventArgs(eventType, body));
                 break;
         }
     }
