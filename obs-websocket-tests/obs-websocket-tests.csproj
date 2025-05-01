@@ -1,12 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6</TargetFramework>
+    <TargetFramework>net7</TargetFramework>
     <RootNamespace>obs_websocket_tests</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\obs-websocket\obs-websocket.csproj" />
+    <ProjectReference Include="..\OBSWebsocketDotNet\obs-websocket.csproj" />
   </ItemGroup>
 
 </Project>
