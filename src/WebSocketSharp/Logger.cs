@@ -26,7 +26,7 @@ public sealed class Logger
 {
     public Func<string, Task>? OutputExceptionAsync;
 
-    private volatile string _file;
+    private volatile string? _file;
     private volatile LogLevel _loggerLevel;
     private Func<LogData, string, Task> _outputAsync;
     private object _sync;
@@ -68,7 +68,7 @@ public sealed class Logger
     /// output a log. A <see cref="string"/> parameter passed to this delegate is
     /// <paramref name="file"/>.
     /// </param>
-    public Logger(LogLevel level, string file, Func<LogData, string, Task> outputAsync)
+    public Logger(LogLevel level, string? file, Func<LogData, string, Task>? outputAsync)
     {
         _loggerLevel = level;
         _file = file;
@@ -82,7 +82,7 @@ public sealed class Logger
     /// <value>
     /// A <see cref="string"/> that represents the current path to the log file if any.
     /// </value>
-    public string File
+    public string? File
     {
         get => _file;
 

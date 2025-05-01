@@ -147,10 +147,7 @@ public sealed class WebSocket : IDisposable
     /// </exception>
     public CompressionMethod Compression
     {
-        get
-        {
-            return _compression;
-        }
+        get => _compression;
 
         set
         {
@@ -285,13 +282,7 @@ public sealed class WebSocket : IDisposable
     /// negotiated between client and server, or an empty string if
     /// not specified or selected.
     /// </value>
-    public string Extensions
-    {
-        get
-        {
-            return _extensions ?? String.Empty;
-        }
-    }
+    public string Extensions => _extensions ?? String.Empty;
 
     /// <summary>
     /// Gets a value indicating whether a secure connection is used.
@@ -313,15 +304,9 @@ public sealed class WebSocket : IDisposable
     /// </value>
     public Logger Log
     {
-        get
-        {
-            return _logger;
-        }
+        get => _logger;
 
-        internal set
-        {
-            _logger = value;
-        }
+        internal set => _logger = value;
     }
 
     /// <summary>
@@ -370,10 +355,7 @@ public sealed class WebSocket : IDisposable
     /// </exception>
     public string Origin
     {
-        get
-        {
-            return _origin;
-        }
+        get => _origin;
 
         set
         {
@@ -434,15 +416,9 @@ public sealed class WebSocket : IDisposable
     /// </value>
     public string Protocol
     {
-        get
-        {
-            return _protocol ?? String.Empty;
-        }
+        get => _protocol ?? String.Empty;
 
-        internal set
-        {
-            _protocol = value;
-        }
+        internal set => _protocol = value;
     }
 
     /// <summary>
@@ -459,13 +435,7 @@ public sealed class WebSocket : IDisposable
     ///   The default value is <see cref="WebSocketState.Connecting"/>.
     ///   </para>
     /// </value>
-    public WebSocketState ReadyState
-    {
-        get
-        {
-            return _readyState;
-        }
-    }
+    public WebSocketState ReadyState => _readyState;
 
     /// <summary>
     /// Gets the configuration for secure connection.
@@ -512,13 +482,9 @@ public sealed class WebSocket : IDisposable
     /// <value>
     /// A <see cref="Uri"/> that represents the URL to which to connect.
     /// </value>
-    public Uri Url
-    {
-        get
-        {
-            return _client ? _uri : _context.RequestUri;
-        }
-    }
+    public Uri Url => _client
+        ? _uri
+        : _context.RequestUri;
 
     /// <summary>
     /// Gets or sets the time to wait for the response to the ping or close.
@@ -541,18 +507,14 @@ public sealed class WebSocket : IDisposable
     /// </exception>
     public TimeSpan WaitTime
     {
-        get
-        {
-            return _waitTime;
-        }
+        get => _waitTime;
 
         set
         {
             if (value <= TimeSpan.Zero)
-                throw new ArgumentOutOfRangeException("value", "Zero or less.");
+                throw new ArgumentOutOfRangeException(nameof(value), "Zero or less.");
 
-            string msg;
-            if (!CanSet(out msg))
+            if (!CanSet(out string msg))
             {
                 _logger.Warn(msg);
                 return;
@@ -655,19 +617,19 @@ public sealed class WebSocket : IDisposable
     public WebSocket(string url, params string[] protocols)
     {
         if (url == null)
-            throw new ArgumentNullException("url");
+            throw new ArgumentNullException(nameof(url));
 
         if (url.Length == 0)
-            throw new ArgumentException("An empty string.", "url");
+            throw new ArgumentException("An empty string.", nameof(url));
 
         string msg;
         if (!url.TryCreateWebSocketUri(out _uri, out msg))
-            throw new ArgumentException(msg, "url");
+            throw new ArgumentException(msg, nameof(url));
 
         if (protocols != null && protocols.Length > 0)
         {
             if (!CheckProtocols(protocols, out msg))
-                throw new ArgumentException(msg, "protocols");
+                throw new ArgumentException(msg, nameof(protocols));
 
             _protocols = protocols;
         }
@@ -675,6 +637,7 @@ public sealed class WebSocket : IDisposable
         _base64Key = CreateBase64Key();
         _client = true;
         _logger = new Logger();
+        _logger.OutputExceptionAsync = null;
         IsSecure = _uri.Scheme == "wss";
         _waitTime = TimeSpan.FromSeconds(5);
 
@@ -729,13 +692,13 @@ public sealed class WebSocket : IDisposable
                 if (!await AcceptHandshakeAsync(cancellationToken))
                     return false;
             }
-            catch (Exception ex)
+            catch (Exception acceptHandshakeErr)
             {
-                _logger.Fatal(ex.Message);
-                _logger.Debug(ex.ToString());
+                _logger.Fatal(acceptHandshakeErr.Message);
+                _logger.Debug(acceptHandshakeErr.ToString());
 
                 var msg = "An exception has occurred while attempting to accept.";
-                await FatalAsync(msg, ex, cancellationToken);
+                await FatalAsync(msg, acceptHandshakeErr, cancellationToken);
 
                 return false;
             }
@@ -1280,7 +1243,7 @@ public sealed class WebSocket : IDisposable
     private void EnqueueToMessageEventQueue(MessageEventArgs e)
     {
         //lock (_forMessageEventQueue)
-            _messageEventQueue.Enqueue(e);
+        _messageEventQueue.Enqueue(e);
     }
 
     private void Error(string message, Exception exception)
@@ -1386,10 +1349,12 @@ public sealed class WebSocket : IDisposable
     {
         _messageEventQueueRestart = new TaskCompletionSource<bool>();
 
-        #pragma warning disable CS4014
-        /*await*/ StartReceivingAccumulatorTaskAsync(cancellationToken);
-        /*await*/ StartReceivingDispatcherTaskAsync();
-        #pragma warning restore CS4014
+#pragma warning disable CS4014
+        /*await*/
+        StartReceivingAccumulatorTaskAsync(cancellationToken);
+        /*await*/
+        StartReceivingDispatcherTaskAsync();
+#pragma warning restore CS4014
 
         try
         {
@@ -1936,18 +1901,18 @@ public sealed class WebSocket : IDisposable
             try
             {
                 var sslStream = new SslStream(
-                  _stream,
-                  false,
-                  conf.ServerCertificateValidationCallback,
-                  conf.ClientCertificateSelectionCallback);
+                    _stream,
+                    false,
+                    conf.ServerCertificateValidationCallback,
+                    conf.ClientCertificateSelectionCallback);
 
                 await sslStream.AuthenticateAsClientAsync(
-                  host,
-                  conf.ClientCertificates,
-                  conf.EnabledSslProtocols,
-                  conf.CheckCertificateRevocation
-                  //,
-                  //cancellationToken
+                    host,
+                    conf.ClientCertificates,
+                    conf.EnabledSslProtocols,
+                    conf.CheckCertificateRevocation
+                    //,
+                    //cancellationToken
                 );
 
                 _stream = sslStream;
@@ -1996,9 +1961,7 @@ public sealed class WebSocket : IDisposable
 
     // As client
     private bool ValidateSecWebSocketAcceptHeader(string value)
-    {
-        return value != null && value == CreateResponseKey(_base64Key);
-    }
+        => value != null && value == CreateResponseKey(_base64Key);
 
     // As client
     private bool ValidateSecWebSocketExtensionsServerHeader(string value)
@@ -2065,9 +2028,7 @@ public sealed class WebSocket : IDisposable
 
     // As client
     private bool ValidateSecWebSocketVersionServerHeader(string value)
-    {
-        return value == null || value == _version;
-    }
+        => value == null || value == _version;
 
     // As server
     internal async Task InternalCloseAsync(HttpResponse response, CancellationToken cancellationToken)
@@ -2082,9 +2043,7 @@ public sealed class WebSocket : IDisposable
 
     // As server
     internal async Task InternalCloseAsync(HttpStatusCode code, CancellationToken cancellationToken)
-    {
-        await InternalCloseAsync(CreateHandshakeFailureResponse(code), cancellationToken);
-    }
+        => await InternalCloseAsync(CreateHandshakeFailureResponse(code), cancellationToken);
 
     // As server
     internal async Task InternalCloseAsync(PayloadData payloadData, byte[] frameAsBytes, CancellationToken stoppingToken)
@@ -2336,9 +2295,7 @@ public sealed class WebSocket : IDisposable
     /// Closing or Closed.
     /// </remarks>
     public async Task CloseAsync(CancellationToken cancellationToken)
-    {
-        await CloseAsync(1005, String.Empty, cancellationToken);
-    }
+        => await CloseAsync(1005, String.Empty, cancellationToken);
 
     /// <summary>
     /// Closes the connection with the specified code.
@@ -2375,13 +2332,13 @@ public sealed class WebSocket : IDisposable
         if (_client && code == CloseStatusCode.ServerError)
         {
             var msg = "ServerError cannot be used.";
-            throw new ArgumentException(msg, "code");
+            throw new ArgumentException(msg, nameof(code));
         }
 
         if (!_client && code == CloseStatusCode.MandatoryExtension)
         {
             var msg = "MandatoryExtension cannot be used.";
-            throw new ArgumentException(msg, "code");
+            throw new ArgumentException(msg, nameof(code));
         }
 
         await CloseAsync((ushort)code, String.Empty, cancellationToken);
@@ -2454,19 +2411,19 @@ public sealed class WebSocket : IDisposable
         if (!code.IsCloseStatusCode())
         {
             var msg = "Less than 1000 or greater than 4999.";
-            throw new ArgumentOutOfRangeException("code", msg);
+            throw new ArgumentOutOfRangeException(nameof(code), msg);
         }
 
         if (_client && code == 1011)
         {
             var msg = "1011 cannot be used.";
-            throw new ArgumentException(msg, "code");
+            throw new ArgumentException(msg, nameof(code));
         }
 
         if (!_client && code == 1010)
         {
             var msg = "1010 cannot be used.";
-            throw new ArgumentException(msg, "code");
+            throw new ArgumentException(msg, nameof(code));
         }
 
         if (reason.IsNullOrEmpty())
@@ -2478,20 +2435,20 @@ public sealed class WebSocket : IDisposable
         if (code == 1005)
         {
             var msg = "1005 cannot be used.";
-            throw new ArgumentException(msg, "code");
+            throw new ArgumentException(msg, nameof(code));
         }
 
         byte[] bytes;
         if (!reason.TryGetUTF8EncodedBytes(out bytes))
         {
             var msg = "It could not be UTF-8-encoded.";
-            throw new ArgumentException(msg, "reason");
+            throw new ArgumentException(msg, nameof(reason));
         }
 
         if (bytes.Length > 123)
         {
             var msg = "Its size is greater than 123 bytes.";
-            throw new ArgumentOutOfRangeException("reason", msg);
+            throw new ArgumentOutOfRangeException(nameof(reason), msg);
         }
 
         await InternalCloseAsync(code, reason, cancellationToken);
@@ -2556,13 +2513,13 @@ public sealed class WebSocket : IDisposable
         if (_client && code == CloseStatusCode.ServerError)
         {
             var msg = "ServerError cannot be used.";
-            throw new ArgumentException(msg, "code");
+            throw new ArgumentException(msg, nameof(code));
         }
 
         if (!_client && code == CloseStatusCode.MandatoryExtension)
         {
             var msg = "MandatoryExtension cannot be used.";
-            throw new ArgumentException(msg, "code");
+            throw new ArgumentException(msg, nameof(code));
         }
 
         if (reason.IsNullOrEmpty())
@@ -2574,20 +2531,20 @@ public sealed class WebSocket : IDisposable
         if (code == CloseStatusCode.NoStatus)
         {
             var msg = "NoStatus cannot be used.";
-            throw new ArgumentException(msg, "code");
+            throw new ArgumentException(msg, nameof(code));
         }
 
         byte[] bytes;
         if (!reason.TryGetUTF8EncodedBytes(out bytes))
         {
             var msg = "It could not be UTF-8-encoded.";
-            throw new ArgumentException(msg, "reason");
+            throw new ArgumentException(msg, nameof(reason));
         }
 
         if (bytes.Length > 123)
         {
             var msg = "Its size is greater than 123 bytes.";
-            throw new ArgumentOutOfRangeException("reason", msg);
+            throw new ArgumentOutOfRangeException(nameof(reason), msg);
         }
 
         await CloseAsync((ushort)code, reason, cancellationToken);
@@ -2650,9 +2607,7 @@ public sealed class WebSocket : IDisposable
     /// received within a time; otherwise, <c>false</c>.
     /// </returns>
     public async Task<bool> PingAsync(CancellationToken cancellationToken)
-    {
-        return await PingAsync(EmptyBytes, cancellationToken);
-    }
+        => await PingAsync(EmptyBytes, cancellationToken);
 
     /// <summary>
     /// Sends a ping with <paramref name="message"/> using the WebSocket
@@ -2685,13 +2640,13 @@ public sealed class WebSocket : IDisposable
         if (!message.TryGetUTF8EncodedBytes(out bytes))
         {
             var msg = "It could not be UTF-8-encoded.";
-            throw new ArgumentException(msg, "message");
+            throw new ArgumentException(msg, nameof(message));
         }
 
         if (bytes.Length > 125)
         {
             var msg = "Its size is greater than 125 bytes.";
-            throw new ArgumentOutOfRangeException("message", msg);
+            throw new ArgumentOutOfRangeException(nameof(message), msg);
         }
 
         return await PingAsync(bytes, cancellationToken);
@@ -2760,19 +2715,19 @@ public sealed class WebSocket : IDisposable
         }
 
         if (fileInfo == null)
-            throw new ArgumentNullException("fileInfo");
+            throw new ArgumentNullException(nameof(fileInfo));
 
         if (!fileInfo.Exists)
         {
             var msg = "The file does not exist.";
-            throw new ArgumentException(msg, "fileInfo");
+            throw new ArgumentException(msg, nameof(fileInfo));
         }
 
         FileStream stream;
         if (!fileInfo.TryOpenRead(out stream))
         {
             var msg = "The file could not be opened.";
-            throw new ArgumentException(msg, "fileInfo");
+            throw new ArgumentException(msg, nameof(fileInfo));
         }
 
         await SendAsync(Opcode.Binary, stream, cancellationToken);
@@ -2802,13 +2757,13 @@ public sealed class WebSocket : IDisposable
         }
 
         if (data == null)
-            throw new ArgumentNullException("data");
+            throw new ArgumentNullException(nameof(data));
 
         byte[] bytes;
         if (!data.TryGetUTF8EncodedBytes(out bytes))
         {
             var msg = "It could not be UTF-8-encoded.";
-            throw new ArgumentException(msg, "data");
+            throw new ArgumentException(msg, nameof(data));
         }
 
         await SendAsync(Opcode.Text, new MemoryStream(bytes), cancellationToken);
@@ -2860,18 +2815,18 @@ public sealed class WebSocket : IDisposable
         }
 
         if (stream == null)
-            throw new ArgumentNullException("stream");
+            throw new ArgumentNullException(nameof(stream));
 
         if (!stream.CanRead)
         {
             var msg = "It cannot be read.";
-            throw new ArgumentException(msg, "stream");
+            throw new ArgumentException(msg, nameof(stream));
         }
 
         if (length < 1)
         {
             var msg = "Less than 1.";
-            throw new ArgumentException(msg, "length");
+            throw new ArgumentException(msg, nameof(length));
         }
 
         var bytes = await Ext.ExtReadBytesAsync(stream, length, CancellationToken.None);
@@ -2880,7 +2835,7 @@ public sealed class WebSocket : IDisposable
         if (len == 0)
         {
             var msg = "No data could be read from it.";
-            throw new ArgumentException(msg, "stream");
+            throw new ArgumentException(msg, nameof(stream));
         }
 
         if (len < length)
@@ -2904,7 +2859,5 @@ public sealed class WebSocket : IDisposable
     ///   </para>
     /// </remarks>
     public void Dispose()
-    {
-        CloseAsync(1001, String.Empty, CancellationToken.None).Wait();
-    }
+        => CloseAsync(1001, String.Empty, CancellationToken.None).Wait();
 }
