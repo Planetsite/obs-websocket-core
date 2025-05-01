@@ -29,7 +29,7 @@ public sealed partial class OBSWebsocket
     /// <summary>
     /// Triggered when disconnected from an obs-websocket server
     /// </summary>
-    public event EventHandler Disconnected;
+    public Func<OBSWebsocket, CloseEventArgs, Task> DisconnectedAsync;
 
     /// <summary>
     /// Emitted every 2 seconds after enabling it by calling SetHeartbeat
@@ -291,10 +291,11 @@ public sealed partial class OBSWebsocket
 
         WSConnection = new WebSocket(_loggerWebsocket, url);
         WSConnection.WaitTime = _websocketTimeout;
-        WSConnection.OnMessage += WebsocketMessageHandlerAsync;
-        WSConnection.OnClose += (s, e) =>
+        WSConnection.OnMessageAsync = WebsocketMessageHandlerAsync;
+        WSConnection.OnCloseAsync = async (_, closeEvent) =>
         {
-            Disconnected?.Invoke(this, e);
+            if (DisconnectedAsync != null)
+                await DisconnectedAsync(this, closeEvent);
         };
         await WSConnection.ConnectAsync(stoppingToken);
     }
@@ -327,13 +328,13 @@ public sealed partial class OBSWebsocket
         foreach (var cb in unusedHandlers)
         {
             var tcs = cb.Value;
-            tcs.TrySetCanceled();
+            tcs.TrySetCanceled(cancellationToken);
         }
     }
 
     // This callback handles incoming JSON messages and determines if it's
     // a request response or an event ("Update" in obs-websocket terminology)
-    private async void WebsocketMessageHandlerAsync(object sender, MessageEventArgs e)
+    private async Task WebsocketMessageHandlerAsync(object sender, MessageEventArgs e)
     {
         if (!e.IsText)
             return;
@@ -402,22 +403,20 @@ public sealed partial class OBSWebsocket
         // Send the message and wait for a response
         // (received and notified by the websocket response handler)
         string bodyAsString = body.ToString();
-        using (var registration = cancellationToken.Register(() => tcs.SetCanceled()))
-        {
-            await WSConnection.SendAsync(bodyAsString, cancellationToken);
-            var result = await tcs.Task;
+        using var registration = cancellationToken.Register(() => tcs.SetCanceled());
+        await WSConnection.SendAsync(bodyAsString, cancellationToken);
+        var result = await tcs.Task;
 
-            if (tcs.Task.IsCanceled)
-                throw new ErrorResponseException("Request canceled");
+        if (tcs.Task.IsCanceled)
+            throw new ErrorResponseException("Request canceled");
 
-            // Throw an exception if the server returned an error.
-            // An error occurs if authentication fails or one if the request body is invalid.
+        // Throw an exception if the server returned an error.
+        // An error occurs if authentication fails or one if the request body is invalid.
 
-            if ((string)result["status"] == "error")
-                throw new ErrorResponseException((string)result["error"]);
+        if ((string)result["status"] == "error")
+            throw new ErrorResponseException((string)result["error"]);
 
-            return result;
-        }
+        return result;
     }
 
     /// <summary>
@@ -472,7 +471,7 @@ public sealed partial class OBSWebsocket
     /// </summary>
     /// <param name="eventType">Value of "event-type" in the JSON body</param>
     /// <param name="body">full JSON message body</param>
-    protected async Task ProcessEventTypeAsync(string eventType, JObject body)
+    private async Task ProcessEventTypeAsync(string eventType, JObject body)
     {
         StreamStatus status;
 
@@ -741,7 +740,7 @@ public sealed partial class OBSWebsocket
     /// </summary>
     /// <param name="input">source string</param>
     /// <returns></returns>
-    protected string HashEncode(string input)
+    private string HashEncode(string input)
     {
         var sha256 = new SHA256Managed();
 
@@ -756,7 +755,7 @@ public sealed partial class OBSWebsocket
     /// </summary>
     /// <param name="length">(optional) message ID length</param>
     /// <returns>A random string of alphanumerical characters</returns>
-    protected string NewMessageID(int length = 16)
+    private string NewMessageID(int length = 16)
     {
         const string pool = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 

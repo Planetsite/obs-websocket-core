@@ -3,7 +3,7 @@ using System;
 namespace WebSocketSharp;
 
 /// <summary>
-/// Represents the event data for the <see cref="WebSocket.OnClose"/> event.
+/// Represents the event data for the <see cref="WebSocket.OnCloseAsync"/> event.
 /// </summary>
 /// <remarks>
 ///   <para>

@@ -58,7 +58,7 @@ public sealed class WebSocket : IDisposable
     private bool _protocolsRequested;
     private volatile WebSocketState _readyState;
     //private ManualResetEvent _receivingExited;
-    private CancellationTokenSource _receivingStoppingToken = new CancellationTokenSource();
+    private CancellationTokenSource _receivingStoppingToken = new();
     private int _retryCountForConnect;
     private ClientSslConfiguration _sslConfig;
     private Stream _stream;
@@ -166,12 +166,12 @@ public sealed class WebSocket : IDisposable
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether a <see cref="OnMessage"/> event
+    /// Gets or sets a value indicating whether a <see cref="OnMessageAsync"/> event
     /// is emitted when a ping is received.
     /// </summary>
     /// <value>
     ///   <para>
-    ///   <c>true</c> if this instance emits a <see cref="OnMessage"/> event
+    ///   <c>true</c> if this instance emits a <see cref="OnMessageAsync"/> event
     ///   when receives a ping; otherwise, <c>false</c>.
     ///   </para>
     ///   <para>
@@ -464,7 +464,7 @@ public sealed class WebSocket : IDisposable
     /// <summary>
     /// Occurs when the WebSocket connection has been closed.
     /// </summary>
-    public event EventHandler<CloseEventArgs> OnClose;
+    public Func<WebSocket, CloseEventArgs, Task> OnCloseAsync;
 
     /// <summary>
     /// Occurs when the <see cref="WebSocket"/> gets an error.
@@ -474,7 +474,7 @@ public sealed class WebSocket : IDisposable
     /// <summary>
     /// Occurs when the <see cref="WebSocket"/> receives a message.
     /// </summary>
-    public event EventHandler<MessageEventArgs> OnMessage;
+    public Func<WebSocket, MessageEventArgs, Task> OnMessageAsync;
 
     /// <summary>
     /// Occurs when the WebSocket connection has been established.
@@ -485,7 +485,7 @@ public sealed class WebSocket : IDisposable
     static WebSocket()
     {
         _maxRetryCountForConnect = 10;
-        EmptyBytes = new byte[0];
+        EmptyBytes = Array.Empty<byte>();
         FragmentLength = 1016;
         RandomNumber = new RNGCryptoServiceProvider();
     }
@@ -827,8 +827,9 @@ public sealed class WebSocket : IDisposable
     {
         message = null;
 
-        Func<string, bool> cond = protocol => protocol.IsNullOrEmpty()
-                                              || !protocol.IsToken();
+        static bool cond(string protocol)
+            => protocol.IsNullOrEmpty()
+                || !protocol.IsToken();
 
         if (protocols.Contains(cond))
         {
@@ -948,7 +949,8 @@ public sealed class WebSocket : IDisposable
 
         try
         {
-            OnClose.Emit(this, closeArgs);
+            if (OnCloseAsync != null)
+                await OnCloseAsync(this, closeArgs);
         }
         catch (Exception closeErr)
         {
@@ -1181,8 +1183,8 @@ public sealed class WebSocket : IDisposable
 
     private async Task FatalAsync(string message, Exception exception, CancellationToken cancellationToken)
     {
-        var code = exception is WebSocketException
-            ? ((WebSocketException)exception).Code
+        var code = exception is WebSocketException error
+            ? error.Code
             : CloseStatusCode.Abnormal;
 
         await FatalAsync(message, (ushort)code, cancellationToken);
@@ -1201,9 +1203,7 @@ public sealed class WebSocket : IDisposable
 
     private ClientSslConfiguration GetSslConfiguration()
     {
-        if (_sslConfig == null)
-            _sslConfig = new ClientSslConfiguration(_uri.DnsSafeHost);
-
+        _sslConfig ??= new ClientSslConfiguration(_uri.DnsSafeHost);
         return _sslConfig;
     }
 
@@ -1253,7 +1253,8 @@ public sealed class WebSocket : IDisposable
 
             try
             {
-                OnMessage.Emit(this, msg);
+                if (OnMessageAsync != null)
+                    await OnMessageAsync(this, msg);
             }
             catch (Exception messageErr)
             {
@@ -1433,8 +1434,7 @@ public sealed class WebSocket : IDisposable
 
     private async Task<bool> ProcessReceivedFrameAsync(WebSocketFrame frame, CancellationToken cancellationToken)
     {
-        string msg;
-        if (!CheckReceivedFrame(frame, out msg))
+        if (!CheckReceivedFrame(frame, out string msg))
             throw new WebSocketException(CloseStatusCode.ProtocolError, msg);
 
         frame.Unmask();
@@ -1542,7 +1542,8 @@ public sealed class WebSocket : IDisposable
 
         try
         {
-            OnClose.Emit(this, e);
+            if (OnCloseAsync != null)
+                await OnCloseAsync(this, e);
         }
         catch (Exception closeErr)
         {
@@ -1855,7 +1856,7 @@ public sealed class WebSocket : IDisposable
                 {
                     _receivingStoppingToken.Cancel();
                     if (!_messageEventQueueRestart.Task.IsCompleted)
-                        _messageEventQueueRestart.SetCanceled();
+                        _messageEventQueueRestart.SetCanceled(stoppingToken);
                     break;
                 }
 
@@ -1981,44 +1982,43 @@ public sealed class WebSocket : IDisposable
 
         _logger.LogTrace("Begin closing the connection.");
 
-        using (var registration = stoppingToken.Register(() => _receivingStoppingToken.Cancel()))
+        using var registration = stoppingToken.Register(() => _receivingStoppingToken.Cancel());
+        bool sent = frameAsBytes != null && await SendBytesAsync(frameAsBytes, stoppingToken);
+        bool received = false;
+
+        if (sent)
         {
-            bool sent = frameAsBytes != null && await SendBytesAsync(frameAsBytes, stoppingToken);
-            bool received = false;
-
-            if (sent)
-            {
-                try
-                {
-                    await Task.Delay(-1, _receivingStoppingToken.Token);
-                }
-                catch
-                {
-                }
-                received = !stoppingToken.IsCancellationRequested;
-            }
-
-            bool res = sent && received;
-
-            _logger.LogDebug("Was clean?: {res}\n  sent: {sent}\n  received: {received}", res, sent, received);
-
-            await ReleaseServerResourcesAsync();
-            ReleaseCommonResources();
-
-            _logger.LogTrace("End closing the connection.");
-
-            _readyState = WebSocketState.Closed;
-
-            var e = new CloseEventArgs(payloadData, res);
-
             try
             {
-                OnClose.Emit(this, e);
+                await Task.Delay(-1, _receivingStoppingToken.Token);
             }
-            catch (Exception closeErr)
+            catch
             {
-                _logger.LogError(closeErr, "OnClose EXCEPTION");
             }
+            received = !stoppingToken.IsCancellationRequested;
+        }
+
+        bool res = sent && received;
+
+        _logger.LogDebug("Was clean?: {res}\n  sent: {sent}\n  received: {received}", res, sent, received);
+
+        await ReleaseServerResourcesAsync();
+        ReleaseCommonResources();
+
+        _logger.LogTrace("End closing the connection.");
+
+        _readyState = WebSocketState.Closed;
+
+        var e = new CloseEventArgs(payloadData, res);
+
+        try
+        {
+            if (OnCloseAsync != null)
+                await OnCloseAsync(this, e);
+        }
+        catch (Exception closeErr)
+        {
+            _logger.LogError(closeErr, "OnClose EXCEPTION");
         }
     }
 
@@ -2585,7 +2585,7 @@ public sealed class WebSocket : IDisposable
         }
 
         if (data == null)
-            throw new ArgumentNullException("data");
+            throw new ArgumentNullException(nameof(data));
 
         await SendAsync(Opcode.Binary, new MemoryStream(data), cancellationToken);
     }

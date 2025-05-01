@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace ObsWebsocket;
 
@@ -66,7 +67,7 @@ public partial class OBSWebsocket
         if (sceneName != null)
             requestFields.Add("scene-name", sceneName);
 
-        JObject minReqs = new JObject();
+        var minReqs = new JObject();
         if (sceneItem.SourceName != null)
             minReqs.Add("name", sceneItem.SourceName);
 
@@ -89,10 +90,8 @@ public partial class OBSWebsocket
         if (sceneName != null)
             requestFields.Add("scene-name", sceneName);
 
-        JObject minReqs = new JObject();
-
+        var minReqs = new JObject();
         minReqs.Add("id", sceneItemId);
-
         requestFields.Add("item", minReqs);
 
         await SendRequestAsync("DeleteSceneItem", requestFields, cancellationToken);
@@ -100,24 +99,23 @@ public partial class OBSWebsocket
 
     static public IFilterProperties DeserializeFilterProperties(string filterType, JObject properties)
     {
-        switch (filterType)
+        return filterType switch
         {
-            case "color_filter": return properties.ToObject<ColorFilter>();
-            case "clut_filter": return properties.ToObject<ClutFilter>();
-            case "chroma_key_filter": return properties.ToObject<ChromaKeyFilter>();
-            case "crop_filter": return properties.ToObject<CropFilter>();
-            case "mask_filter": return properties.ToObject<MaskFilter>();
-            case "luma_key_filter": return properties.ToObject<LumaKeyFilter>();
-            case "gpu_delay": return properties.ToObject<RenderDelay>();
-            case "scale_filter": return properties.ToObject<ScaleFilter>();
-            case "sharpness_filter": return properties.ToObject<SharpenFilter>();
-            case "premultiplied_alpha_filter": return properties.ToObject<FixAlphaBlending>();
-            case "virtualcam-filter": return properties.ToObject<VirtualCam>();
-            case "ndi_filter": return properties.ToObject<NdiOutput>();
-            case "scroll_filter": return properties.ToObject<ScrollFilter>();
-
-            default: throw new NotImplementedException(filterType);
-        }
+            "color_filter" => properties.ToObject<ColorFilter>(),
+            "clut_filter" => properties.ToObject<ClutFilter>(),
+            "chroma_key_filter" => properties.ToObject<ChromaKeyFilter>(),
+            "crop_filter" => properties.ToObject<CropFilter>(),
+            "mask_filter" => properties.ToObject<MaskFilter>(),
+            "luma_key_filter" => properties.ToObject<LumaKeyFilter>(),
+            "gpu_delay" => properties.ToObject<RenderDelay>(),
+            "scale_filter" => properties.ToObject<ScaleFilter>(),
+            "sharpness_filter" => properties.ToObject<SharpenFilter>(),
+            "premultiplied_alpha_filter" => properties.ToObject<FixAlphaBlending>(),
+            "virtualcam-filter" => properties.ToObject<VirtualCam>(),
+            "ndi_filter" => properties.ToObject<NdiOutput>(),
+            "scroll_filter" => properties.ToObject<ScrollFilter>(),
+            _ => throw new NotImplementedException(filterType),
+        };
     }
 
     /// <summary>
@@ -141,9 +139,8 @@ public partial class OBSWebsocket
         requestFields.Add("fromScene", fromSceneName);
         requestFields.Add("toScene", toSceneName);
 
-        JObject minReqs = new JObject();
+        var minReqs = new JObject();
         minReqs.Add("id", sceneItemID);
-
         requestFields.Add("item", minReqs);
 
         await SendRequestAsync("DuplicateSceneItem", requestFields, cancellationToken);
@@ -162,7 +159,7 @@ public partial class OBSWebsocket
         requestFields.Add("fromScene", fromSceneName);
         requestFields.Add("toScene", toSceneName);
 
-        JObject minReqs = new JObject();
+        var minReqs = new JObject();
         if (sceneItem.SourceName != null)
             minReqs.Add("name", sceneItem.SourceName);
 
@@ -438,9 +435,8 @@ public partial class OBSWebsocket
             request.Add("sourceType", sourceType);
         }
 
-        JObject result = await SendRequestAsync("GetSourceSettings", request, cancellationToken);
-        SourceSettings settings = new SourceSettings(result);
-
+        var result = await SendRequestAsync("GetSourceSettings", request, cancellationToken);
+        var settings = new SourceSettings(result);
         return settings;
     }
 
@@ -628,36 +624,22 @@ public partial class OBSWebsocket
     /// List all profiles
     /// </summary>
     /// <returns>A <see cref="List{T}"/> of the names of all profiles</returns>
-    public async Task<List<string>> ListProfilesAsync(CancellationToken cancellationToken = default)
+    public async Task<ICollection<string>> ListProfilesAsync(CancellationToken cancellationToken = default)
     {
         var response = await SendRequestAsync("ListProfiles", cancellationToken: cancellationToken);
         var items = (JArray)response["profiles"];
-
-        List<string> profiles = new List<string>();
-        foreach (JObject item in items)
-        {
-            profiles.Add((string)item["profile-name"]);
-        }
-
-        return profiles;
+        return items.Select(item => (string)item["profile-name"]).ToArray();
     }
 
     /// <summary>
     /// List all scene collections
     /// </summary>
     /// <returns>A <see cref="List{T}"/> of the names of all scene collections</returns>
-    public async Task<List<string>> ListSceneCollectionsAsync(CancellationToken cancellationToken = default)
+    public async Task<ICollection<string>> ListSceneCollectionsAsync(CancellationToken cancellationToken = default)
     {
         var response = await SendRequestAsync("ListSceneCollections", cancellationToken: cancellationToken);
         var items = (JArray)response["scene-collections"];
-
-        List<string> sceneCollections = new List<string>();
-        foreach (JObject item in items)
-        {
-            sceneCollections.Add((string)item["sc-name"]);
-        }
-
-        return sceneCollections;
+        return items.Select(item => (string)item["sc-name"]).ToArray();
     }
 
     /// <summary>
@@ -674,58 +656,53 @@ public partial class OBSWebsocket
     /// List all transitions
     /// </summary>
     /// <returns>A <see cref="List{T}"/> of all transition names</returns>
-    public async Task<List<string>> ListTransitionsAsync(CancellationToken cancellationToken = default)
+    public async Task<ICollection<string>> ListTransitionsAsync(CancellationToken cancellationToken = default)
     {
         var transitions = await GetTransitionListAsync(cancellationToken);
-
-        List<string> transitionNames = new List<string>();
-        foreach (var item in transitions.Transitions)
-            transitionNames.Add(item.Name);
-
-        return transitionNames;
+        return transitions.Transitions.Select(item => item.Name).ToArray();
     }
 
     // should be config?
     static public LumaWipeType MapToLumaWipeType(string serializedType)
     {
-        switch (serializedType)
+        return serializedType switch
         {
-            case "barndoor-botleft.png": return LumaWipeType.BarndoorBottomLeft;
-            case "barndoor-h.png": return LumaWipeType.BarndoorHorizontal;
-            case "barndoor-topleft.png": return LumaWipeType.BarndoorTopLeft;
-            case "barndoor-v.png": return LumaWipeType.BarndoorVertical;
-            case "blinds-h.png": return LumaWipeType.BlindsHorizontal;
-            case "box-botleft.png": return LumaWipeType.BoxBottomLeft;
-            case "box-botright.png": return LumaWipeType.BoxBottomRight;
-            case "box-topleft.png": return LumaWipeType.BoxTopLeft;
-            case "box-topright.png": return LumaWipeType.BoxTopRight;
-            case "burst.png": return LumaWipeType.Burst;
-            case "checkerboard-small.png": return LumaWipeType.CheckerboardSmall;
-            case "circles.png": return LumaWipeType.Circles;
-            case "clock.png": return LumaWipeType.Clock;
-            case "cloud.png": return LumaWipeType.Cloud;
-            case "curtain.png": return LumaWipeType.Curtain;
-            case "fan.png": return LumaWipeType.Fan;
-            case "fractal.png": return LumaWipeType.Fractal;
-            case "iris.png": return LumaWipeType.Iris;
-            case "linear-h.png": return LumaWipeType.LinearHorizontal;
-            case "linear-topleft.png": return LumaWipeType.LinearTopLeft;
-            case "linear-topright.png": return LumaWipeType.LinearTopRight;
-            case "linear-v.png": return LumaWipeType.LinearVertical;
-            case "parallel-zigzag-h.png": return LumaWipeType.ParallelZigzagHorizontal;
-            case "parallel-zigzag-v.png": return LumaWipeType.ParallelZigzagVertical;
-            case "sinus9.png": return LumaWipeType.Sinus9;
-            case "spiral.png": return LumaWipeType.Spiral;
-            case "square.png": return LumaWipeType.Square;
-            case "squares.png": return LumaWipeType.Squares;
-            case "stripes.png": return LumaWipeType.Stripes;
-            case "strips-h.png": return LumaWipeType.StripsHorizontal;
-            case "strips-v.png": return LumaWipeType.StripsVertical;
-            case "watercolor.png": return LumaWipeType.Watercolor;
-            case "zigzag-h.png": return LumaWipeType.ZigzagHorizontal;
-            case "zigzag-v.png": return LumaWipeType.ZigzagVertical;
-            default: throw new NotImplementedException(serializedType);
-        }
+            "barndoor-botleft.png" => LumaWipeType.BarndoorBottomLeft,
+            "barndoor-h.png" => LumaWipeType.BarndoorHorizontal,
+            "barndoor-topleft.png" => LumaWipeType.BarndoorTopLeft,
+            "barndoor-v.png" => LumaWipeType.BarndoorVertical,
+            "blinds-h.png" => LumaWipeType.BlindsHorizontal,
+            "box-botleft.png" => LumaWipeType.BoxBottomLeft,
+            "box-botright.png" => LumaWipeType.BoxBottomRight,
+            "box-topleft.png" => LumaWipeType.BoxTopLeft,
+            "box-topright.png" => LumaWipeType.BoxTopRight,
+            "burst.png" => LumaWipeType.Burst,
+            "checkerboard-small.png" => LumaWipeType.CheckerboardSmall,
+            "circles.png" => LumaWipeType.Circles,
+            "clock.png" => LumaWipeType.Clock,
+            "cloud.png" => LumaWipeType.Cloud,
+            "curtain.png" => LumaWipeType.Curtain,
+            "fan.png" => LumaWipeType.Fan,
+            "fractal.png" => LumaWipeType.Fractal,
+            "iris.png" => LumaWipeType.Iris,
+            "linear-h.png" => LumaWipeType.LinearHorizontal,
+            "linear-topleft.png" => LumaWipeType.LinearTopLeft,
+            "linear-topright.png" => LumaWipeType.LinearTopRight,
+            "linear-v.png" => LumaWipeType.LinearVertical,
+            "parallel-zigzag-h.png" => LumaWipeType.ParallelZigzagHorizontal,
+            "parallel-zigzag-v.png" => LumaWipeType.ParallelZigzagVertical,
+            "sinus9.png" => LumaWipeType.Sinus9,
+            "spiral.png" => LumaWipeType.Spiral,
+            "square.png" => LumaWipeType.Square,
+            "squares.png" => LumaWipeType.Squares,
+            "stripes.png" => LumaWipeType.Stripes,
+            "strips-h.png" => LumaWipeType.StripsHorizontal,
+            "strips-v.png" => LumaWipeType.StripsVertical,
+            "watercolor.png" => LumaWipeType.Watercolor,
+            "zigzag-h.png" => LumaWipeType.ZigzagHorizontal,
+            "zigzag-v.png" => LumaWipeType.ZigzagVertical,
+            _ => throw new NotImplementedException(serializedType),
+        };
     }
 
     /// <summary>
@@ -1142,7 +1119,7 @@ public partial class OBSWebsocket
 
     public async Task SetSceneItemPropertiesAsync(JObject obj, string sceneName = null, CancellationToken cancellationToken = default)
     {
-        JsonSerializerSettings settings = new JsonSerializerSettings();
+        var settings = new JsonSerializerSettings();
         settings.NullValueHandling = NullValueHandling.Ignore;
 
         // Serialize object to SceneItemProperties (needed before proper deserialization)
@@ -1164,7 +1141,7 @@ public partial class OBSWebsocket
     /// <param name="sceneName">Option scene name</param>
     public async Task SetSceneItemPropertiesAsync(SceneItemProperties props, string sceneName = null, CancellationToken cancellationToken = default)
     {
-        JsonSerializerSettings settings = new JsonSerializerSettings();
+        var settings = new JsonSerializerSettings();
         settings.NullValueHandling = NullValueHandling.Ignore;
         var requestFields = JObject.Parse(JsonConvert.SerializeObject(props, settings));
 

@@ -3,7 +3,7 @@ using System;
 namespace WebSocketSharp;
 
 /// <summary>
-/// Represents the event data for the <see cref="WebSocket.OnMessage"/> event.
+/// Represents the event data for the <see cref="WebSocket.OnMessageAsync"/> event.
 /// </summary>
 /// <remarks>
 ///   <para>
@@ -16,9 +16,8 @@ namespace WebSocketSharp;
 ///   the <see cref="Data"/> or <see cref="RawData"/> property.
 ///   </para>
 /// </remarks>
-public class MessageEventArgs : EventArgs
+public sealed class MessageEventArgs : EventArgs
 {
-
     private string _data;
     private bool _dataSet;
     private Opcode _opcode;

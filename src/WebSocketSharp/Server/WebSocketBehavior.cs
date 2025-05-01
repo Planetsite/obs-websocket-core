@@ -308,24 +308,20 @@ public abstract class WebSocketBehavior : IWebSocketSession
         return null;
     }
 
-    private void OnClose(object sender, CloseEventArgs e)
+    private async Task OnCloseAsync(object sender, CloseEventArgs e)
     {
         if (ID == null)
             return;
 
         Sessions.Remove(ID);
-        OnClose(e);
+        await OnCloseAsync(e);
     }
 
     private void OnError(object sender, ErrorEventArgs e)
-    {
-        OnError(e);
-    }
+        => OnError(e);
 
-    private void OnMessage(object sender, MessageEventArgs e)
-    {
-        OnMessage(e);
-    }
+    private Task OnMessageAsync(object sender, MessageEventArgs e)
+        => OnMessageAsync(e);
 
     private async Task OnOpen(object sender, EventArgs e)
     {
@@ -364,9 +360,9 @@ public abstract class WebSocketBehavior : IWebSocketSession
             _websocket.WaitTime = waitTime;
 
         _websocket.OnOpen += OnOpen;
-        _websocket.OnMessage += OnMessage;
+        _websocket.OnMessageAsync += OnMessageAsync;
         _websocket.OnError += OnError;
-        _websocket.OnClose += OnClose;
+        _websocket.OnCloseAsync += OnCloseAsync;
 
         await _websocket.InternalAcceptAsync(cancellationToken);
     }
@@ -554,9 +550,9 @@ public abstract class WebSocketBehavior : IWebSocketSession
     /// </summary>
     /// <param name="e">
     /// A <see cref="CloseEventArgs"/> that represents the event data passed
-    /// from a <see cref="WebSocket.OnClose"/> event.
+    /// from a <see cref="WebSocket.OnCloseAsync"/> event.
     /// </param>
-    protected virtual void OnClose(CloseEventArgs e)
+    protected virtual async Task OnCloseAsync(CloseEventArgs e)
     {
     }
 
@@ -576,9 +572,9 @@ public abstract class WebSocketBehavior : IWebSocketSession
     /// </summary>
     /// <param name="e">
     /// A <see cref="MessageEventArgs"/> that represents the event data passed
-    /// from a <see cref="WebSocket.OnMessage"/> event.
+    /// from a <see cref="WebSocket.OnMessageAsync"/> event.
     /// </param>
-    protected virtual void OnMessage(MessageEventArgs e)
+    protected virtual async Task OnMessageAsync(MessageEventArgs e)
     {
     }
 
