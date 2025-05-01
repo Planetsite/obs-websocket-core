@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\OBSWebsocketDotNet\obs-websocket.csproj" />
+    <ProjectReference Include="..\..\src\OBSWebsocketDotNet\obs-websocket.csproj" />
   </ItemGroup>
 
 </Project>
