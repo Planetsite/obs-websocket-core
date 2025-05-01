@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System;
 using System.Security.Principal;
 using WebSocketSharp.Net.WebSockets;
@@ -125,7 +126,7 @@ public sealed class HttpListenerContext
     /// <exception cref="InvalidOperationException">
     /// This method has already been called.
     /// </exception>
-    public HttpListenerWebSocketContext AcceptWebSocket(string protocol)
+    public HttpListenerWebSocketContext AcceptWebSocket(ILogger<WebSocket> logger, string protocol)
     {
         if (_websocketContext != null)
             throw new InvalidOperationException("The accepting is already in progress.");
@@ -139,7 +140,7 @@ public sealed class HttpListenerContext
                 throw new ArgumentException("Contains an invalid character.", "protocol");
         }
 
-        _websocketContext = new HttpListenerWebSocketContext(this, protocol);
+        _websocketContext = new HttpListenerWebSocketContext(this, logger, protocol);
         return _websocketContext;
     }
 }

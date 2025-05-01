@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -18,12 +19,12 @@ public sealed class WebSocketServiceManager
 {
     private volatile bool _clean;
     private Dictionary<string, WebSocketServiceHost> _hosts;
-    private Logger _log;
+    private ILogger _log;
     private volatile ServerState _state;
     private object _sync;
     private TimeSpan _waitTime;
 
-    internal WebSocketServiceManager(Logger log)
+    internal WebSocketServiceManager(ILogger log)
     {
         _log = log;
 
@@ -163,7 +164,7 @@ public sealed class WebSocketServiceManager
             string msg;
             if (!CanSet(out msg))
             {
-                _log.Warn(msg);
+                _log.LogWarning("{msg}", msg);
                 return;
             }
 
@@ -171,7 +172,7 @@ public sealed class WebSocketServiceManager
             {
                 if (!CanSet(out msg))
                 {
-                    _log.Warn(msg);
+                    _log.LogWarning("{msg}", msg);
                     return;
                 }
 
@@ -258,7 +259,7 @@ public sealed class WebSocketServiceManager
             string msg;
             if (!CanSet(out msg))
             {
-                _log.Warn(msg);
+                _log.LogWarning("{msg}", msg);
                 return;
             }
 
@@ -266,7 +267,7 @@ public sealed class WebSocketServiceManager
             {
                 if (!CanSet(out msg))
                 {
-                    _log.Warn(msg);
+                    _log.LogWarning("{msg}", msg);
                     return;
                 }
 
@@ -288,7 +289,7 @@ public sealed class WebSocketServiceManager
             {
                 if (_state != ServerState.Start)
                 {
-                    _log.Error("The server is shutting down.");
+                    _log.LogError("The server is shutting down.");
                     break;
                 }
 
@@ -298,10 +299,9 @@ public sealed class WebSocketServiceManager
             if (completed != null)
                 completed();
         }
-        catch (Exception ex)
+        catch (Exception broadcastErr)
         {
-            _log.Error(ex.Message);
-            _log.Debug(ex.ToString());
+            _log.LogError(broadcastErr, "Broadcast EXCEPTION");
         }
         finally
         {
@@ -319,7 +319,7 @@ public sealed class WebSocketServiceManager
             {
                 if (_state != ServerState.Start)
                 {
-                    _log.Error("The server is shutting down.");
+                    _log.LogError("The server is shutting down.");
                     break;
                 }
 
@@ -329,10 +329,9 @@ public sealed class WebSocketServiceManager
             if (completed != null)
                 completed();
         }
-        catch (Exception ex)
+        catch (Exception broadcastException)
         {
-            _log.Error(ex.Message);
-            _log.Debug(ex.ToString());
+            _log.LogError(broadcastException, "Broadcast EXCEPTION");
         }
         finally
         {
@@ -351,7 +350,7 @@ public sealed class WebSocketServiceManager
         {
             if (_state != ServerState.Start)
             {
-                _log.Error("The server is shutting down.");
+                _log.LogError("The server is shutting down.");
                 break;
             }
 
@@ -789,7 +788,7 @@ public sealed class WebSocketServiceManager
 
         if (len < length)
         {
-            _log.Warn($"Only {len} byte(s) of data could be read from the stream.");
+            _log.LogWarning("Only {len} byte(s) of data could be read from the stream.", len);
         }
 
         if (len <= WebSocket.FragmentLength)

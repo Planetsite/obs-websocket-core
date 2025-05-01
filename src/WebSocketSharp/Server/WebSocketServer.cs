@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System;
 using System.Net.Sockets;
 using System.Security.Principal;
@@ -24,8 +25,11 @@ public sealed class WebSocketServer
     private bool _dnsStyle;
     private string _hostname;
     private TcpListener _listener;
+    private readonly ILogger _loggerTcpListener;
+    private readonly ILogger<WebSocket> _loggerWebsocket;
     private string _realm;
     private string _realmInUse;
+    private CancellationTokenSource _receiveStoppingToken = new CancellationTokenSource();
     //private Thread _receiveThread;
     private bool _reuseAddress;
     private bool _secure;
@@ -35,24 +39,10 @@ public sealed class WebSocketServer
     private volatile ServerState _state;
     private object _sync;
     private Func<IIdentity, NetworkCredential> _userCredFinder;
-    private CancellationTokenSource _receiveStoppingToken = new CancellationTokenSource();
 
     static WebSocketServer()
     {
         _defaultRealm = "SECRET AREA";
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="WebSocketServer"/> class.
-    /// </summary>
-    /// <remarks>
-    /// The new instance listens for incoming handshake requests on
-    /// <see cref="System.Net.IPAddress.Any"/> and port 80.
-    /// </remarks>
-    public WebSocketServer()
-    {
-        var addr = System.Net.IPAddress.Any;
-        Init(addr.ToString(), addr, 80, false);
     }
 
     /// <summary>
@@ -75,8 +65,8 @@ public sealed class WebSocketServer
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="port"/> is less than 1 or greater than 65535.
     /// </exception>
-    public WebSocketServer(int port)
-      : this(port, port == 443)
+    public WebSocketServer(ILogger loggerTcp, ILogger<WebSocket> loggerWebsocket, int port)
+        : this(loggerTcp, loggerWebsocket, port, port == 443)
     {
     }
 
@@ -117,13 +107,19 @@ public sealed class WebSocketServer
     ///   <paramref name="url"/> is invalid.
     ///   </para>
     /// </exception>
-    public WebSocketServer(string url)
+    public WebSocketServer(string url,
+        ILogger<WebSocketServer> logger,
+        ILogger<WebSocket> loggerWs)
     {
         if (url == null)
             throw new ArgumentNullException("url");
 
         if (url.Length == 0)
             throw new ArgumentException("An empty string.", "url");
+
+        Log = logger;
+        _loggerTcpListener = logger;
+        _loggerWebsocket = loggerWs;
 
         Uri uri;
         string msg;
@@ -167,8 +163,11 @@ public sealed class WebSocketServer
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="port"/> is less than 1 or greater than 65535.
     /// </exception>
-    public WebSocketServer(int port, bool secure)
+    public WebSocketServer(ILogger loggerTcp, ILogger<WebSocket> loggerWebsocket, int port, bool secure)
     {
+        _loggerTcpListener = loggerTcp;
+        _loggerWebsocket = loggerWebsocket;
+
         if (!port.IsPortNumber())
         {
             var msg = "Less than 1 or greater than 65535.";
@@ -209,8 +208,8 @@ public sealed class WebSocketServer
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="port"/> is less than 1 or greater than 65535.
     /// </exception>
-    public WebSocketServer(System.Net.IPAddress address, int port)
-      : this(address, port, port == 443)
+    public WebSocketServer(ILogger<WebSocketServer> logger, System.Net.IPAddress address, int port)
+        : this(logger, address, port, port == 443)
     {
     }
 
@@ -244,7 +243,7 @@ public sealed class WebSocketServer
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="port"/> is less than 1 or greater than 65535.
     /// </exception>
-    public WebSocketServer(System.Net.IPAddress address, int port, bool secure)
+    public WebSocketServer(ILogger<WebSocketServer> logger, System.Net.IPAddress address, int port, bool secure)
     {
         if (address == null)
             throw new ArgumentNullException("address");
@@ -258,6 +257,7 @@ public sealed class WebSocketServer
             throw new ArgumentOutOfRangeException("port", msg);
         }
 
+        Log = logger;
         Init(address.ToString(), address, port, secure);
     }
 
@@ -295,7 +295,7 @@ public sealed class WebSocketServer
         {
             if (!CanSet(out string msg))
             {
-                Log.Warn(msg);
+                Log.LogWarning("{msg}", msg);
                 return;
             }
 
@@ -303,7 +303,7 @@ public sealed class WebSocketServer
             {
                 if (!CanSet(out msg))
                 {
-                    Log.Warn(msg);
+                    Log.LogWarning("{msg}", msg);
                     return;
                 }
 
@@ -341,7 +341,7 @@ public sealed class WebSocketServer
             string msg;
             if (!CanSet(out msg))
             {
-                Log.Warn(msg);
+                Log.LogWarning("{msg}", msg);
                 return;
             }
 
@@ -349,7 +349,7 @@ public sealed class WebSocketServer
             {
                 if (!CanSet(out msg))
                 {
-                    Log.Warn(msg);
+                    Log.LogWarning("{msg}", msg);
                     return;
                 }
 
@@ -406,9 +406,9 @@ public sealed class WebSocketServer
     /// The default logging level is <see cref="LogLevel.Error"/>.
     /// </remarks>
     /// <value>
-    /// A <see cref="Logger"/> that provides the logging function.
+    /// A <see cref="ILogger"/> that provides the logging function.
     /// </value>
-    public Logger Log { get; private set; }
+    public ILogger Log { get; private set; }
 
     /// <summary>
     /// Gets the port of the server.
@@ -449,7 +449,7 @@ public sealed class WebSocketServer
             string msg;
             if (!CanSet(out msg))
             {
-                Log.Warn(msg);
+                Log.LogWarning("{msg}", msg);
                 return;
             }
 
@@ -457,7 +457,7 @@ public sealed class WebSocketServer
             {
                 if (!CanSet(out msg))
                 {
-                    Log.Warn(msg);
+                    Log.LogWarning("{msg}", msg);
                     return;
                 }
 
@@ -498,7 +498,7 @@ public sealed class WebSocketServer
             string msg;
             if (!CanSet(out msg))
             {
-                Log.Warn(msg);
+                Log.LogWarning("{msg}", msg);
                 return;
             }
 
@@ -506,7 +506,7 @@ public sealed class WebSocketServer
             {
                 if (!CanSet(out msg))
                 {
-                    Log.Warn(msg);
+                    Log.LogWarning("{msg}", msg);
                     return;
                 }
 
@@ -580,7 +580,7 @@ public sealed class WebSocketServer
         {
             if (!CanSet(out string msg))
             {
-                Log.Warn(msg);
+                Log.LogWarning("{msg}", msg);
                 return;
             }
 
@@ -588,7 +588,7 @@ public sealed class WebSocketServer
             {
                 if (!CanSet(out msg))
                 {
-                    Log.Warn(msg);
+                    Log.LogWarning("{msg}", msg);
                     return;
                 }
 
@@ -735,7 +735,6 @@ public sealed class WebSocketServer
         _authSchemes = AuthenticationSchemes.Anonymous;
         _dnsStyle = Uri.CheckHostName(hostname) == UriHostNameType.Dns;
         _listener = new TcpListener(address, port);
-        Log = new Logger();
         _services = new WebSocketServiceManager(Log);
         _sync = new object();
     }
@@ -781,7 +780,7 @@ public sealed class WebSocketServer
             return;
         }
 
-        await host.StartSessionAsync(context, stoppingToken);
+        await host.StartSessionAsync(Log, context, stoppingToken);
     }
 
     private async Task PrivateReceiveRequestAsync(CancellationToken stoppingToken)
@@ -795,34 +794,31 @@ public sealed class WebSocketServer
 
                 try
                 {
-                    var ctx = new TcpListenerWebSocketContext(cl, null, _secure, _sslConfigInUse, Log);
+                    var ctx = new TcpListenerWebSocketContext(cl, null, _secure, _sslConfigInUse, _loggerTcpListener, _loggerWebsocket);
                     await PrivateProcessRequestAsync(ctx, stoppingToken);
                 }
-                catch (Exception ex)
+                catch (Exception processErr)
                 {
-                    Log.Error(ex.Message);
-                    Log.Debug(ex.ToString());
+                    Log.LogError(processErr, "ProcessRequest EXCEPTION");
 
                     cl.Close();
                 }
             }
-            catch (SocketException ex)
+            catch (SocketException socketErr)
             {
                 if (_state == ServerState.ShuttingDown)
                 {
-                    Log.Info("The underlying listener is stopped.");
+                    Log.LogInformation("The underlying listener is stopped.");
                     break;
                 }
 
-                Log.Fatal(ex.Message);
-                Log.Debug(ex.ToString());
+                Log.LogCritical(socketErr, "Accept/Process SOCKET EXCEPTION");
 
                 break;
             }
-            catch (Exception ex)
+            catch (Exception generalErr)
             {
-                Log.Fatal(ex.Message);
-                Log.Debug(ex.ToString());
+                Log.LogCritical(generalErr, "Accept/Process EXCEPTION");
 
                 if (cl != null)
                     cl.Close();
@@ -839,13 +835,13 @@ public sealed class WebSocketServer
     {
         if (_state == ServerState.Start)
         {
-            Log.Info("The server has already started.");
+            Log.LogInformation("The server has already started.");
             return;
         }
 
         if (_state == ServerState.ShuttingDown)
         {
-            Log.Warn("The server is shutting down.");
+            Log.LogWarning("The server is shutting down.");
             return;
         }
 
@@ -853,13 +849,13 @@ public sealed class WebSocketServer
         {
             if (_state == ServerState.Start)
             {
-                Log.Info("The server has already started.");
+                Log.LogInformation("The server has already started.");
                 return;
             }
 
             if (_state == ServerState.ShuttingDown)
             {
-                Log.Warn("The server is shutting down.");
+                Log.LogWarning("The server is shutting down.");
                 return;
             }
 
@@ -910,19 +906,19 @@ public sealed class WebSocketServer
     {
         if (_state == ServerState.Ready)
         {
-            Log.Info("The server is not started.");
+            Log.LogInformation("The server is not started.");
             return;
         }
 
         if (_state == ServerState.ShuttingDown)
         {
-            Log.Info("The server is shutting down.");
+            Log.LogInformation("The server is shutting down.");
             return;
         }
 
         if (_state == ServerState.Stop)
         {
-            Log.Info("The server has already stopped.");
+            Log.LogInformation("The server has already stopped.");
             return;
         }
 
@@ -930,13 +926,13 @@ public sealed class WebSocketServer
         {
             if (_state == ServerState.ShuttingDown)
             {
-                Log.Info("The server is shutting down.");
+                Log.LogInformation("The server is shutting down.");
                 return;
             }
 
             if (_state == ServerState.Stop)
             {
-                Log.Info("The server has already stopped.");
+                Log.LogInformation("The server has already stopped.");
                 return;
             }
 

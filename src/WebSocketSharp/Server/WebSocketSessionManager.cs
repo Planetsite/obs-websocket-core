@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -18,7 +19,7 @@ public sealed class WebSocketSessionManager
 {
     private volatile bool _clean;
     //private object _forSweep;
-    private Logger _log;
+    private readonly ILogger _log;
     private Dictionary<string, IWebSocketSession> _sessions;
     private volatile ServerState _state;
     private volatile bool _sweeping;
@@ -27,7 +28,7 @@ public sealed class WebSocketSessionManager
     //private object _sync;
     private TimeSpan _waitTime;
 
-    internal WebSocketSessionManager(Logger log)
+    internal WebSocketSessionManager(ILogger log)
     {
         _log = log;
 
@@ -182,7 +183,7 @@ public sealed class WebSocketSessionManager
             string msg;
             if (!CanSet(out msg))
             {
-                _log.Warn(msg);
+                _log.LogWarning("{msg}", msg);
                 return;
             }
 
@@ -190,7 +191,7 @@ public sealed class WebSocketSessionManager
             {
                 if (!CanSet(out msg))
                 {
-                    _log.Warn(msg);
+                    _log.LogWarning("{msg}", msg);
                     return;
                 }
 
@@ -254,7 +255,7 @@ public sealed class WebSocketSessionManager
             string msg;
             if (!CanSet(out msg))
             {
-                _log.Warn(msg);
+                _log.LogWarning("{msg}", msg);
                 return;
             }
 
@@ -262,7 +263,7 @@ public sealed class WebSocketSessionManager
             {
                 if (!CanSet(out msg))
                 {
-                    _log.Warn(msg);
+                    _log.LogWarning("{msg}", msg);
                     return;
                 }
 
@@ -281,7 +282,7 @@ public sealed class WebSocketSessionManager
             {
                 if (_state != ServerState.Start)
                 {
-                    _log.Error("The service is shutting down.");
+                    _log.LogError("The service is shutting down.");
                     break;
                 }
 
@@ -291,10 +292,9 @@ public sealed class WebSocketSessionManager
             if (completed != null)
                 completed();
         }
-        catch (Exception ex)
+        catch (Exception sendErr)
         {
-            _log.Error(ex.Message);
-            _log.Debug(ex.ToString());
+            _log.LogError(sendErr,"Send EXCEPTION");
         }
         finally
         {
@@ -312,7 +312,7 @@ public sealed class WebSocketSessionManager
             {
                 if (_state != ServerState.Start)
                 {
-                    _log.Error("The service is shutting down.");
+                    _log.LogError("The service is shutting down.");
                     break;
                 }
 
@@ -322,10 +322,9 @@ public sealed class WebSocketSessionManager
             if (completed != null)
                 completed();
         }
-        catch (Exception ex)
+        catch (Exception sendErr)
         {
-            _log.Error(ex.Message);
-            _log.Debug(ex.ToString());
+            _log.LogError(sendErr,"Send EXCEPTION");
         }
         finally
         {
@@ -344,7 +343,7 @@ public sealed class WebSocketSessionManager
         {
             if (_state != ServerState.Start)
             {
-                _log.Error("The service is shutting down.");
+                _log.LogError("The service is shutting down.");
                 break;
             }
 
@@ -403,7 +402,7 @@ public sealed class WebSocketSessionManager
             }
             catch (Exception sweepErr)
             {
-                _log.Error($"WebSocketSessionManager Sweep loop crash: {sweepErr.Message}\n{sweepErr.StackTrace}");
+                _log.LogError(sweepErr, "WebSocketSessionManager Sweep loop crash");
             }
         }
     }
@@ -462,7 +461,7 @@ public sealed class WebSocketSessionManager
         {
             if (_state != ServerState.Start)
             {
-                _log.Error("The service is shutting down.");
+                _log.LogError("The service is shutting down.");
                 break;
             }
 
@@ -476,7 +475,7 @@ public sealed class WebSocketSessionManager
         {
             if (_state != ServerState.Start)
             {
-                _log.Error("The service is shutting down.");
+                _log.LogError("The service is shutting down.");
                 break;
             }
 
@@ -492,7 +491,7 @@ public sealed class WebSocketSessionManager
         {
             if (_state != ServerState.Start)
             {
-                _log.Error("The service is shutting down.");
+                _log.LogError("The service is shutting down.");
                 break;
             }
 
@@ -671,12 +670,7 @@ public sealed class WebSocketSessionManager
 
         if (len < length)
         {
-            _log.Warn(
-              String.Format(
-                "Only {0} byte(s) of data could be read from the stream.",
-                len
-              )
-            );
+            _log.LogWarning("Only {len} byte(s) of data could be read from the stream.", len);
         }
 
         if (len <= WebSocket.FragmentLength)
@@ -863,7 +857,7 @@ public sealed class WebSocketSessionManager
 
         if (len < length)
         {
-            _log.Warn($"Only {len} byte(s) of data could be read from the stream.");
+            _log.LogWarning("Only {len} byte(s) of data could be read from the stream.", len);
         }
 
         if (len <= WebSocket.FragmentLength)
@@ -1398,7 +1392,7 @@ public sealed class WebSocketSessionManager
     {
         if (_sweeping)
         {
-            _log.Info("The sweeping is already in progress.");
+            _log.LogInformation("The sweeping is already in progress.");
             return;
         }
 
@@ -1406,7 +1400,7 @@ public sealed class WebSocketSessionManager
         {
             if (_sweeping)
             {
-                _log.Info("The sweeping is already in progress.");
+                _log.LogInformation("The sweeping is already in progress.");
                 return;
             }
 

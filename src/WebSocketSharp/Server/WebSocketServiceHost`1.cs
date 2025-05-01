@@ -1,26 +1,25 @@
+using Microsoft.Extensions.Logging;
 using System;
 
 namespace WebSocketSharp.Server;
 
 internal sealed class WebSocketServiceHost<TBehavior> : WebSocketServiceHost
-  where TBehavior : WebSocketBehavior
+    where TBehavior : WebSocketBehavior
 {
     private readonly Func<TBehavior> _creator;
 
-    internal WebSocketServiceHost(string path, Func<TBehavior> creator, Logger log)
-      : this(path, creator, null, log)
+    internal WebSocketServiceHost(string path, Func<TBehavior> creator, ILogger log)
+        : this(path, creator, null, log)
     {
     }
 
-    internal WebSocketServiceHost(string path, Func<TBehavior> creator, Action<TBehavior> initializer, Logger log)
-      : base(path, log)
-    {
-        _creator = createCreator(creator, initializer);
-    }
+    internal WebSocketServiceHost(string path, Func<TBehavior> creator, Action<TBehavior> initializer, ILogger log)
+        : base(path, log)
+        => _creator = CreateCreator(creator, initializer);
 
     public override Type BehaviorType => typeof(TBehavior);
 
-    private Func<TBehavior> createCreator(Func<TBehavior> creator, Action<TBehavior> initializer)
+    private Func<TBehavior> CreateCreator(Func<TBehavior> creator, Action<TBehavior> initializer)
     {
         if (initializer == null)
             return creator;
@@ -35,7 +34,5 @@ internal sealed class WebSocketServiceHost<TBehavior> : WebSocketServiceHost
     }
 
     protected override WebSocketBehavior CreateSession()
-    {
-        return _creator();
-    }
+        => _creator();
 }

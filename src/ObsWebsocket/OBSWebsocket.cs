@@ -9,12 +9,12 @@ using ObsWebsocket.Types;
 using Newtonsoft.Json;
 using System.Collections.Concurrent;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 
 namespace ObsWebsocket;
 
 public sealed partial class OBSWebsocket
 {
-
     /// <summary>
     /// A custom broadcast message was received
     /// </summary>
@@ -264,13 +264,15 @@ public sealed partial class OBSWebsocket
     }
 
     private static readonly Random sRandom = new();
+    private readonly ILogger<WebSocket> _loggerWebsocket;
     private readonly ConcurrentDictionary<string, TaskCompletionSource<JObject>> _responseHandlers;
     private TimeSpan _websocketTimeout;
 
     private delegate void RequestCallback(OBSWebsocket sender, JObject body);
 
-    public OBSWebsocket()
+    public OBSWebsocket(ILogger<WebSocket> loggerWebsocket)
     {
+        _loggerWebsocket = loggerWebsocket;
         _responseHandlers = new ConcurrentDictionary<string, TaskCompletionSource<JObject>>();
     }
 
@@ -284,13 +286,12 @@ public sealed partial class OBSWebsocket
         if (WSConnection != null && await WSConnection.PingAsync(stoppingToken))
             await DisconnectAsync(stoppingToken);
 
-        WSConnection = new WebSocket(url);
+        WSConnection = new WebSocket(_loggerWebsocket, url);
         WSConnection.WaitTime = _websocketTimeout;
         WSConnection.OnMessage += WebsocketMessageHandler;
         WSConnection.OnClose += (s, e) =>
         {
-            if (Disconnected != null)
-                Disconnected(this, e);
+            Disconnected?.Invoke(this, e);
         };
         await WSConnection.ConnectAsync(stoppingToken);
     }

@@ -33,7 +33,7 @@ class Tests
             Username = "user"
         };
 
-        var so = new ObsWebsocket.OBSWebsocket();
+        var so = new ObsWebsocket.OBSWebsocket(null);
         so.WSTimeout = TimeSpan.FromSeconds(3);
         await so.ConnectAsync("ws://127.0.0.1:4444");
         await so.StartAsync();
@@ -147,7 +147,7 @@ class Tests
 
     public async Task TestMultiple()
     {
-        var so = new ObsWebsocket.OBSWebsocket();
+        var so = new ObsWebsocket.OBSWebsocket(null);
         so.WSTimeout = TimeSpan.FromSeconds(3);
         await so.ConnectAsync("ws://127.0.0.1:4444");
         await so.StartAsync();

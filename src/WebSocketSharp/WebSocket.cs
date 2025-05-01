@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -29,7 +30,6 @@ public sealed class WebSocket : IDisposable
 {
     private AuthenticationChallenge _authChallenge;
     private string _base64Key;
-    private bool _client;
     private Func<Task> _closeContext;
     private CompressionMethod _compression;
     private WebSocketContext _context;
@@ -46,7 +46,8 @@ public sealed class WebSocket : IDisposable
     private const string _guid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
     private bool _inContinuation;
     //private volatile bool _inMessage;
-    private volatile Logger _logger;
+    private bool _isClient;
+    private volatile ILogger _logger;
     private static readonly int _maxRetryCountForConnect;
     private Queue<MessageEventArgs> _messageEventQueue;
     private TaskCompletionSource<bool> _messageEventQueueRestart;
@@ -57,6 +58,7 @@ public sealed class WebSocket : IDisposable
     private bool _protocolsRequested;
     private volatile WebSocketState _readyState;
     //private ManualResetEvent _receivingExited;
+    private CancellationTokenSource _receivingStoppingToken = new CancellationTokenSource();
     private int _retryCountForConnect;
     private ClientSslConfiguration _sslConfig;
     private Stream _stream;
@@ -64,7 +66,6 @@ public sealed class WebSocket : IDisposable
     private Uri _uri;
     private const string _version = "13";
     private TimeSpan _waitTime;
-    private CancellationTokenSource _receivingStoppingToken = new CancellationTokenSource();
 
     internal static readonly byte[] EmptyBytes;
 
@@ -83,36 +84,6 @@ public sealed class WebSocket : IDisposable
     internal static readonly int FragmentLength;
 
     internal static readonly RandomNumberGenerator RandomNumber;
-
-    // As server
-    internal WebSocket(HttpListenerWebSocketContext context, string protocol)
-    {
-        _context = context;
-        _protocol = protocol;
-
-        _closeContext = context.CloseAsync;
-        _logger = context.Log;
-        IsSecure = context.IsSecureConnection;
-        _stream = context.Stream;
-        _waitTime = TimeSpan.FromSeconds(1);
-
-        Init();
-    }
-
-    // As server
-    internal WebSocket(TcpListenerWebSocketContext context, string protocol)
-    {
-        _context = context;
-        _protocol = protocol;
-
-        _closeContext = context.CloseAsync;
-        _logger = context.Log;
-        IsSecure = context.IsSecureConnection;
-        _stream = context.Stream;
-        _waitTime = TimeSpan.FromSeconds(1);
-
-        Init();
-    }
 
     internal CookieCollection CookieCollection { get; private set; }
 
@@ -151,30 +122,21 @@ public sealed class WebSocket : IDisposable
 
         set
         {
-            string msg = null;
-
-            if (!_client)
+            string msg;
+            if (!_isClient)
             {
                 msg = "This instance is not a client.";
                 throw new InvalidOperationException(msg);
             }
 
+            //lock (_forState)
             if (!CanSet(out msg))
             {
-                _logger.Warn(msg);
+                _logger.LogWarning("{msg}", msg);
                 return;
             }
 
-            //lock (_forState)
-            {
-                if (!CanSet(out msg))
-                {
-                    _logger.Warn(msg);
-                    return;
-                }
-
-                _compression = value;
-            }
+            _compression = value;
         }
     }
 
@@ -247,30 +209,21 @@ public sealed class WebSocket : IDisposable
 
         set
         {
-            string msg = null;
-
-            if (!_client)
+            string msg;
+            if (!_isClient)
             {
                 msg = "This instance is not a client.";
                 throw new InvalidOperationException(msg);
             }
 
+            //lock (_forState)
             if (!CanSet(out msg))
             {
-                _logger.Warn(msg);
+                _logger.LogWarning("{msg}", msg);
                 return;
             }
 
-            //lock (_forState)
-            {
-                if (!CanSet(out msg))
-                {
-                    _logger.Warn(msg);
-                    return;
-                }
-
-                _enableRedirection = value;
-            }
+            _enableRedirection = value;
         }
     }
 
@@ -292,22 +245,6 @@ public sealed class WebSocket : IDisposable
     /// <c>false</c>.
     /// </value>
     public bool IsSecure { get; private set; }
-
-    /// <summary>
-    /// Gets the logging function.
-    /// </summary>
-    /// <remarks>
-    /// The default logging level is <see cref="LogLevel.Error"/>.
-    /// </remarks>
-    /// <value>
-    /// A <see cref="Logger"/> that provides the logging function.
-    /// </value>
-    public Logger Log
-    {
-        get => _logger;
-
-        internal set => _logger = value;
-    }
 
     /// <summary>
     /// Gets or sets the value of the HTTP Origin header to send with
@@ -361,7 +298,7 @@ public sealed class WebSocket : IDisposable
         {
             string msg;
 
-            if (!_client)
+            if (!_isClient)
             {
                 msg = "This instance is not a client.";
                 throw new InvalidOperationException(msg);
@@ -369,8 +306,7 @@ public sealed class WebSocket : IDisposable
 
             if (!value.IsNullOrEmpty())
             {
-                Uri uri;
-                if (!Uri.TryCreate(value, UriKind.Absolute, out uri))
+                if (!Uri.TryCreate(value, UriKind.Absolute, out Uri uri))
                 {
                     msg = "Not an absolute URI string.";
                     throw new ArgumentException(msg, "value");
@@ -383,22 +319,14 @@ public sealed class WebSocket : IDisposable
                 }
             }
 
+            //lock (_forState)
             if (!CanSet(out msg))
             {
-                _logger.Warn(msg);
+                _logger.LogWarning("{msg}", msg);
                 return;
             }
 
-            //lock (_forState)
-            {
-                if (!CanSet(out msg))
-                {
-                    _logger.Warn(msg);
-                    return;
-                }
-
-                _origin = !value.IsNullOrEmpty() ? value.TrimEnd('/') : value;
-            }
+            _origin = !value.IsNullOrEmpty() ? value.TrimEnd('/') : value;
         }
     }
 
@@ -460,7 +388,7 @@ public sealed class WebSocket : IDisposable
     {
         get
         {
-            if (!_client)
+            if (!_isClient)
             {
                 var msg = "This instance is not a client.";
                 throw new InvalidOperationException(msg);
@@ -482,7 +410,7 @@ public sealed class WebSocket : IDisposable
     /// <value>
     /// A <see cref="Uri"/> that represents the URL to which to connect.
     /// </value>
-    public Uri Url => _client
+    public Uri Url => _isClient
         ? _uri
         : _context.RequestUri;
 
@@ -514,9 +442,9 @@ public sealed class WebSocket : IDisposable
             if (value <= TimeSpan.Zero)
                 throw new ArgumentOutOfRangeException(nameof(value), "Zero or less.");
 
-            if (!CanSet(out string msg))
+            if (!CanSet(out string? msg))
             {
-                _logger.Warn(msg);
+                _logger.LogWarning("{msg}", msg);
                 return;
             }
 
@@ -524,7 +452,7 @@ public sealed class WebSocket : IDisposable
             {
                 if (!CanSet(out msg))
                 {
-                    _logger.Warn(msg);
+                    _logger.LogWarning("{msg}", msg);
                     return;
                 }
 
@@ -560,6 +488,36 @@ public sealed class WebSocket : IDisposable
         EmptyBytes = new byte[0];
         FragmentLength = 1016;
         RandomNumber = new RNGCryptoServiceProvider();
+    }
+
+    // As server
+    internal WebSocket(HttpListenerWebSocketContext context, ILogger<WebSocket> logger, string protocol)
+    {
+        _context = context;
+        _protocol = protocol;
+
+        _closeContext = context.CloseAsync;
+        _logger = logger;
+        IsSecure = context.IsSecureConnection;
+        _stream = context.Stream;
+        _waitTime = TimeSpan.FromSeconds(1);
+
+        Init();
+    }
+
+    // As server
+    internal WebSocket(TcpListenerWebSocketContext context, ILogger<WebSocket> logger, string protocol)
+    {
+        _context = context;
+        _protocol = protocol;
+
+        _closeContext = context.CloseAsync;
+        _logger = logger;
+        IsSecure = context.IsSecureConnection;
+        _stream = context.Stream;
+        _waitTime = TimeSpan.FromSeconds(1);
+
+        Init();
     }
 
     /// <summary>
@@ -614,7 +572,7 @@ public sealed class WebSocket : IDisposable
     ///   <paramref name="protocols"/> contains a value twice.
     ///   </para>
     /// </exception>
-    public WebSocket(string url, params string[] protocols)
+    public WebSocket(ILogger<WebSocket> logger, string url, params string[] protocols)
     {
         if (url == null)
             throw new ArgumentNullException(nameof(url));
@@ -635,9 +593,8 @@ public sealed class WebSocket : IDisposable
         }
 
         _base64Key = CreateBase64Key();
-        _client = true;
-        _logger = new Logger();
-        _logger.OutputExceptionAsync = null;
+        _isClient = true;
+        _logger = logger;
         IsSecure = _uri.Scheme == "wss";
         _waitTime = TimeSpan.FromSeconds(5);
 
@@ -647,76 +604,59 @@ public sealed class WebSocket : IDisposable
     // As server
     private async Task<bool> PrivateAcceptAsync(CancellationToken cancellationToken)
     {
+        //lock (_forState)
         if (_readyState == WebSocketState.Open)
         {
-            var msg = "The handshake request has already been accepted.";
-            _logger.Warn(msg);
+            _logger.LogWarning("The handshake request has already been accepted.");
+            return false;
+        }
+
+        if (_readyState == WebSocketState.Closing)
+        {
+            _logger.LogError("The close process has set in.");
+            Error("An interruption has occurred while attempting to accept.", null);
 
             return false;
         }
 
-        //lock (_forState)
+        if (_readyState == WebSocketState.Closed)
         {
-            if (_readyState == WebSocketState.Open)
-            {
-                var msg = "The handshake request has already been accepted.";
-                _logger.Warn(msg);
+            _logger.LogError("The connection has been closed.");
+            Error("An interruption has occurred while attempting to accept.", null);
 
-                return false;
-            }
-
-            if (_readyState == WebSocketState.Closing)
-            {
-                var msg = "The close process has set in.";
-                _logger.Error(msg);
-
-                msg = "An interruption has occurred while attempting to accept.";
-                Error(msg, null);
-
-                return false;
-            }
-
-            if (_readyState == WebSocketState.Closed)
-            {
-                var msg = "The connection has been closed.";
-                _logger.Error(msg);
-
-                msg = "An interruption has occurred while attempting to accept.";
-                Error(msg, null);
-
-                return false;
-            }
-
-            try
-            {
-                if (!await AcceptHandshakeAsync(cancellationToken))
-                    return false;
-            }
-            catch (Exception acceptHandshakeErr)
-            {
-                _logger.Fatal(acceptHandshakeErr.Message);
-                _logger.Debug(acceptHandshakeErr.ToString());
-
-                var msg = "An exception has occurred while attempting to accept.";
-                await FatalAsync(msg, acceptHandshakeErr, cancellationToken);
-
-                return false;
-            }
-
-            _readyState = WebSocketState.Open;
-            return true;
+            return false;
         }
+
+        try
+        {
+            if (!await AcceptHandshakeAsync(cancellationToken))
+                return false;
+        }
+        catch (Exception acceptHandshakeErr)
+        {
+            _logger.LogCritical("{msg}", acceptHandshakeErr.Message);
+            _logger.LogDebug("{msg}", acceptHandshakeErr.ToString());
+
+            var msg = "An exception has occurred while attempting to accept.";
+            await FatalAsync(msg, acceptHandshakeErr, cancellationToken);
+
+            return false;
+        }
+
+        _readyState = WebSocketState.Open;
+        return true;
+
     }
 
     // As server
     private async Task<bool> AcceptHandshakeAsync(CancellationToken cancellationToken)
     {
-        _logger.Debug($"A handshake request from {_context.UserEndPoint}:\n{_context}");
+        _logger.LogDebug("A handshake request from {contextUserEndPoint}:\n{context}", _context.UserEndPoint, _context);
 
         string msg;
         if (!CheckHandshakeRequest(_context, out msg))
         {
-            _logger.Error(msg);
+            _logger.LogError("{msg}", msg);
 
             await RefuseHandshakeAsync(
                 CloseStatusCode.ProtocolError,
@@ -729,12 +669,12 @@ public sealed class WebSocket : IDisposable
 
         if (!CustomCheckHandshakeRequest(_context, out msg))
         {
-            _logger.Error(msg);
+            _logger.LogError("{msg}", msg);
 
             await RefuseHandshakeAsync(
-              CloseStatusCode.PolicyViolation,
-              "A handshake error has occurred while attempting to accept.",
-              cancellationToken
+                CloseStatusCode.PolicyViolation,
+                "A handshake error has occurred while attempting to accept.",
+                cancellationToken
             );
 
             return false;
@@ -757,23 +697,14 @@ public sealed class WebSocket : IDisposable
         return await SendHttpResponseAsync(CreateHandshakeResponse(), cancellationToken);
     }
 
-    private bool CanSet(out string message)
+    private bool CanSet(out string? message)
     {
-        message = null;
-
-        if (_readyState == WebSocketState.Open)
+        switch (_readyState)
         {
-            message = "The connection has already been established.";
-            return false;
+            case WebSocketState.Closing: message = "The connection is closing."; return false;
+            case WebSocketState.Open: message = "The connection has already been established."; return false;
+            default: message = null; return true;
         }
-
-        if (_readyState == WebSocketState.Closing)
-        {
-            message = "The connection is closing.";
-            return false;
-        }
-
-        return true;
     }
 
     // As server
@@ -919,13 +850,13 @@ public sealed class WebSocket : IDisposable
         message = null;
 
         var masked = frame.IsMasked;
-        if (_client && masked)
+        if (_isClient && masked)
         {
             message = "A frame from the server is masked.";
             return false;
         }
 
-        if (!_client && !masked)
+        if (!_isClient && !masked)
         {
             message = "A frame from a client is not masked.";
             return false;
@@ -962,13 +893,13 @@ public sealed class WebSocket : IDisposable
     {
         if (_readyState == WebSocketState.Closing)
         {
-            _logger.Info("The closing is already in progress.");
+            _logger.LogInformation("The closing is already in progress.");
             return;
         }
 
         if (_readyState == WebSocketState.Closed)
         {
-            _logger.Info("The connection has already been closed.");
+            _logger.LogInformation("The connection has already been closed.");
             return;
         }
 
@@ -988,13 +919,13 @@ public sealed class WebSocket : IDisposable
         {
             if (_readyState == WebSocketState.Closing)
             {
-                _logger.Info("The closing is already in progress.");
+                _logger.LogInformation("The closing is already in progress.");
                 return;
             }
 
             if (_readyState == WebSocketState.Closed)
             {
-                _logger.Info("The connection has already been closed.");
+                _logger.LogInformation("The connection has already been closed.");
                 return;
             }
 
@@ -1004,25 +935,24 @@ public sealed class WebSocket : IDisposable
             _readyState = WebSocketState.Closing;
         }
 
-        _logger.Trace("Begin closing the connection.");
+        _logger.LogTrace("Begin closing the connection.");
 
         var res = await CloseHandshakeAsync(payloadData, send, receive, received, cancellationToken);
         await ReleaseResourcesAsync();
 
-        _logger.Trace("End closing the connection.");
+        _logger.LogTrace("End closing the connection.");
 
         _readyState = WebSocketState.Closed;
 
-        var e = new CloseEventArgs(payloadData, res);
+        var closeArgs = new CloseEventArgs(payloadData, res);
 
         try
         {
-            OnClose.Emit(this, e);
+            OnClose.Emit(this, closeArgs);
         }
-        catch (Exception ex)
+        catch (Exception closeErr)
         {
-            _logger.Error(ex.Message);
-            _logger.Debug(ex.ToString());
+            _logger.LogError(closeErr, "OnClose Exception");
         }
     }
 
@@ -1033,10 +963,10 @@ public sealed class WebSocket : IDisposable
             var sent = false;
             if (send)
             {
-                var frame = WebSocketFrame.CreateCloseFrame(payloadData, _client);
+                var frame = WebSocketFrame.CreateCloseFrame(payloadData, _isClient);
                 sent = await SendBytesAsync(frame.ToArray(), stoppingToken);
 
-                if (_client)
+                if (_isClient)
                     frame.Unmask();
             }
 
@@ -1055,7 +985,7 @@ public sealed class WebSocket : IDisposable
 
             var ret = sent && received;
 
-            _logger.Debug($"Was clean?: {ret}\n  sent: {sent}\n  received: {received}");
+            _logger.LogDebug("Was clean?: {ret}\n  sent: {sent}\n  received: {received}", ret, sent, receive);
 
             return ret;
         }
@@ -1066,8 +996,7 @@ public sealed class WebSocket : IDisposable
     {
         if (_readyState == WebSocketState.Open)
         {
-            var msg = "The connection has already been established.";
-            _logger.Warn(msg);
+            _logger.LogWarning("The connection has already been established.");
 
             return false;
         }
@@ -1076,30 +1005,23 @@ public sealed class WebSocket : IDisposable
         {
             if (_readyState == WebSocketState.Open)
             {
-                var msg = "The connection has already been established.";
-                _logger.Warn(msg);
+                _logger.LogWarning("The connection has already been established.");
 
                 return false;
             }
 
             if (_readyState == WebSocketState.Closing)
             {
-                var msg = "The close process has set in.";
-                _logger.Error(msg);
-
-                msg = "An interruption has occurred while attempting to connect.";
-                Error(msg, null);
+                _logger.LogError("The close process has set in.");
+                Error("An interruption has occurred while attempting to connect.", null);
 
                 return false;
             }
 
             if (_retryCountForConnect > _maxRetryCountForConnect)
             {
-                var msg = "An opportunity for reconnecting has been lost.";
-                _logger.Error(msg);
-
-                msg = "An interruption has occurred while attempting to connect.";
-                Error(msg, null);
+                _logger.LogError("An opportunity for reconnecting has been lost.");
+                Error("An interruption has occurred while attempting to connect.", null);
 
                 return false;
             }
@@ -1110,15 +1032,14 @@ public sealed class WebSocket : IDisposable
             {
                 await DoHandshakeAsync(cancellationToken);
             }
-            catch (Exception ex)
+            catch (Exception handshakeErr)
             {
                 _retryCountForConnect++;
 
-                _logger.Fatal(ex.Message);
-                _logger.Debug(ex.ToString());
+                _logger.LogCritical(handshakeErr, "Connect EXCEPTION");
 
                 var msg = "An exception has occurred while attempting to connect.";
-                await FatalAsync(msg, ex, cancellationToken);
+                await FatalAsync(msg, handshakeErr, cancellationToken);
 
                 return false;
             }
@@ -1252,10 +1173,9 @@ public sealed class WebSocket : IDisposable
         {
             OnError.Emit(this, new ErrorEventArgs(message, exception));
         }
-        catch (Exception ex)
+        catch (Exception errorErr)
         {
-            _logger.Error(ex.Message);
-            _logger.Debug(ex.ToString());
+            _logger.LogError(errorErr, "OnError EXCEPTION");
         }
     }
 
@@ -1263,8 +1183,7 @@ public sealed class WebSocket : IDisposable
     {
         var code = exception is WebSocketException
             ? ((WebSocketException)exception).Code
-            : CloseStatusCode.Abnormal
-        ;
+            : CloseStatusCode.Abnormal;
 
         await FatalAsync(message, (ushort)code, cancellationToken);
     }
@@ -1336,10 +1255,10 @@ public sealed class WebSocket : IDisposable
             {
                 OnMessage.Emit(this, msg);
             }
-            catch (Exception ex)
+            catch (Exception messageErr)
             {
-                _logger.Error(ex.ToString());
-                Error("An error has occurred during an OnMessage event.", ex);
+                _logger.LogError(messageErr, "OnMessage EXCEPTION");
+                Error("An error has occurred during an OnMessage event.", messageErr);
             }
         }
         while (true);
@@ -1361,10 +1280,10 @@ public sealed class WebSocket : IDisposable
             if (OnOpen != null)
                 await OnOpen(this, EventArgs.Empty);
         }
-        catch (Exception ex)
+        catch (Exception openErr)
         {
-            _logger.Error(ex.ToString());
-            Error("An error has occurred during the OnOpen event.", ex);
+            _logger.LogError(openErr, "Open EXCEPTION");
+            Error("An error has occurred during the OnOpen event.", openErr);
         }
     }
 
@@ -1457,15 +1376,15 @@ public sealed class WebSocket : IDisposable
 
     private async Task<bool> ProcessPingFrameAsync(WebSocketFrame frame, CancellationToken cancellationToken)
     {
-        _logger.Trace("A ping was received.");
+        _logger.LogTrace("A ping was received.");
 
-        var pong = WebSocketFrame.CreatePongFrame(frame.PayloadData, _client);
+        var pong = WebSocketFrame.CreatePongFrame(frame.PayloadData, _isClient);
 
         //lock (_forState)
         {
             if (_readyState != WebSocketState.Open)
             {
-                _logger.Error("The connection is closing.");
+                _logger.LogError("The connection is closing.");
                 return true;
             }
 
@@ -1473,11 +1392,11 @@ public sealed class WebSocket : IDisposable
                 return false;
         }
 
-        _logger.Trace("A pong to this ping has been sent.");
+        _logger.LogTrace("A pong to this ping has been sent.");
 
         if (EmitOnPing)
         {
-            if (_client)
+            if (_isClient)
                 pong.Unmask();
 
             EnqueueToMessageEventQueue(new MessageEventArgs(frame));
@@ -1488,28 +1407,26 @@ public sealed class WebSocket : IDisposable
 
     private bool ProcessPongFrame(WebSocketFrame frame)
     {
-        _logger.Trace("A pong was received.");
+        _logger.LogTrace("A pong was received.");
 
         try
         {
             _pongReceived.Set();
         }
-        catch (NullReferenceException ex)
+        catch (NullReferenceException pongNullErr)
         {
-            _logger.Error(ex.Message);
-            _logger.Debug(ex.ToString());
+            _logger.LogError(pongNullErr, "Pong NULL EXCEPTION");
 
             return false;
         }
-        catch (ObjectDisposedException ex)
+        catch (ObjectDisposedException pongDisposedErr)
         {
-            _logger.Error(ex.Message);
-            _logger.Debug(ex.ToString());
+            _logger.LogError(pongDisposedErr, "Pong DISPOSED EXCEPTION");
 
             return false;
         }
 
-        _logger.Trace("It has been signaled.");
+        _logger.LogTrace("It has been signaled.");
 
         return true;
     }
@@ -1603,7 +1520,7 @@ public sealed class WebSocket : IDisposable
 
     private async Task<bool> ProcessUnsupportedFrameAsync(WebSocketFrame frame, CancellationToken cancellationToken)
     {
-        _logger.Fatal("An unsupported frame:" + frame.PrintToString(false));
+        _logger.LogCritical("An unsupported frame: {frame}", frame.PrintToString(dumped: false));
         await FatalAsync("There is no way to handle it.", CloseStatusCode.PolicyViolation, cancellationToken);
 
         return false;
@@ -1627,10 +1544,9 @@ public sealed class WebSocket : IDisposable
         {
             OnClose.Emit(this, e);
         }
-        catch (Exception ex)
+        catch (Exception closeErr)
         {
-            _logger.Error(ex.Message);
-            _logger.Debug(ex.ToString());
+            _logger.LogError(closeErr, "OnClose EXCEPTION");
         }
     }
 
@@ -1668,7 +1584,7 @@ public sealed class WebSocket : IDisposable
 
     private async Task ReleaseResourcesAsync()
     {
-        if (_client)
+        if (_isClient)
             ReleaseClientResources();
         else
             await ReleaseServerResourcesAsync();
@@ -1707,10 +1623,10 @@ public sealed class WebSocket : IDisposable
                 if (!sent)
                     Error("A send has been interrupted.", null);
             }
-            catch (Exception ex)
+            catch (Exception sendErr)
             {
-                _logger.Error(ex.ToString());
-                Error("An error has occurred during a send.", ex);
+                _logger.LogError(sendErr, "Send EXCEPTION");
+                Error("An error has occurred during a send.", sendErr);
             }
             finally
             {
@@ -1784,11 +1700,11 @@ public sealed class WebSocket : IDisposable
         {
             if (_readyState != WebSocketState.Open)
             {
-                _logger.Error("The connection is closing.");
+                _logger.LogError("The connection is closing.");
                 return false;
             }
 
-            var frame = new WebSocketFrame(fin, opcode, data, compressed, _client);
+            var frame = new WebSocketFrame(fin, opcode, data, compressed, _isClient);
             return await SendBytesAsync(frame.ToArray(), cancellationToken);
         }
     }
@@ -1797,12 +1713,11 @@ public sealed class WebSocket : IDisposable
     {
         try
         {
-            await _stream.WriteAsync(bytes, 0, bytes.Length, cancellationToken);
+            await _stream.WriteAsync(bytes, cancellationToken);
         }
-        catch (Exception ex)
+        catch (Exception writeErr)
         {
-            _logger.Error(ex.Message);
-            _logger.Debug(ex.ToString());
+            _logger.LogError(writeErr, "Write EXCEPTION");
 
             return false;
         }
@@ -1818,17 +1733,17 @@ public sealed class WebSocket : IDisposable
         if (res.IsUnauthorized)
         {
             var chal = res.Headers["WWW-Authenticate"];
-            _logger.Warn("Received an authentication requirement for '{chal}'.");
+            _logger.LogWarning("Received an authentication requirement for '{chal}'.", chal);
             if (chal.IsNullOrEmpty())
             {
-                _logger.Error("No authentication challenge is specified.");
+                _logger.LogError("No authentication challenge is specified.");
                 return res;
             }
 
             _authChallenge = AuthenticationChallenge.Parse(chal);
             if (_authChallenge == null)
             {
-                _logger.Error("An invalid authentication challenge is specified.");
+                _logger.LogError("An invalid authentication challenge is specified.");
                 return res;
             }
         }
@@ -1836,12 +1751,12 @@ public sealed class WebSocket : IDisposable
         if (res.IsRedirect)
         {
             var url = res.Headers["Location"];
-            _logger.Warn("Received a redirection to '{url}'.");
+            _logger.LogWarning("Received a redirection to '{url}'.", url);
             if (_enableRedirection)
             {
                 if (url.IsNullOrEmpty())
                 {
-                    _logger.Error("No url to redirect is located.");
+                    _logger.LogError("No url to redirect is located.");
                     return res;
                 }
 
@@ -1849,7 +1764,7 @@ public sealed class WebSocket : IDisposable
                 string msg;
                 if (!url.TryCreateWebSocketUri(out uri, out msg))
                 {
-                    _logger.Error("An invalid url to redirect is located: " + msg);
+                    _logger.LogError("An invalid url to redirect is located: {msg}", msg);
                     return res;
                 }
 
@@ -1869,9 +1784,9 @@ public sealed class WebSocket : IDisposable
     // As client
     private async Task<HttpResponse> SendHttpRequestAsync(HttpRequest request, int millisecondsTimeout, CancellationToken cancellationToken)
     {
-        _logger.Debug("A request to the server:\n" + request.ToString());
+        _logger.LogDebug("A request to the server:\n{request}", request);
         var res = await request.GetResponseAsync(_stream, millisecondsTimeout, cancellationToken);
-        _logger.Debug("A response to this request:\n" + res.ToString());
+        _logger.LogDebug("A response to this request:\n{res}", res);
 
         return res;
     }
@@ -1879,8 +1794,7 @@ public sealed class WebSocket : IDisposable
     // As server
     private async Task<bool> SendHttpResponseAsync(HttpResponse response, CancellationToken cancellationToken)
     {
-        _logger.Debug($"A response to {_context.UserEndPoint}:\n{response}");
-
+        _logger.LogDebug("A response to {contextUserEndPoint}:\n{response}", _context.UserEndPoint, response);
         return await SendBytesAsync(response.ToByteArray(), cancellationToken);
     }
 
@@ -1911,8 +1825,8 @@ public sealed class WebSocket : IDisposable
                     conf.ClientCertificates,
                     conf.EnabledSslProtocols,
                     conf.CheckCertificateRevocation
-                    //,
-                    //cancellationToken
+                //,
+                //cancellationToken
                 );
 
                 _stream = sslStream;
@@ -1951,10 +1865,10 @@ public sealed class WebSocket : IDisposable
                 if (!_messageEventQueueRestart.Task.IsCompleted)
                     _messageEventQueueRestart.SetResult(true);
             }
-            catch (Exception ex)
+            catch (Exception readErr)
             {
-                _logger.Fatal(ex.ToString());
-                await FatalAsync("An exception has occurred while receiving.", ex, stoppingToken);
+                _logger.LogCritical(readErr, "Read EXCEPTION");
+                await FatalAsync("An exception has occurred while receiving.", readErr, stoppingToken);
             }
         } while (!_receivingStoppingToken.IsCancellationRequested);
     }
@@ -1983,12 +1897,12 @@ public sealed class WebSocket : IDisposable
             {
                 if (!ext.Contains("server_no_context_takeover"))
                 {
-                    _logger.Error("The server hasn't sent back 'server_no_context_takeover'.");
+                    _logger.LogError("The server hasn't sent back 'server_no_context_takeover'.");
                     return false;
                 }
 
                 if (!ext.Contains("client_no_context_takeover"))
-                    _logger.Warn("The server hasn't sent back 'client_no_context_takeover'.");
+                    _logger.LogWarning("The server hasn't sent back 'client_no_context_takeover'.");
 
                 var method = _compression.ToExtensionString();
                 var invalid =
@@ -2052,20 +1966,20 @@ public sealed class WebSocket : IDisposable
         {
             if (_readyState == WebSocketState.Closing)
             {
-                _logger.Info("The closing is already in progress.");
+                _logger.LogInformation("The closing is already in progress.");
                 return;
             }
 
             if (_readyState == WebSocketState.Closed)
             {
-                _logger.Info("The connection has already been closed.");
+                _logger.LogInformation("The connection has already been closed.");
                 return;
             }
 
             _readyState = WebSocketState.Closing;
         }
 
-        _logger.Trace("Begin closing the connection.");
+        _logger.LogTrace("Begin closing the connection.");
 
         using (var registration = stoppingToken.Register(() => _receivingStoppingToken.Cancel()))
         {
@@ -2086,12 +2000,12 @@ public sealed class WebSocket : IDisposable
 
             bool res = sent && received;
 
-            _logger.Debug($"Was clean?: {res}\n  sent: {sent}\n  received: {received}");
+            _logger.LogDebug("Was clean?: {res}\n  sent: {sent}\n  received: {received}", res, sent, received);
 
             await ReleaseServerResourcesAsync();
             ReleaseCommonResources();
 
-            _logger.Trace("End closing the connection.");
+            _logger.LogTrace("End closing the connection.");
 
             _readyState = WebSocketState.Closed;
 
@@ -2101,10 +2015,9 @@ public sealed class WebSocket : IDisposable
             {
                 OnClose.Emit(this, e);
             }
-            catch (Exception ex)
+            catch (Exception closeErr)
             {
-                _logger.Error(ex.Message);
-                _logger.Debug(ex.ToString());
+                _logger.LogError(closeErr, "OnClose EXCEPTION");
             }
         }
     }
@@ -2136,13 +2049,12 @@ public sealed class WebSocket : IDisposable
             if (!await AcceptHandshakeAsync(cancellationToken))
                 return;
         }
-        catch (Exception ex)
+        catch (Exception handshakeErr)
         {
-            _logger.Fatal(ex.Message);
-            _logger.Debug(ex.ToString());
+            _logger.LogCritical(handshakeErr, "Handshake EXCEPTION");
 
             var msg = "An exception has occurred while attempting to accept.";
-            await FatalAsync(msg, ex, cancellationToken);
+            await FatalAsync(msg, handshakeErr, cancellationToken);
 
             return;
         }
@@ -2195,7 +2107,7 @@ public sealed class WebSocket : IDisposable
             {
                 if (_readyState != WebSocketState.Open)
                 {
-                    _logger.Error("The connection is closing.");
+                    _logger.LogError("The connection is closing.");
                     return;
                 }
 
@@ -2265,7 +2177,7 @@ public sealed class WebSocket : IDisposable
     /// </exception>
     public async Task AcceptAsync(CancellationToken cancellationToken)
     {
-        if (_client)
+        if (_isClient)
         {
             var msg = "This instance is a client.";
             throw new InvalidOperationException(msg);
@@ -2329,13 +2241,13 @@ public sealed class WebSocket : IDisposable
     /// </exception>
     public async Task CloseAsync(CloseStatusCode code, CancellationToken cancellationToken)
     {
-        if (_client && code == CloseStatusCode.ServerError)
+        if (_isClient && code == CloseStatusCode.ServerError)
         {
             var msg = "ServerError cannot be used.";
             throw new ArgumentException(msg, nameof(code));
         }
 
-        if (!_client && code == CloseStatusCode.MandatoryExtension)
+        if (!_isClient && code == CloseStatusCode.MandatoryExtension)
         {
             var msg = "MandatoryExtension cannot be used.";
             throw new ArgumentException(msg, nameof(code));
@@ -2414,13 +2326,13 @@ public sealed class WebSocket : IDisposable
             throw new ArgumentOutOfRangeException(nameof(code), msg);
         }
 
-        if (_client && code == 1011)
+        if (_isClient && code == 1011)
         {
             var msg = "1011 cannot be used.";
             throw new ArgumentException(msg, nameof(code));
         }
 
-        if (!_client && code == 1010)
+        if (!_isClient && code == 1010)
         {
             var msg = "1010 cannot be used.";
             throw new ArgumentException(msg, nameof(code));
@@ -2510,13 +2422,13 @@ public sealed class WebSocket : IDisposable
     /// </exception>
     public async Task CloseAsync(CloseStatusCode code, string reason, CancellationToken cancellationToken)
     {
-        if (_client && code == CloseStatusCode.ServerError)
+        if (_isClient && code == CloseStatusCode.ServerError)
         {
             var msg = "ServerError cannot be used.";
             throw new ArgumentException(msg, nameof(code));
         }
 
-        if (!_client && code == CloseStatusCode.MandatoryExtension)
+        if (!_isClient && code == CloseStatusCode.MandatoryExtension)
         {
             var msg = "MandatoryExtension cannot be used.";
             throw new ArgumentException(msg, nameof(code));
@@ -2575,7 +2487,7 @@ public sealed class WebSocket : IDisposable
     /// </exception>
     public async Task ConnectAsync(CancellationToken stoppingToken)
     {
-        if (!_client)
+        if (!_isClient)
         {
             var msg = "This instance is not a client.";
             throw new InvalidOperationException(msg);
@@ -2840,7 +2752,7 @@ public sealed class WebSocket : IDisposable
 
         if (len < length)
         {
-            _logger.Warn($"Only {len} byte(s) of data could be read from the stream.");
+            _logger.LogWarning("Only {len} byte(s) of data could be read from the stream.", len);
         }
 
         await SendAsync(Opcode.Binary, new MemoryStream(bytes), cancellationToken);

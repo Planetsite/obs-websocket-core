@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -39,7 +40,7 @@ public sealed class HttpListener : IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="HttpListener"/> class.
     /// </summary>
-    public HttpListener()
+    public HttpListener(ILogger<HttpListener> logger)
     {
         _authSchemes = AuthenticationSchemes.Anonymous;
 
@@ -52,7 +53,7 @@ public sealed class HttpListener : IDisposable
         _ctxRegistry = new Dictionary<HttpListenerContext, HttpListenerContext>();
         _ctxRegistrySync = ((ICollection)_ctxRegistry).SyncRoot;
 
-        Log = new Logger();
+        Log = logger;
 
         _prefixes = new HttpListenerPrefixCollection(this);
 
@@ -212,9 +213,9 @@ public sealed class HttpListener : IDisposable
     /// values.
     /// </remarks>
     /// <value>
-    /// A <see cref="Logger"/> that provides the logging functions.
+    /// A <see cref="ILogger"/> that provides the logging functions.
     /// </value>
-    public Logger Log { get; }
+    public ILogger Log { get; }
 
     /// <summary>
     /// Gets the URI prefixes handled by the listener.

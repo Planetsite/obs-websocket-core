@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -16,13 +17,13 @@ public sealed class HttpListenerWebSocketContext : WebSocketContext
     private HttpListenerContext _context;
     private WebSocket _websocket;
 
-    internal HttpListenerWebSocketContext(HttpListenerContext context, string protocol)
+    internal HttpListenerWebSocketContext(HttpListenerContext context, ILogger<WebSocket> loggerWebsocket, string protocol)
     {
         _context = context;
-        _websocket = new WebSocket(this, protocol);
+        _websocket = new WebSocket(this, loggerWebsocket, protocol);
     }
 
-    internal Logger Log => _context.Listener.Log;
+    internal ILogger Log => _context.Listener.Log;
 
     internal Stream Stream => _context.Connection.Stream;
 

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -32,12 +33,13 @@ internal sealed class TcpListenerWebSocketContext : WebSocketContext
         string protocol,
         bool secure,
         ServerSslConfiguration sslConfig,
-        Logger log
+        ILogger logger,
+        ILogger<WebSocket> loggerWebsocket
     )
     {
         _tcpClient = tcpClient;
         _secure = secure;
-        Log = log;
+        Log = logger;
 
         var netStream = tcpClient.GetStream();
         if (secure)
@@ -49,10 +51,10 @@ internal sealed class TcpListenerWebSocketContext : WebSocketContext
             );
 
             sslStream.AuthenticateAsServer(
-              sslConfig.ServerCertificate,
-              sslConfig.ClientCertificateRequired,
-              sslConfig.EnabledSslProtocols,
-              sslConfig.CheckCertificateRevocation
+                sslConfig.ServerCertificate,
+                sslConfig.ClientCertificateRequired,
+                sslConfig.EnabledSslProtocols,
+                sslConfig.CheckCertificateRevocation
             );
 
             Stream = sslStream;
@@ -67,10 +69,10 @@ internal sealed class TcpListenerWebSocketContext : WebSocketContext
         _userEndPoint = sock.RemoteEndPoint;
 
         _request = HttpRequest.ReadAsync(Stream, 90000).Result;
-        _websocket = new WebSocket(this, protocol);
+        _websocket = new WebSocket(this, loggerWebsocket, protocol);
     }
 
-    internal Logger Log { get; }
+    internal ILogger Log { get; }
 
     internal Stream Stream { get; }
 

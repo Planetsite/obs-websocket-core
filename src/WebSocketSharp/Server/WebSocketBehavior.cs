@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Specialized;
 using System.IO;
@@ -42,20 +43,6 @@ public abstract class WebSocketBehavior : IWebSocketSession
     ///   </para>
     /// </value>
     protected NameValueCollection Headers => Context?.Headers;
-
-    /// <summary>
-    /// Gets the logging function.
-    /// </summary>
-    /// <value>
-    ///   <para>
-    ///   A <see cref="Logger"/> that provides the logging function.
-    ///   </para>
-    ///   <para>
-    ///   <see langword="null"/> if the session has not started yet.
-    ///   </para>
-    /// </value>
-    [Obsolete("This property will be removed.")]
-    protected Logger Log => _websocket?.Log;
 
     /// <summary>
     /// Gets the query string included in a WebSocket handshake request.
@@ -263,8 +250,8 @@ public abstract class WebSocketBehavior : IWebSocketSession
         get
         {
             return _websocket != null
-                   ? _websocket.Protocol
-                   : (_protocol ?? String.Empty);
+                ? _websocket.Protocol
+                : (_protocol ?? String.Empty);
         }
 
         set
@@ -302,7 +289,7 @@ public abstract class WebSocketBehavior : IWebSocketSession
     /// </value>
     public DateTime StartTime { get; private set; }
 
-    private string checkHandshakeRequest(WebSocketContext context)
+    private string CheckHandshakeRequest(WebSocketContext context)
     {
         if (OriginValidator != null)
         {
@@ -321,7 +308,7 @@ public abstract class WebSocketBehavior : IWebSocketSession
         return null;
     }
 
-    private void onClose(object sender, CloseEventArgs e)
+    private void OnClose(object sender, CloseEventArgs e)
     {
         if (ID == null)
             return;
@@ -330,17 +317,17 @@ public abstract class WebSocketBehavior : IWebSocketSession
         OnClose(e);
     }
 
-    private void onError(object sender, ErrorEventArgs e)
+    private void OnError(object sender, ErrorEventArgs e)
     {
         OnError(e);
     }
 
-    private void onMessage(object sender, MessageEventArgs e)
+    private void OnMessage(object sender, MessageEventArgs e)
     {
         OnMessage(e);
     }
 
-    private async Task onOpen(object sender, EventArgs e)
+    private async Task OnOpen(object sender, EventArgs e)
     {
         ID = Sessions.Add(this);
         if (ID == null)
@@ -353,11 +340,11 @@ public abstract class WebSocketBehavior : IWebSocketSession
         OnOpen();
     }
 
-    internal async Task StartAsync(WebSocketContext context, WebSocketSessionManager sessions, CancellationToken cancellationToken)
+    internal async Task StartAsync(ILogger logger, WebSocketContext context, WebSocketSessionManager sessions, CancellationToken cancellationToken)
     {
         if (_websocket != null)
         {
-            _websocket.Log.Error("A session instance cannot be reused.");
+            logger.LogError("A session instance cannot be reused.");
             await context.WebSocket.InternalCloseAsync(HttpStatusCode.ServiceUnavailable, cancellationToken);
 
             return;
@@ -367,7 +354,7 @@ public abstract class WebSocketBehavior : IWebSocketSession
         Sessions = sessions;
 
         _websocket = context.WebSocket;
-        _websocket.CustomHandshakeRequestChecker = checkHandshakeRequest;
+        _websocket.CustomHandshakeRequestChecker = CheckHandshakeRequest;
         _websocket.EmitOnPing = _emitOnPing;
         _websocket.IgnoreExtensions = IgnoreExtensions;
         _websocket.Protocol = _protocol;
@@ -376,10 +363,10 @@ public abstract class WebSocketBehavior : IWebSocketSession
         if (waitTime != _websocket.WaitTime)
             _websocket.WaitTime = waitTime;
 
-        _websocket.OnOpen += onOpen;
-        _websocket.OnMessage += onMessage;
-        _websocket.OnError += onError;
-        _websocket.OnClose += onClose;
+        _websocket.OnOpen += OnOpen;
+        _websocket.OnMessage += OnMessage;
+        _websocket.OnError += OnError;
+        _websocket.OnClose += OnClose;
 
         await _websocket.InternalAcceptAsync(cancellationToken);
     }

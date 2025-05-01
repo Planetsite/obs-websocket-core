@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -26,9 +27,9 @@ public abstract class WebSocketServiceHost
     /// A <see cref="string"/> that represents the absolute path to the service.
     /// </param>
     /// <param name="log">
-    /// A <see cref="Logger"/> that represents the logging function for the service.
+    /// A <see cref="ILogger"/> that represents the logging function for the service.
     /// </param>
-    protected WebSocketServiceHost(string path, Logger log)
+    protected WebSocketServiceHost(string path, ILogger log)
     {
         _path = path;
         Log = log;
@@ -42,9 +43,9 @@ public abstract class WebSocketServiceHost
     /// Gets the logging function for the service.
     /// </summary>
     /// <value>
-    /// A <see cref="Logger"/> that provides the logging function.
+    /// A <see cref="ILogger"/> that provides the logging function.
     /// </value>
-    protected Logger Log { get; }
+    protected ILogger Log { get; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the service cleans up
@@ -116,9 +117,9 @@ public abstract class WebSocketServiceHost
         _sessions.Start(stoppingToken);
     }
 
-    internal async Task StartSessionAsync(WebSocketContext context, CancellationToken cancellationToken)
+    internal async Task StartSessionAsync(ILogger logger, WebSocketContext context, CancellationToken cancellationToken)
     {
-        await CreateSession().StartAsync(context, _sessions, cancellationToken);
+        await CreateSession().StartAsync(logger, context, _sessions, cancellationToken);
     }
 
     internal async Task StopAsync(ushort code, string reason, CancellationToken stoppingToken)

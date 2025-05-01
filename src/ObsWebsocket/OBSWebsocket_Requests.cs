@@ -13,7 +13,6 @@ namespace ObsWebsocket;
 /// </summary>
 public partial class OBSWebsocket
 {
-
     private const string SOURCE_TYPE_JSON_FIELD = "sourceType";
     private const string SOURCE_TYPE_BROWSER_SOURCE = "browser_source";
 
@@ -22,7 +21,7 @@ public partial class OBSWebsocket
     /// </summary>
     public async Task<OBSVideoInfo> GetVideoInfoAsync(CancellationToken cancellationToken)
     {
-        JObject response = await SendRequestAsync("GetVideoInfo", cancellationToken: cancellationToken);
+        var response = await SendRequestAsync("GetVideoInfo", cancellationToken: cancellationToken);
         return JsonConvert.DeserializeObject<OBSVideoInfo>(response.ToString());
     }
 
@@ -88,7 +87,7 @@ public partial class OBSWebsocket
     /// <returns>An <see cref="OBSScene"/> object describing the current scene</returns>
     public async Task<OBSScene> GetCurrentSceneAsync(CancellationToken cancellationToken = default)
     {
-        JObject response = await SendRequestAsync("GetCurrentScene", cancellationToken: cancellationToken);
+        var response = await SendRequestAsync("GetCurrentScene", cancellationToken: cancellationToken);
         return new OBSScene(response);
     }
 

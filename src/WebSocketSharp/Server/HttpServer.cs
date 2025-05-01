@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using System;
 using System.IO;
 using System.Security.Principal;
@@ -22,6 +23,7 @@ public sealed class HttpServer
     private string _docRootPath;
     private string _hostname;
     private HttpListener _listener;
+    private readonly IServiceProvider _serviceProvider;
     private volatile ServerState _state;
     private object _sync;
 
@@ -32,9 +34,10 @@ public sealed class HttpServer
     /// The new instance listens for incoming requests on
     /// <see cref="System.Net.IPAddress.Any"/> and port 80.
     /// </remarks>
-    public HttpServer()
+    public HttpServer(IServiceProvider serviceProvider)
     {
         Init("*", System.Net.IPAddress.Any, 80, false);
+        _serviceProvider = serviceProvider;
     }
 
     /// <summary>
@@ -57,8 +60,8 @@ public sealed class HttpServer
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="port"/> is less than 1 or greater than 65535.
     /// </exception>
-    public HttpServer(int port)
-      : this(port, port == 443)
+    public HttpServer(IServiceProvider serviceProvider, int port)
+        : this(serviceProvider, port, port == 443)
     {
     }
 
@@ -98,13 +101,15 @@ public sealed class HttpServer
     ///   <paramref name="url"/> is invalid.
     ///   </para>
     /// </exception>
-    public HttpServer(string url)
+    public HttpServer(IServiceProvider serviceProvider, string url)
     {
         if (url == null)
             throw new ArgumentNullException("url");
 
         if (url.Length == 0)
             throw new ArgumentException("An empty string.", "url");
+
+        _serviceProvider = serviceProvider;
 
         Uri uri;
         string msg;
@@ -148,14 +153,14 @@ public sealed class HttpServer
     /// <exception cref="ArgumentOutOfRangeException">
     /// <paramref name="port"/> is less than 1 or greater than 65535.
     /// </exception>
-    public HttpServer(int port, bool secure)
+    public HttpServer(IServiceProvider serviceProvider, int port, bool secure)
     {
         if (!port.IsPortNumber())
         {
             var msg = "Less than 1 or greater than 65535.";
             throw new ArgumentOutOfRangeException("port", msg);
         }
-
+        _serviceProvider = serviceProvider;
         Init("*", System.Net.IPAddress.Any, port, secure);
     }
 
@@ -278,7 +283,7 @@ public sealed class HttpServer
         {
             if (!CanSet(out string msg))
             {
-                Log.Warn(msg);
+                Log.LogWarning("{msg}", msg);
                 return;
             }
 
@@ -286,7 +291,7 @@ public sealed class HttpServer
             {
                 if (!CanSet(out msg))
                 {
-                    Log.Warn(msg);
+                    Log.LogWarning("{msg}", msg);
                     return;
                 }
 
@@ -379,7 +384,7 @@ public sealed class HttpServer
             string msg;
             if (!CanSet(out msg))
             {
-                Log.Warn(msg);
+                Log.LogWarning("{msg}", msg);
                 return;
             }
 
@@ -387,7 +392,7 @@ public sealed class HttpServer
             {
                 if (!CanSet(out msg))
                 {
-                    Log.Warn(msg);
+                    Log.LogWarning("{msg}", msg);
                     return;
                 }
 
@@ -444,9 +449,9 @@ public sealed class HttpServer
     /// The default logging level is <see cref="LogLevel.Error"/>.
     /// </remarks>
     /// <value>
-    /// A <see cref="Logger"/> that provides the logging function.
+    /// A <see cref="ILogger"/> that provides the logging function.
     /// </value>
-    public Logger Log { get; private set; }
+    public ILogger Log { get; private set; }
 
     /// <summary>
     /// Gets the port of the server.
@@ -487,7 +492,7 @@ public sealed class HttpServer
             string msg;
             if (!CanSet(out msg))
             {
-                Log.Warn(msg);
+                Log.LogWarning("{msg}", msg);
                 return;
             }
 
@@ -495,7 +500,7 @@ public sealed class HttpServer
             {
                 if (!CanSet(out msg))
                 {
-                    Log.Warn(msg);
+                    Log.LogWarning("{msg}", msg);
                     return;
                 }
 
@@ -535,7 +540,7 @@ public sealed class HttpServer
         {
             if (!CanSet(out string msg))
             {
-                Log.Warn(msg);
+                Log.LogWarning("{msg}", msg);
                 return;
             }
 
@@ -543,7 +548,7 @@ public sealed class HttpServer
             {
                 if (!CanSet(out msg))
                 {
-                    Log.Warn(msg);
+                    Log.LogWarning("{msg}", msg);
                     return;
                 }
 
@@ -618,7 +623,7 @@ public sealed class HttpServer
             string msg;
             if (!CanSet(out msg))
             {
-                Log.Warn(msg);
+                Log.LogWarning("{msg}", msg);
                 return;
             }
 
@@ -626,7 +631,7 @@ public sealed class HttpServer
             {
                 if (!CanSet(out msg))
                 {
-                    Log.Warn(msg);
+                    Log.LogWarning("{msg}", msg);
                     return;
                 }
 
@@ -774,7 +779,7 @@ public sealed class HttpServer
         }
 
         if (byUser && withPort)
-            Log.Warn("The server certificate associated with the port is used.");
+            Log.LogWarning("The server certificate associated with the port is used.");
 
         return true;
     }
@@ -788,9 +793,9 @@ public sealed class HttpServer
             .Replace('\\', '/');
     }
 
-    private static HttpListener PrivateCreateListener(string hostname, int port, bool secure)
+    private static HttpListener PrivateCreateListener(ILogger log, string hostname, int port, bool secure)
     {
-        var lsnr = new HttpListener();
+        var lsnr = new HttpListener((ILogger<HttpListener>)log);
 
         var schm = secure ? "https" : "http";
         var pref = String.Format("{0}://{1}:{2}/", schm, hostname, port);
@@ -807,7 +812,7 @@ public sealed class HttpServer
         IsSecure = secure;
 
         _docRootPath = "./Public";
-        _listener = PrivateCreateListener(_hostname, Port, IsSecure);
+        _listener = PrivateCreateListener(Log, _hostname, Port, IsSecure);
         Log = _listener.Log;
         WebSocketServices = new WebSocketServiceManager(Log);
         _sync = new object();
@@ -857,7 +862,7 @@ public sealed class HttpServer
             return;
         }
 
-        await host.StartSessionAsync(context, cancellationToken);
+        await host.StartSessionAsync(Log, context, cancellationToken);
     }
 
     private async Task PrivateReceiveRequestAsync(CancellationToken cancellationToken)
@@ -872,34 +877,33 @@ public sealed class HttpServer
                 {
                     if (ctx.Request.IsUpgradeRequest("websocket"))
                     {
-                        await PrivatePprocessRequestAsync(ctx.AcceptWebSocket(null), cancellationToken);
+                        var logger = (ILogger<WebSocket>)_serviceProvider.GetService(typeof(ILogger<WebSocket>));
+                        await PrivatePprocessRequestAsync(ctx.AcceptWebSocket(logger, null), cancellationToken);
                         return;
                     }
 
                     await PrivateProcessRequestAsync(ctx);
                 }
-                catch (Exception ex)
+                catch (Exception contextErr)
                 {
-                    Log.Fatal(ex.Message);
-                    Log.Debug(ex.ToString());
+                    Log.LogCritical(contextErr, "Upgrade http request EXCEPTION");
 
                     await ctx.Connection.CloseAsync(true);
                 }
             }
             catch (HttpListenerException)
             {
-                Log.Info("The underlying listener is stopped.");
+                Log.LogInformation("The underlying listener is stopped.");
                 break;
             }
             catch (InvalidOperationException)
             {
-                Log.Info("The underlying listener is stopped.");
+                Log.LogInformation("The underlying listener is stopped.");
                 break;
             }
-            catch (Exception ex)
+            catch (Exception upgradeErr)
             {
-                Log.Fatal(ex.Message);
-                Log.Debug(ex.ToString());
+                Log.LogCritical(upgradeErr, "Upgrade http request EXCEPTION");
 
                 if (ctx != null)
                     await ctx.Connection.CloseAsync(true);
@@ -916,13 +920,13 @@ public sealed class HttpServer
     {
         if (_state == ServerState.Start)
         {
-            Log.Info("The server has already started.");
+            Log.LogInformation("The server has already started.");
             return;
         }
 
         if (_state == ServerState.ShuttingDown)
         {
-            Log.Warn("The server is shutting down.");
+            Log.LogWarning("The server is shutting down.");
             return;
         }
 
@@ -930,13 +934,13 @@ public sealed class HttpServer
         {
             if (_state == ServerState.Start)
             {
-                Log.Info("The server has already started.");
+                Log.LogInformation("The server has already started.");
                 return;
             }
 
             if (_state == ServerState.ShuttingDown)
             {
-                Log.Warn("The server is shutting down.");
+                Log.LogWarning("The server is shutting down.");
                 return;
             }
 
@@ -978,19 +982,19 @@ public sealed class HttpServer
     {
         if (_state == ServerState.Ready)
         {
-            Log.Info("The server is not started.");
+            Log.LogInformation("The server is not started.");
             return;
         }
 
         if (_state == ServerState.ShuttingDown)
         {
-            Log.Info("The server is shutting down.");
+            Log.LogInformation("The server is shutting down.");
             return;
         }
 
         if (_state == ServerState.Stop)
         {
-            Log.Info("The server has already stopped.");
+            Log.LogInformation("The server has already stopped.");
             return;
         }
 
@@ -998,13 +1002,13 @@ public sealed class HttpServer
         {
             if (_state == ServerState.ShuttingDown)
             {
-                Log.Info("The server is shutting down.");
+                Log.LogInformation("The server is shutting down.");
                 return;
             }
 
             if (_state == ServerState.Stop)
             {
-                Log.Info("The server has already stopped.");
+                Log.LogInformation("The server has already stopped.");
                 return;
             }
 
