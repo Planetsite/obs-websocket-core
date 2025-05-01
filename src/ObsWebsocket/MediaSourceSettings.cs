@@ -1,5 +1,5 @@
 ﻿using Newtonsoft.Json;
-namespace OBSWebsocketDotNet;
+namespace ObsWebsocket;
 
 /// <summary>
 ///

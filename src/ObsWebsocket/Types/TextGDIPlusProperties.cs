@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace OBSWebsocketDotNet.Types;
+namespace ObsWebsocket.Types;
 
 /// <summary>
 /// Properties for a GDI+ Text source

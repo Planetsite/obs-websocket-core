@@ -2,7 +2,7 @@
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 
-namespace OBSWebsocketDotNet.Types;
+namespace ObsWebsocket.Types;
 
 /// <summary>
 /// Describes a scene in OBS, along with its items

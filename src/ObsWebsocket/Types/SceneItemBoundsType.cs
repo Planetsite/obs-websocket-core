@@ -1,4 +1,4 @@
-﻿namespace OBSWebsocketDotNet.Types;
+﻿namespace ObsWebsocket.Types;
 
 /// <summary>
 /// Types of bounding boxes for scene items

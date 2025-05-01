@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace OBSWebsocketDotNet.Types;
+namespace ObsWebsocket.Types;
 
 /// <summary>
 /// BrowserSource source properties

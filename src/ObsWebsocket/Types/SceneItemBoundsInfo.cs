@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
-namespace OBSWebsocketDotNet.Types;
+namespace ObsWebsocket.Types;
 
 /// <summary>
 /// Information on scene item bounds

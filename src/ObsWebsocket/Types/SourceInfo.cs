@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace OBSWebsocketDotNet.Types;
+namespace ObsWebsocket.Types;
 
 /// <summary>
 /// Source information returned by GetSourcesList

@@ -22,9 +22,9 @@ class Tests
     {
         Console.WriteLine("test");
 
-        var newsett = new OBSWebsocketDotNet.Types.StreamingService();
+        var newsett = new ObsWebsocket.Types.StreamingService();
         newsett.Type = "rtmp_custom";
-        newsett.Settings = new OBSWebsocketDotNet.Types.StreamingServiceSettings
+        newsett.Settings = new ObsWebsocket.Types.StreamingServiceSettings
         {
             UseAuth = true,
             Server = "rtmp://192.168.150.130/live/test3",
@@ -33,7 +33,7 @@ class Tests
             Username = "user"
         };
 
-        var so = new OBSWebsocketDotNet.OBSWebsocket();
+        var so = new ObsWebsocket.OBSWebsocket();
         so.WSTimeout = TimeSpan.FromSeconds(3);
         await so.ConnectAsync("ws://127.0.0.1:4444");
         await so.StartAsync();
@@ -147,7 +147,7 @@ class Tests
 
     public async Task TestMultiple()
     {
-        var so = new OBSWebsocketDotNet.OBSWebsocket();
+        var so = new ObsWebsocket.OBSWebsocket();
         so.WSTimeout = TimeSpan.FromSeconds(3);
         await so.ConnectAsync("ws://127.0.0.1:4444");
         await so.StartAsync();

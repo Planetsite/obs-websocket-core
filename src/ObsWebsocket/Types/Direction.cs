@@ -1,4 +1,4 @@
-﻿namespace OBSWebsocketDotNet.Types;
+﻿namespace ObsWebsocket.Types;
 
 public enum Direction
 {

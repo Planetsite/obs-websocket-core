@@ -1,9 +1,9 @@
 ﻿using Newtonsoft.Json.Linq;
-using OBSWebsocketDotNet.Types;
+using ObsWebsocket.Types;
 using System;
 using System.Collections.Generic;
 
-namespace OBSWebsocketDotNet;
+namespace ObsWebsocket;
 
 /// <summary>
 /// Called by <see cref="OBSWebsocket.SceneChanged"/>

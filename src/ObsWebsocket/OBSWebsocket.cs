@@ -5,12 +5,12 @@ using System.Text;
 using WebSocketSharp;
 using Newtonsoft.Json.Linq;
 using System.Threading.Tasks;
-using OBSWebsocketDotNet.Types;
+using ObsWebsocket.Types;
 using Newtonsoft.Json;
 using System.Collections.Concurrent;
 using System.Threading;
 
-namespace OBSWebsocketDotNet;
+namespace ObsWebsocket;
 
 public sealed partial class OBSWebsocket
 {

@@ -1,4 +1,4 @@
-﻿namespace OBSWebsocketDotNet.Types;
+﻿namespace ObsWebsocket.Types;
 
 /// <summary>
 /// Describes the state of an output (streaming or recording)

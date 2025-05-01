@@ -1,12 +1,12 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using OBSWebsocketDotNet.Types;
+using ObsWebsocket.Types;
 using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace OBSWebsocketDotNet;
+namespace ObsWebsocket;
 
 /// <summary>
 /// Instance of a connection with an obs-websocket server

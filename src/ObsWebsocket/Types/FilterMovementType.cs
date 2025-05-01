@@ -1,4 +1,4 @@
-﻿namespace OBSWebsocketDotNet.Types;
+﻿namespace ObsWebsocket.Types;
 
 /// <summary>
 /// Direction to move filters

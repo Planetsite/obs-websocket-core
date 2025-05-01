@@ -2,7 +2,7 @@
 
   <PropertyGroup>
 	<TargetFrameworks>net7</TargetFrameworks>
-    <RootNamespace>OBSWebsocketDotNet</RootNamespace>
+    <RootNamespace>ObsWebsocket</RootNamespace>
     <Copyright>Copyright © Stéphane Lepin 2020</Copyright>
     <Version>5.3.0</Version>
     <PackageVersion>5.3.0</PackageVersion>
