@@ -3,10 +3,11 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net7</TargetFramework>
+    <RootNamespace />
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\obs-websocket\obs-websocket.csproj" />
+    <ProjectReference Include="..\OBSWebsocketDotNet\obs-websocket.csproj" />
   </ItemGroup>
 
 </Project>

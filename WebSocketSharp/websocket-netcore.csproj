@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFrameworks>net7</TargetFrameworks>
-    <RootNamespace>websocket_netcore</RootNamespace>
+    <RootNamespace></RootNamespace>
     <Copyright>sta.blockhead</Copyright>
     <Version>2.2.0</Version>
     <AssemblyVersion>2.2.0</AssemblyVersion>
