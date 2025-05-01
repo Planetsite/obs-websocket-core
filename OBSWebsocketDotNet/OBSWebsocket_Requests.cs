@@ -17,8 +17,6 @@ public partial class OBSWebsocket
     private const string SOURCE_TYPE_JSON_FIELD = "sourceType";
     private const string SOURCE_TYPE_BROWSER_SOURCE = "browser_source";
 
-
-
     /// <summary>
     /// Get basic OBS video information
     /// </summary>

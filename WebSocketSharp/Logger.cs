@@ -1,7 +1,7 @@
 using System;
-using System.Diagnostics;
 using System.IO;
-
+using System.Threading.Tasks;
+#nullable enable
 namespace WebSocketSharp;
 
 /// <summary>
@@ -18,15 +18,17 @@ namespace WebSocketSharp;
 ///   </para>
 ///   <para>
 ///   If you would like to use the custom output action, you should set
-///   the <see cref="Logger.Output"/> property to any <c>Action&lt;LogData, string&gt;</c>
+///   the <see cref="Logger.OutputAsync"/> property to any <c>Action&lt;LogData, string&gt;</c>
 ///   delegate.
 ///   </para>
 /// </remarks>
 public sealed class Logger
 {
+    public Func<string, Task>? OutputExceptionAsync;
+
     private volatile string _file;
-    private volatile LogLevel _level;
-    private Action<LogData, string> _output;
+    private volatile LogLevel _loggerLevel;
+    private Func<LogData, string, Task> _outputAsync;
     private object _sync;
 
     /// <summary>
@@ -35,8 +37,7 @@ public sealed class Logger
     /// <remarks>
     /// This constructor initializes the current logging level with <see cref="LogLevel.Error"/>.
     /// </remarks>
-    public Logger()
-      : this(LogLevel.Error, null, null)
+    public Logger() : this(LogLevel.Error, null, null)
     {
     }
 
@@ -47,15 +48,14 @@ public sealed class Logger
     /// <param name="level">
     /// One of the <see cref="LogLevel"/> enum values.
     /// </param>
-    public Logger(LogLevel level)
-      : this(level, null, null)
+    public Logger(LogLevel level) : this(level, null, null)
     {
     }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Logger"/> class with
     /// the specified logging <paramref name="level"/>, path to the log <paramref name="file"/>,
-    /// and <paramref name="output"/> action.
+    /// and <paramref name="outputAsync"/> action.
     /// </summary>
     /// <param name="level">
     /// One of the <see cref="LogLevel"/> enum values.
@@ -63,21 +63,18 @@ public sealed class Logger
     /// <param name="file">
     /// A <see cref="string"/> that represents the path to the log file.
     /// </param>
-    /// <param name="output">
-    /// An <c>Action&lt;LogData, string&gt;</c> delegate that references the method(s) used to
+    /// <param name="outputAsync">
+    /// A <c>Func&lt;LogData, string, Task&gt;</c> delegate that references the method(s) used to
     /// output a log. A <see cref="string"/> parameter passed to this delegate is
     /// <paramref name="file"/>.
     /// </param>
-    public Logger(LogLevel level, string file, Action<LogData, string> output)
+    public Logger(LogLevel level, string file, Func<LogData, string, Task> outputAsync)
     {
-        _level = level;
+        _loggerLevel = level;
         _file = file;
-        _output = output ?? defaultOutput;
+        _outputAsync = outputAsync ?? DefaultOutputAsync;
         _sync = new object();
     }
-
-
-
 
     /// <summary>
     /// Gets or sets the current path to the log file.
@@ -94,8 +91,7 @@ public sealed class Logger
             lock (_sync)
             {
                 _file = value;
-                Warn(
-                  String.Format("The current path to the log file has been changed to {0}.", _file));
+                Warn($"The current path to the log file has been changed to {_file}.");
             }
         }
     }
@@ -111,14 +107,14 @@ public sealed class Logger
     /// </value>
     public LogLevel Level
     {
-        get => _level;
+        get => _loggerLevel;
 
         set
         {
             lock (_sync)
             {
-                _level = value;
-                Warn(String.Format("The current logging level has been changed to {0}.", _level));
+                _loggerLevel = value;
+                Warn($"The current logging level has been changed to {_loggerLevel}.");
             }
         }
     }
@@ -137,61 +133,55 @@ public sealed class Logger
     ///   the default output action.
     ///   </para>
     /// </value>
-    public Action<LogData, string> Output
+    public Func<LogData, string, Task> OutputAsync
     {
-        get => _output;
+        get => _outputAsync;
 
         set
         {
             lock (_sync)
             {
-                _output = value ?? defaultOutput;
+                _outputAsync = value ?? DefaultOutputAsync;
                 Warn("The current output action has been changed.");
             }
         }
     }
 
-
-
-
-    private static void defaultOutput(LogData data, string path)
+    private static async Task DefaultOutputAsync(LogData data, string path)
     {
         var log = data.ToString();
-        Console.WriteLine(log);
         if (path != null && path.Length > 0)
-            writeToFile(log, path);
+            await WriteToFileAsync(log, path);
     }
 
-    private void output(string message, LogLevel level)
+    private async Task InternalOutputAsync(string message, LogLevel messageLevel)
     {
-        lock (_sync)
+        //lock (_sync)
         {
-            if (_level > level)
+            if (_loggerLevel > messageLevel)
                 return;
 
-            LogData data = null;
+            LogData data;
             try
             {
-                data = new LogData(level, new StackFrame(2, true), message);
-                _output(data, _file);
+                data = new LogData(messageLevel, message);
+                await _outputAsync(data, _file);
             }
-            catch (Exception ex)
+            catch (Exception writeErr)
             {
-                data = new LogData(LogLevel.Fatal, new StackFrame(0, true), ex.Message);
-                Console.WriteLine(data.ToString());
+                data = new LogData(LogLevel.Fatal, writeErr.Message);
+                if (OutputExceptionAsync != null)
+                    await OutputExceptionAsync(data.ToString());
             }
         }
     }
 
-    private static void writeToFile(string value, string path)
+    private static async Task WriteToFileAsync(string value, string path)
     {
-        using (var writer = new StreamWriter(path, true))
-        using (var syncWriter = TextWriter.Synchronized(writer))
-            syncWriter.WriteLine(value);
+        using var writer = new StreamWriter(path, true);
+        using var syncWriter = TextWriter.Synchronized(writer);
+        await syncWriter.WriteLineAsync(value);
     }
-
-
-
 
     /// <summary>
     /// Outputs <paramref name="message"/> as a log with <see cref="LogLevel.Debug"/>.
@@ -205,10 +195,10 @@ public sealed class Logger
     /// </param>
     public void Debug(string message)
     {
-        if (_level > LogLevel.Debug)
+        if (_loggerLevel > LogLevel.Debug)
             return;
 
-        output(message, LogLevel.Debug);
+        _ = InternalOutputAsync(message, LogLevel.Debug);
     }
 
     /// <summary>
@@ -223,10 +213,10 @@ public sealed class Logger
     /// </param>
     public void Error(string message)
     {
-        if (_level > LogLevel.Error)
+        if (_loggerLevel > LogLevel.Error)
             return;
 
-        output(message, LogLevel.Error);
+        _ = InternalOutputAsync(message, LogLevel.Error);
     }
 
     /// <summary>
@@ -236,9 +226,7 @@ public sealed class Logger
     /// A <see cref="string"/> that represents the message to output as a log.
     /// </param>
     public void Fatal(string message)
-    {
-        output(message, LogLevel.Fatal);
-    }
+        => _ = InternalOutputAsync(message, LogLevel.Fatal);
 
     /// <summary>
     /// Outputs <paramref name="message"/> as a log with <see cref="LogLevel.Info"/>.
@@ -252,10 +240,10 @@ public sealed class Logger
     /// </param>
     public void Info(string message)
     {
-        if (_level > LogLevel.Info)
+        if (_loggerLevel > LogLevel.Info)
             return;
 
-        output(message, LogLevel.Info);
+        _ = InternalOutputAsync(message, LogLevel.Info);
     }
 
     /// <summary>
@@ -270,10 +258,10 @@ public sealed class Logger
     /// </param>
     public void Trace(string message)
     {
-        if (_level > LogLevel.Trace)
+        if (_loggerLevel > LogLevel.Trace)
             return;
 
-        output(message, LogLevel.Trace);
+        _ = InternalOutputAsync(message, LogLevel.Trace);
     }
 
     /// <summary>
@@ -288,11 +276,9 @@ public sealed class Logger
     /// </param>
     public void Warn(string message)
     {
-        if (_level > LogLevel.Warn)
+        if (_loggerLevel > LogLevel.Warn)
             return;
 
-        output(message, LogLevel.Warn);
+        _ = InternalOutputAsync(message, LogLevel.Warn);
     }
-
-
 }

@@ -27,9 +27,6 @@ internal class WebSocketFrame : IEnumerable<byte>
     /// </remarks>
     internal static readonly byte[] EmptyPingBytes;
 
-
-
-
     static WebSocketFrame()
     {
         EmptyPingBytes = CreatePingFrame(false).ToArray();
@@ -300,12 +297,10 @@ internal class WebSocketFrame : IEnumerable<byte>
 
         var spFmt = $"{{0,{cntDigit}}}";
 
-        var headerFmt = String.Format(
-            @"
-{0} 01234567 89ABCDEF 01234567 89ABCDEF
-{0}+--------+--------+--------+--------+\n",
-            spFmt
-        );
+        var headerFmt = $"""
+            {spFmt} 01234567 89ABCDEF 01234567 89ABCDEF
+            {spFmt}+--------+--------+--------+--------+\\n
+            """;
 
         var lineFmt = String.Format("{0}|{{1,8}} {{2,8}} {{3,8}} {{4,8}}|\n", cntFmt);
 
@@ -314,16 +309,16 @@ internal class WebSocketFrame : IEnumerable<byte>
         var buff = new StringBuilder(64);
 
         Func<Action<string, string, string, string>> linePrinter =
-          () =>
-          {
-              long lineCnt = 0;
-              return (arg1, arg2, arg3, arg4) =>
-              {
-                  buff.AppendFormat(
-              lineFmt, ++lineCnt, arg1, arg2, arg3, arg4
-            );
-              };
-          };
+            () =>
+            {
+                long lineCnt = 0;
+                return (arg1, arg2, arg3, arg4) =>
+                {
+                    buff.AppendFormat(
+                    lineFmt, ++lineCnt, arg1, arg2, arg3, arg4
+                );
+                };
+            };
 
         var printLine = linePrinter();
         var bytes = frame.ToArray();
@@ -337,10 +332,10 @@ internal class WebSocketFrame : IEnumerable<byte>
             if (i < cnt)
             {
                 printLine(
-                  Convert.ToString(bytes[j], 2).PadLeft(8, '0'),
-                  Convert.ToString(bytes[j + 1], 2).PadLeft(8, '0'),
-                  Convert.ToString(bytes[j + 2], 2).PadLeft(8, '0'),
-                  Convert.ToString(bytes[j + 3], 2).PadLeft(8, '0')
+                      Convert.ToString(bytes[j], 2).PadLeft(8, '0'),
+                      Convert.ToString(bytes[j + 1], 2).PadLeft(8, '0'),
+                      Convert.ToString(bytes[j + 2], 2).PadLeft(8, '0'),
+                      Convert.ToString(bytes[j + 3], 2).PadLeft(8, '0')
                 );
 
                 continue;
@@ -351,11 +346,11 @@ internal class WebSocketFrame : IEnumerable<byte>
                 printLine(
                   Convert.ToString(bytes[j], 2).PadLeft(8, '0'),
                   rem >= 2
-                  ? Convert.ToString(bytes[j + 1], 2).PadLeft(8, '0')
-                  : String.Empty,
+                      ? Convert.ToString(bytes[j + 1], 2).PadLeft(8, '0')
+                      : String.Empty,
                   rem == 3
-                  ? Convert.ToString(bytes[j + 2], 2).PadLeft(8, '0')
-                  : String.Empty,
+                      ? Convert.ToString(bytes[j + 2], 2).PadLeft(8, '0')
+                      : String.Empty,
                   String.Empty
                 );
             }
@@ -367,28 +362,19 @@ internal class WebSocketFrame : IEnumerable<byte>
 
     private static string Print(WebSocketFrame frame)
     {
-        // Payload Length
         var payloadLen = frame.PayloadLength;
 
-        // Extended Payload Length
         var extPayloadLen = payloadLen > 125
-                            ? frame.ExactPayloadLength.ToString()
-                            : String.Empty;
+            ? frame.ExactPayloadLength.ToString()
+            : String.Empty;
 
-        // Masking Key
         var maskingKey = BitConverter.ToString(frame.MaskingKey);
 
-        // Payload Data
-        var payload = payloadLen == 0
-                      ? String.Empty
-                      : payloadLen > 125
-                        ? "---"
-                        : !frame.IsText
-                          || frame.IsFragment
-                          || frame.IsMasked
-                          || frame.IsCompressed
-                          ? frame.PayloadData.ToString()
-                          : Utf8Decode(frame.PayloadData.ApplicationData);
+        var payload =
+            payloadLen == 0 ? String.Empty :
+            payloadLen > 125 ? "---" :
+            IsRaw(frame) == false ? frame.PayloadData.ToString() :
+            Utf8Decode(frame.PayloadData.ApplicationData);
 
         var fmt = @"
                     FIN: {0}
@@ -415,6 +401,12 @@ Extended Payload Length: {7}
             maskingKey,
             payload
         );
+
+        static bool IsRaw(WebSocketFrame frame)
+            => frame.IsText
+                || frame.IsFragment
+                || frame.IsMasked
+                || frame.IsCompressed;
     }
 
     private static WebSocketFrame ProcessHeader(byte[] header)
@@ -425,25 +417,12 @@ Extended Payload Length: {7}
             throw new WebSocketException(msg);
         }
 
-        // FIN
         var fin = (header[0] & 0x80) == 0x80 ? Fin.Final : Fin.More;
-
-        // RSV1
         var rsv1 = (header[0] & 0x40) == 0x40 ? Rsv.On : Rsv.Off;
-
-        // RSV2
         var rsv2 = (header[0] & 0x20) == 0x20 ? Rsv.On : Rsv.Off;
-
-        // RSV3
         var rsv3 = (header[0] & 0x10) == 0x10 ? Rsv.On : Rsv.Off;
-
-        // Opcode
         var opcode = (byte)(header[0] & 0x0f);
-
-        // MASK
         var mask = (header[1] & 0x80) == 0x80 ? Mask.On : Mask.Off;
-
-        // Payload Length
         var payloadLen = (byte)(header[1] & 0x7f);
 
         if (!opcode.IsSupported())
@@ -613,9 +592,6 @@ Extended Payload Length: {7}
         }
     }
 
-
-
-
     internal static WebSocketFrame CreateCloseFrame(PayloadData payloadData, bool mask)
     {
         return new WebSocketFrame(Fin.Final, Opcode.Close, payloadData, false, mask);
@@ -647,7 +623,7 @@ Extended Payload Length: {7}
             frame.Unmask();
 
         return frame;
-     }
+    }
 
     internal void Unmask()
     {
@@ -658,9 +634,6 @@ Extended Payload Length: {7}
         PayloadData.Mask(MaskingKey);
         MaskingKey = WebSocket.EmptyBytes;
     }
-
-
-
 
     public IEnumerator<byte> GetEnumerator()
     {
@@ -673,63 +646,48 @@ Extended Payload Length: {7}
         Console.WriteLine(dumped ? Dump(this) : Print(this));
     }
 
-    public string PrintToString(bool dumped)
-    {
-        return dumped ? Dump(this) : Print(this);
-    }
+    public string PrintToString(bool dumped) => dumped ? Dump(this) : Print(this);
 
     public byte[] ToArray()
     {
-        using (var buff = new MemoryStream())
+        using var buff = new MemoryStream();
+
+        var header = (int)Fin;
+        header = (header << 1) + (int)Rsv1;
+        header = (header << 1) + (int)Rsv2;
+        header = (header << 1) + (int)Rsv3;
+        header = (header << 4) + (int)Opcode;
+        header = (header << 1) + (int)Mask;
+        header = (header << 7) + (int)PayloadLength;
+
+        buff.Write(
+            ((ushort)header).InternalToByteArray(ByteOrder.Big), 0, 2
+        );
+
+        if (PayloadLength > 125)
+            buff.Write(ExtendedPayloadLength, 0, PayloadLength == 126 ? 2 : 8);
+
+        if (Mask == Mask.On)
+            buff.Write(MaskingKey, 0, 4);
+
+        if (PayloadLength > 0)
         {
-            var header = (int)Fin;
-            header = (header << 1) + (int)Rsv1;
-            header = (header << 1) + (int)Rsv2;
-            header = (header << 1) + (int)Rsv3;
-            header = (header << 4) + (int)Opcode;
-            header = (header << 1) + (int)Mask;
-            header = (header << 7) + (int)PayloadLength;
+            var bytes = PayloadData.ToArray();
 
-            buff.Write(
-              ((ushort)header).InternalToByteArray(ByteOrder.Big), 0, 2
-            );
-
-            if (PayloadLength > 125)
-                buff.Write(ExtendedPayloadLength, 0, PayloadLength == 126 ? 2 : 8);
-
-            if (Mask == Mask.On)
-                buff.Write(MaskingKey, 0, 4);
-
-            if (PayloadLength > 0)
+            if (PayloadLength < 127)
+                buff.Write(bytes, 0, bytes.Length);
+            else
             {
-                var bytes = PayloadData.ToArray();
-
-                if (PayloadLength < 127)
-                    buff.Write(bytes, 0, bytes.Length);
-                else
-                {
-                    using (var src = new MemoryStream(bytes))
-                        src.CopyTo(buff, 1024);
-                }
+                using (var src = new MemoryStream(bytes))
+                    src.CopyTo(buff, 1024);
             }
-
-            buff.Close();
-            return buff.ToArray();
         }
+
+        buff.Close();
+        return buff.ToArray();
     }
 
-    public override string ToString()
-    {
-        return BitConverter.ToString(ToArray());
-    }
+    public override string ToString() => BitConverter.ToString(ToArray());
 
-
-
-
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return GetEnumerator();
-    }
-
-
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

@@ -25,7 +25,7 @@ namespace WebSocketSharp;
 ///   <see href="http://tools.ietf.org/html/rfc6455">RFC 6455</see>.
 ///   </para>
 /// </remarks>
-public class WebSocket : IDisposable
+public sealed class WebSocket : IDisposable
 {
     private AuthenticationChallenge _authChallenge;
     private string _base64Key;
@@ -66,12 +66,6 @@ public class WebSocket : IDisposable
     private TimeSpan _waitTime;
     private CancellationTokenSource _receivingStoppingToken = new CancellationTokenSource();
 
-
-
-
-    /// <summary>
-    /// Represents the empty array of <see cref="byte"/> used internally.
-    /// </summary>
     internal static readonly byte[] EmptyBytes;
 
     /// <summary>
@@ -88,24 +82,7 @@ public class WebSocket : IDisposable
     /// </remarks>
     internal static readonly int FragmentLength;
 
-    /// <summary>
-    /// Represents the random number generator used internally.
-    /// </summary>
     internal static readonly RandomNumberGenerator RandomNumber;
-
-
-
-
-    static WebSocket()
-    {
-        _maxRetryCountForConnect = 10;
-        EmptyBytes = new byte[0];
-        FragmentLength = 1016;
-        RandomNumber = new RNGCryptoServiceProvider();
-    }
-
-
-
 
     // As server
     internal WebSocket(HttpListenerWebSocketContext context, string protocol)
@@ -137,93 +114,6 @@ public class WebSocket : IDisposable
         Init();
     }
 
-
-
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="WebSocket"/> class with
-    /// <paramref name="url"/> and optionally <paramref name="protocols"/>.
-    /// </summary>
-    /// <param name="url">
-    ///   <para>
-    ///   A <see cref="string"/> that specifies the URL to which to connect.
-    ///   </para>
-    ///   <para>
-    ///   The scheme of the URL must be ws or wss.
-    ///   </para>
-    ///   <para>
-    ///   The new instance uses a secure connection if the scheme is wss.
-    ///   </para>
-    /// </param>
-    /// <param name="protocols">
-    ///   <para>
-    ///   An array of <see cref="string"/> that specifies the names of
-    ///   the subprotocols if necessary.
-    ///   </para>
-    ///   <para>
-    ///   Each value of the array must be a token defined in
-    ///   <see href="http://tools.ietf.org/html/rfc2616#section-2.2">
-    ///   RFC 2616</see>.
-    ///   </para>
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    /// <paramref name="url"/> is <see langword="null"/>.
-    /// </exception>
-    /// <exception cref="ArgumentException">
-    ///   <para>
-    ///   <paramref name="url"/> is an empty string.
-    ///   </para>
-    ///   <para>
-    ///   -or-
-    ///   </para>
-    ///   <para>
-    ///   <paramref name="url"/> is an invalid WebSocket URL string.
-    ///   </para>
-    ///   <para>
-    ///   -or-
-    ///   </para>
-    ///   <para>
-    ///   <paramref name="protocols"/> contains a value that is not a token.
-    ///   </para>
-    ///   <para>
-    ///   -or-
-    ///   </para>
-    ///   <para>
-    ///   <paramref name="protocols"/> contains a value twice.
-    ///   </para>
-    /// </exception>
-    public WebSocket(string url, params string[] protocols)
-    {
-        if (url == null)
-            throw new ArgumentNullException("url");
-
-        if (url.Length == 0)
-            throw new ArgumentException("An empty string.", "url");
-
-        string msg;
-        if (!url.TryCreateWebSocketUri(out _uri, out msg))
-            throw new ArgumentException(msg, "url");
-
-        if (protocols != null && protocols.Length > 0)
-        {
-            if (!CheckProtocols(protocols, out msg))
-                throw new ArgumentException(msg, "protocols");
-
-            _protocols = protocols;
-        }
-
-        _base64Key = CreateBase64Key();
-        _client = true;
-        _logger = new Logger();
-        IsSecure = _uri.Scheme == "wss";
-        _waitTime = TimeSpan.FromSeconds(5);
-
-        Init();
-    }
-
-
-
-
     internal CookieCollection CookieCollection { get; private set; }
 
     // As server
@@ -232,16 +122,7 @@ public class WebSocket : IDisposable
     // As server
     internal bool IgnoreExtensions { get; set; }
 
-    public bool IsConnected
-    {
-        get
-        {
-            return _readyState == WebSocketState.Open || _readyState == WebSocketState.Closing;
-        }
-    }
-
-
-
+    public bool IsConnected => _readyState == WebSocketState.Open || _readyState == WebSocketState.Closing;
 
     /// <summary>
     /// Gets or sets the compression method used to compress a message.
@@ -690,9 +571,6 @@ public class WebSocket : IDisposable
         }
     }
 
-
-
-
     /// <summary>
     /// Occurs when the WebSocket connection has been closed.
     /// </summary>
@@ -714,8 +592,94 @@ public class WebSocket : IDisposable
     //public event EventHandler OnOpen;
     public Func<object, EventArgs, Task> OnOpen;
 
+    static WebSocket()
+    {
+        _maxRetryCountForConnect = 10;
+        EmptyBytes = new byte[0];
+        FragmentLength = 1016;
+        RandomNumber = new RNGCryptoServiceProvider();
+    }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WebSocket"/> class with
+    /// <paramref name="url"/> and optionally <paramref name="protocols"/>.
+    /// </summary>
+    /// <param name="url">
+    ///   <para>
+    ///   A <see cref="string"/> that specifies the URL to which to connect.
+    ///   </para>
+    ///   <para>
+    ///   The scheme of the URL must be ws or wss.
+    ///   </para>
+    ///   <para>
+    ///   The new instance uses a secure connection if the scheme is wss.
+    ///   </para>
+    /// </param>
+    /// <param name="protocols">
+    ///   <para>
+    ///   An array of <see cref="string"/> that specifies the names of
+    ///   the subprotocols if necessary.
+    ///   </para>
+    ///   <para>
+    ///   Each value of the array must be a token defined in
+    ///   <see href="http://tools.ietf.org/html/rfc2616#section-2.2">
+    ///   RFC 2616</see>.
+    ///   </para>
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="url"/> is <see langword="null"/>.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    ///   <para>
+    ///   <paramref name="url"/> is an empty string.
+    ///   </para>
+    ///   <para>
+    ///   -or-
+    ///   </para>
+    ///   <para>
+    ///   <paramref name="url"/> is an invalid WebSocket URL string.
+    ///   </para>
+    ///   <para>
+    ///   -or-
+    ///   </para>
+    ///   <para>
+    ///   <paramref name="protocols"/> contains a value that is not a token.
+    ///   </para>
+    ///   <para>
+    ///   -or-
+    ///   </para>
+    ///   <para>
+    ///   <paramref name="protocols"/> contains a value twice.
+    ///   </para>
+    /// </exception>
+    public WebSocket(string url, params string[] protocols)
+    {
+        if (url == null)
+            throw new ArgumentNullException("url");
 
+        if (url.Length == 0)
+            throw new ArgumentException("An empty string.", "url");
+
+        string msg;
+        if (!url.TryCreateWebSocketUri(out _uri, out msg))
+            throw new ArgumentException(msg, "url");
+
+        if (protocols != null && protocols.Length > 0)
+        {
+            if (!CheckProtocols(protocols, out msg))
+                throw new ArgumentException(msg, "protocols");
+
+            _protocols = protocols;
+        }
+
+        _base64Key = CreateBase64Key();
+        _client = true;
+        _logger = new Logger();
+        IsSecure = _uri.Scheme == "wss";
+        _waitTime = TimeSpan.FromSeconds(5);
+
+        Init();
+    }
 
     // As server
     private async Task<bool> PrivateAcceptAsync(CancellationToken cancellationToken)
@@ -2105,9 +2069,6 @@ public class WebSocket : IDisposable
         return value == null || value == _version;
     }
 
-
-
-
     // As server
     internal async Task InternalCloseAsync(HttpResponse response, CancellationToken cancellationToken)
     {
@@ -2318,9 +2279,6 @@ public class WebSocket : IDisposable
             await SendAsync(opcode, found, _compression != CompressionMethod.None, cancellationToken);
         }
     }
-
-
-
 
     /// <summary>
     /// Accepts the handshake request.
@@ -2933,9 +2891,6 @@ public class WebSocket : IDisposable
         await SendAsync(Opcode.Binary, new MemoryStream(bytes), cancellationToken);
     }
 
-
-
-
     /// <summary>
     /// Closes the connection and releases all associated resources.
     /// </summary>
@@ -2952,6 +2907,4 @@ public class WebSocket : IDisposable
     {
         CloseAsync(1001, String.Empty, CancellationToken.None).Wait();
     }
-
-
 }

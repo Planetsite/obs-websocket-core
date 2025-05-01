@@ -28,11 +28,11 @@ internal sealed class TcpListenerWebSocketContext : WebSocketContext
     private WebSocket _websocket;
 
     internal TcpListenerWebSocketContext(
-      TcpClient tcpClient,
-      string protocol,
-      bool secure,
-      ServerSslConfiguration sslConfig,
-      Logger log
+        TcpClient tcpClient,
+        string protocol,
+        bool secure,
+        ServerSslConfiguration sslConfig,
+        Logger log
     )
     {
         _tcpClient = tcpClient;
@@ -353,7 +353,7 @@ internal sealed class TcpListenerWebSocketContext : WebSocketContext
             }
 
             _request = await sendAuthenticationChallengeAsync(chal);
-        };
+        }
 
         return false;
     }

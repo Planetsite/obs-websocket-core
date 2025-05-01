@@ -11,7 +11,7 @@ namespace WebSocketSharp.Net.WebSockets;
 /// Provides the access to the information in a WebSocket handshake request to
 /// a <see cref="HttpListener"/> instance.
 /// </summary>
-public class HttpListenerWebSocketContext : WebSocketContext
+public sealed class HttpListenerWebSocketContext : WebSocketContext
 {
     private HttpListenerContext _context;
     private WebSocket _websocket;

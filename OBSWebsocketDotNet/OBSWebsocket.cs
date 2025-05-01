@@ -8,142 +8,17 @@ using System.Threading.Tasks;
 using OBSWebsocketDotNet.Types;
 using Newtonsoft.Json;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Threading;
 
 namespace OBSWebsocketDotNet;
 
-public partial class OBSWebsocket
+public sealed partial class OBSWebsocket
 {
-    /// <summary>
-    /// Triggered when switching to another scene
-    /// </summary>
-    public event SceneChangeCallback SceneChanged;
 
     /// <summary>
-    /// Triggered when a scene is created, deleted or renamed
+    /// A custom broadcast message was received
     /// </summary>
-    public event EventHandler SceneListChanged;
-
-    /// <summary>
-    /// Triggered when the scene item list of the specified scene is reordered
-    /// </summary>
-    public event SourceOrderChangeCallback SourceOrderChanged;
-
-    /// <summary>
-    /// Triggered when a new item is added to the item list of the specified scene
-    /// </summary>
-    public event SceneItemUpdateCallback SceneItemAdded;
-
-    /// <summary>
-    /// Triggered when an item is removed from the item list of the specified scene
-    /// </summary>
-    public event SceneItemUpdateCallback SceneItemRemoved;
-
-    /// <summary>
-    /// Triggered when the visibility of a scene item changes
-    /// </summary>
-    public event SceneItemVisibilityChangedCallback SceneItemVisibilityChanged;
-
-    /// <summary>
-    /// Triggered when the lock status of a scene item changes
-    /// </summary>
-    public event SceneItemLockChangedCallback SceneItemLockChanged;
-
-    /// <summary>
-    /// Triggered when switching to another scene collection
-    /// </summary>
-    public event EventHandler SceneCollectionChanged;
-
-    /// <summary>
-    /// Triggered when a scene collection is created, deleted or renamed
-    /// </summary>
-    public event EventHandler SceneCollectionListChanged;
-
-    /// <summary>
-    /// Triggered when switching to another transition
-    /// </summary>
-    public event TransitionChangeCallback TransitionChanged;
-
-    /// <summary>
-    /// Triggered when the current transition duration is changed
-    /// </summary>
-    public event TransitionDurationChangeCallback TransitionDurationChanged;
-
-    /// <summary>
-    /// Triggered when a transition is created or removed
-    /// </summary>
-    public event EventHandler TransitionListChanged;
-
-    /// <summary>
-    /// Triggered when a transition between two scenes starts. Followed by <see cref="SceneChanged"/>
-    /// </summary>
-    public event TransitionBeginCallback TransitionBegin;
-
-    /// <summary>
-    /// Triggered when a transition (other than "cut") has ended. Please note that the from-scene field is not available in TransitionEnd
-    /// </summary>
-    public event TransitionEndCallback TransitionEnd;
-
-    /// <summary>
-    /// Triggered when a stinger transition has finished playing its video
-    /// </summary>
-    public event TransitionVideoEndCallback TransitionVideoEnd;
-
-    /// <summary>
-    /// Triggered when switching to another profile
-    /// </summary>
-    public event EventHandler ProfileChanged;
-
-    /// <summary>
-    /// Triggered when a profile is created, imported, removed or renamed
-    /// </summary>
-    public event EventHandler ProfileListChanged;
-
-    /// <summary>
-    /// Triggered when the streaming output state changes
-    /// </summary>
-    public event OutputStateCallback StreamingStateChanged;
-
-    /// <summary>
-    /// Triggered when the recording output state changes
-    /// </summary>
-    public event OutputStateCallback RecordingStateChanged;
-
-    /// <summary>
-    /// Triggered when the recording output is paused
-    /// </summary>
-    public event EventHandler RecordingPaused;
-
-    /// <summary>
-    /// Triggered when the recording output is resumed
-    /// </summary>
-    public event EventHandler RecordingResumed;
-
-    /// <summary>
-    /// Triggered when state of the replay buffer changes
-    /// </summary>
-    public event OutputStateCallback ReplayBufferStateChanged;
-
-    /// <summary>
-    /// Triggered every 2 seconds while streaming is active
-    /// </summary>
-    public event StreamStatusCallback StreamStatus;
-
-    /// <summary>
-    /// Triggered when the preview scene selection changes (Studio Mode only)
-    /// </summary>
-    public event SceneChangeCallback PreviewSceneChanged;
-
-    /// <summary>
-    /// Triggered when Studio Mode is turned on or off
-    /// </summary>
-    public event StudioModeChangeCallback StudioModeSwitched;
-
-    /// <summary>
-    /// Triggered when OBS exits
-    /// </summary>
-    public event EventHandler OBSExit;
+    public event BroadcastCustomMessageCallback BroadcastCustomMessageReceived;
 
     /// <summary>
     /// Triggered when connected successfully to an obs-websocket server
@@ -161,9 +36,81 @@ public partial class OBSWebsocket
     public event HeartBeatCallback Heartbeat;
 
     /// <summary>
+    /// Triggered when OBS exits
+    /// </summary>
+    public event EventHandler OBSExit;
+
+    public event PlayPauseMediaMessageCallback PlayPauseMediaMessageReceived;
+
+    /// <summary>
+    /// Triggered when the preview scene selection changes (Studio Mode only)
+    /// </summary>
+    public event SceneChangeCallback PreviewSceneChanged;
+
+    /// <summary>
+    /// Triggered when switching to another profile
+    /// </summary>
+    public event EventHandler ProfileChanged;
+
+    /// <summary>
+    /// Triggered when a profile is created, imported, removed or renamed
+    /// </summary>
+    public event EventHandler ProfileListChanged;
+
+    /// <summary>
+    /// Triggered when the recording output is paused
+    /// </summary>
+    public event EventHandler RecordingPaused;
+
+    /// <summary>
+    /// Triggered when the recording output is resumed
+    /// </summary>
+    public event EventHandler RecordingResumed;
+
+    /// <summary>
+    /// Triggered when the recording output state changes
+    /// </summary>
+    public event OutputStateCallback RecordingStateChanged;
+
+    /// <summary>
+    /// Triggered when state of the replay buffer changes
+    /// </summary>
+    public event OutputStateCallback ReplayBufferStateChanged;
+
+    /// <summary>
+    /// Triggered when switching to another scene
+    /// </summary>
+    public event SceneChangeCallback SceneChanged;
+
+    /// <summary>
+    /// Triggered when switching to another scene collection
+    /// </summary>
+    public event EventHandler SceneCollectionChanged;
+
+    /// <summary>
+    /// Triggered when a scene collection is created, deleted or renamed
+    /// </summary>
+    public event EventHandler SceneCollectionListChanged;
+
+    /// <summary>
+    /// Triggered when a new item is added to the item list of the specified scene
+    /// </summary>
+    public event SceneItemUpdateCallback SceneItemAdded;
+
+    /// <summary>
     /// A scene item is deselected
     /// </summary>
     public event SceneItemDeselectedCallback SceneItemDeselected;
+
+    /// <summary>
+    /// Triggered when the lock status of a scene item changes
+    /// </summary>
+    public event SceneItemLockChangedCallback SceneItemLockChanged;
+
+    /// <summary>
+    /// Triggered when an item is removed from the item list of the specified scene
+    /// </summary>
+    public event SceneItemUpdateCallback SceneItemRemoved;
 
     /// <summary>
     /// A scene item is selected
@@ -174,6 +121,16 @@ public partial class OBSWebsocket
     /// A scene item transform has changed
     /// </summary>
     public event SceneItemTransformCallback SceneItemTransformChanged;
+
+    /// <summary>
+    /// Triggered when the visibility of a scene item changes
+    /// </summary>
+    public event SceneItemVisibilityChangedCallback SceneItemVisibilityChanged;
+
+    /// <summary>
+    /// Triggered when a scene is created, deleted or renamed
+    /// </summary>
+    public event EventHandler SceneListChanged;
 
     /// <summary>
     /// Audio mixer routing changed on a source
@@ -221,6 +178,11 @@ public partial class OBSWebsocket
     public event SourceMuteStateChangedCallback SourceMuteStateChanged;
 
     /// <summary>
+    /// Triggered when the scene item list of the specified scene is reordered
+    /// </summary>
+    public event SourceOrderChangeCallback SourceOrderChanged;
+
+    /// <summary>
     /// A source has been renamed
     /// </summary>
     public event SourceRenamedCallback SourceRenamed;
@@ -231,37 +193,49 @@ public partial class OBSWebsocket
     public event SourceVolumeChangedCallback SourceVolumeChanged;
 
     /// <summary>
-    /// A custom broadcast message was received
+    /// Triggered when the streaming output state changes
     /// </summary>
-    public event BroadcastCustomMessageCallback BroadcastCustomMessageReceived;
-
-    public event PlayPauseMediaMessageCallback PlayPauseMediaMessageReceived;
-
-
+    public event OutputStateCallback StreamingStateChanged;
 
     /// <summary>
-    /// WebSocket request timeout, represented as a TimeSpan object
+    /// Triggered every 2 seconds while streaming is active
     /// </summary>
-    public TimeSpan WSTimeout
-    {
-        get
-        {
-            if (WSConnection != null)
-                return WSConnection.WaitTime;
-            else
-                return _pWSTimeout;
-        }
-        set
-        {
-            _pWSTimeout = value;
+    public event StreamStatusCallback StreamStatus;
 
-            if (WSConnection != null)
-                WSConnection.WaitTime = _pWSTimeout;
-        }
-    }
-    private TimeSpan _pWSTimeout;
+    /// <summary>
+    /// Triggered when Studio Mode is turned on or off
+    /// </summary>
+    public event StudioModeChangeCallback StudioModeSwitched;
 
-    private static Random random = new Random();
+    /// <summary>
+    /// Triggered when a transition between two scenes starts. Followed by <see cref="SceneChanged"/>
+    /// </summary>
+    public event TransitionBeginCallback TransitionBegin;
+
+    /// <summary>
+    /// Triggered when switching to another transition
+    /// </summary>
+    public event TransitionChangeCallback TransitionChanged;
+
+    /// <summary>
+    /// Triggered when the current transition duration is changed
+    /// </summary>
+    public event TransitionDurationChangeCallback TransitionDurationChanged;
+
+    /// <summary>
+    /// Triggered when a transition (other than "cut") has ended. Please note that the from-scene field is not available in TransitionEnd
+    /// </summary>
+    public event TransitionEndCallback TransitionEnd;
+
+    /// <summary>
+    /// Triggered when a transition is created or removed
+    /// </summary>
+    public event EventHandler TransitionListChanged;
+
+    /// <summary>
+    /// Triggered when a stinger transition has finished playing its video
+    /// </summary>
+    public event TransitionVideoEndCallback TransitionVideoEnd;
 
     public bool IsConnected =>
         WSConnection != null && WSConnection.IsConnected;
@@ -271,12 +245,30 @@ public partial class OBSWebsocket
     /// </summary>
     public WebSocket WSConnection { get; private set; }
 
-    private delegate void RequestCallback(OBSWebsocket sender, JObject body);
-    private ConcurrentDictionary<string, TaskCompletionSource<JObject>> _responseHandlers;
-
     /// <summary>
-    /// Constructor
+    /// WebSocket request timeout, represented as a TimeSpan object
     /// </summary>
+    public TimeSpan WSTimeout
+    {
+        get => WSConnection != null
+            ? WSConnection.WaitTime
+            : _websocketTimeout;
+
+        set
+        {
+            _websocketTimeout = value;
+
+            if (WSConnection != null)
+                WSConnection.WaitTime = _websocketTimeout;
+        }
+    }
+
+    private static readonly Random sRandom = new();
+    private readonly ConcurrentDictionary<string, TaskCompletionSource<JObject>> _responseHandlers;
+    private TimeSpan _websocketTimeout;
+
+    private delegate void RequestCallback(OBSWebsocket sender, JObject body);
+
     public OBSWebsocket()
     {
         _responseHandlers = new ConcurrentDictionary<string, TaskCompletionSource<JObject>>();
@@ -293,7 +285,7 @@ public partial class OBSWebsocket
             await DisconnectAsync(stoppingToken);
 
         WSConnection = new WebSocket(url);
-        WSConnection.WaitTime = _pWSTimeout;
+        WSConnection.WaitTime = _websocketTimeout;
         WSConnection.OnMessage += WebsocketMessageHandler;
         WSConnection.OnClose += (s, e) =>
         {
@@ -308,10 +300,10 @@ public partial class OBSWebsocket
         if (!await WSConnection.PingAsync(cancellationToken))
             return;
 
-        OBSAuthInfo authInfo = await GetAuthInfoAsync(cancellationToken);
+        var authInfo = await GetAuthInfoAsync(cancellationToken);
 
         if (authInfo.AuthRequired)
-            await AuthenticateAsync(password, authInfo);
+            await AuthenticateAsync(password, authInfo, cancellationToken);
 
         if (Connected != null)
             Connected(this, null);
@@ -342,7 +334,7 @@ public partial class OBSWebsocket
         if (!e.IsText)
             return;
 
-        JObject body = JObject.Parse(e.Data);
+        var body = JObject.Parse(e.Data);
 
         if (body["message-id"] != null)
         {
@@ -737,7 +729,6 @@ public partial class OBSWebsocket
             default:
                 var message = $"Unsupported Event: {eventType}\n{body}";
                 //Console.WriteLine(message);
-                Debug.WriteLine(message);
                 break;
         }
     }
@@ -769,7 +760,7 @@ public partial class OBSWebsocket
         string result = "";
         for (int i = 0; i < length; i++)
         {
-            int index = random.Next(0, pool.Length - 1);
+            int index = sRandom.Next(0, pool.Length - 1);
             result += pool[index];
         }
 
