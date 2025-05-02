@@ -73,7 +73,7 @@ public partial class OBSWebsocket
             request.Add(nameof(sceneItemEnabled), sceneItemEnabled.Value);
         }
 
-        var response = await SendRequestAsync(nameof(CreateInputAsync), request);
+        var response = await SendRequestAsync(Requests.CreateInput, request);
         return (int)response["sceneItemId"];
     }
 
@@ -81,7 +81,7 @@ public partial class OBSWebsocket
     {
         var request = new JObject();
         request.Add("sceneName", sceneName);
-        await SendRequestAsync("CreateScene", request, cancellationToken);
+        await SendRequestAsync(Requests.CreateScene, request, cancellationToken);
     }
 
     /// <summary>
@@ -172,7 +172,7 @@ public partial class OBSWebsocket
         minReqs.Add("id", sceneItemID);
         requestFields.Add("item", minReqs);
 
-        await SendRequestAsync("DuplicateSceneItem", requestFields, cancellationToken);
+        await SendRequestAsync(Requests.DuplicateSceneItem, requestFields, cancellationToken);
     }
 
     /// <summary>
@@ -196,7 +196,7 @@ public partial class OBSWebsocket
 
         requestFields.Add("item", minReqs);
 
-        await SendRequestAsync("DuplicateSceneItem", requestFields, cancellationToken);
+        await SendRequestAsync(Requests.DuplicateSceneItem, requestFields, cancellationToken);
     }
 
     /// <summary>
@@ -307,7 +307,7 @@ public partial class OBSWebsocket
             { nameof(inputName), inputName }
         };
 
-        var response = await SendRequestAsync(nameof(GetInputAudioTracksAsync), request);
+        var response = await SendRequestAsync(Requests.GetInputAudioTracks, request);
         return new SourceTracks(response);
     }
 
@@ -324,8 +324,8 @@ public partial class OBSWebsocket
         };
 
         var response = unversioned is false
-            ? await SendRequestAsync(nameof(GetInputKindListAsync))
-            : await SendRequestAsync(nameof(GetInputKindListAsync), request);
+            ? await SendRequestAsync(Requests.GetInputKindList)
+            : await SendRequestAsync(Requests.GetInputKindList, request);
 
         return JsonConvert.DeserializeObject<ICollection<string>>(response["inputKinds"].ToString());
     }
@@ -338,8 +338,8 @@ public partial class OBSWebsocket
         };
 
         var response = inputKind is null
-            ? await SendRequestAsync(nameof(GetInputListAsync))
-            : await SendRequestAsync(nameof(GetInputListAsync), request);
+            ? await SendRequestAsync(Requests.GetInputList)
+            : await SendRequestAsync(Requests.GetInputList, request);
 
         return response["inputs"].Select(input => new InputBasicInfo((JObject)input)).ToArray();
     }
@@ -357,7 +357,7 @@ public partial class OBSWebsocket
             { nameof(inputName), inputName }
         };
 
-        var response = await SendRequestAsync(nameof(GetInputSettingsAsync), request);
+        var response = await SendRequestAsync(Requests.GetInputSettings, request);
         response.Merge(request);
         return new InputSettings(response);
     }
@@ -382,7 +382,7 @@ public partial class OBSWebsocket
             { nameof(inputName), inputName }
         };
 
-        return new MediaInputStatus(await SendRequestAsync(nameof(GetMediaInputStatusAsync), request));
+        return new MediaInputStatus(await SendRequestAsync(Requests.GetMediaInputStatus, request));
     }
 
     /// <summary>
@@ -421,7 +421,7 @@ public partial class OBSWebsocket
     /// <returns>Preview scene object</returns>
     public async Task<OBSScene> GetPreviewSceneAsync(CancellationToken cancellationToken = default)
     {
-        var response = await SendRequestAsync("GetPreviewScene", cancellationToken: cancellationToken);
+        var response = await SendRequestAsync(Requests.GetCurrentPreviewScene, cancellationToken: cancellationToken);
         return new OBSScene(response);
     }
 
@@ -431,13 +431,13 @@ public partial class OBSWebsocket
     /// <returns>Current recording folder path</returns>
     public async Task<string> GetRecordingFolderAsync(CancellationToken cancellationToken = default)
     {
-        var response = await SendRequestAsync("GetRecordingFolder", cancellationToken: cancellationToken);
+        var response = await SendRequestAsync(Requests.GetRecordDirectory, cancellationToken: cancellationToken);
         return (string)response["rec-folder"];
     }
 
     public async Task<Types.GetRecordingStatusType> GetRecordingStatusAsync(CancellationToken cancellationToken = default)
     {
-        var data = await SendRequestAsync("GetRecordingStatus", cancellationToken: cancellationToken);
+        var data = await SendRequestAsync(Requests.GetRecordStatus, cancellationToken: cancellationToken);
         return data.ToObject<GetRecordingStatusType>();
     }
 
@@ -445,7 +445,7 @@ public partial class OBSWebsocket
     {
         var request = new JObject();
         request.Add("sceneName", sceneName);
-        var data = await SendRequestAsync("GetSceneItemList", request, cancellationToken: cancellationToken);
+        var data = await SendRequestAsync(Requests.GetSceneItemList, request, cancellationToken: cancellationToken);
         return data.ToObject<GetSceneItemListType>();
     }
 
@@ -483,7 +483,7 @@ public partial class OBSWebsocket
     /// </summary>
     public async Task<GetSceneListInfo> GetSceneListAsync(CancellationToken cancellationToken = default)
     {
-        JObject response = await SendRequestAsync("GetSceneList", cancellationToken: cancellationToken);
+        JObject response = await SendRequestAsync(Requests.GetSceneList, cancellationToken: cancellationToken);
         return JsonConvert.DeserializeObject<GetSceneListInfo>(response.ToString());
     }
 
@@ -497,7 +497,7 @@ public partial class OBSWebsocket
         var requestFields = new JObject();
         requestFields.Add("sceneName", sceneName);
 
-        JObject response = await SendRequestAsync("GetSceneTransitionOverride", requestFields, cancellationToken);
+        JObject response = await SendRequestAsync(Requests.GetSceneSceneTransitionOverride, requestFields, cancellationToken);
         return response.ToObject<TransitionOverrideInfo>();
     }
 
@@ -527,7 +527,7 @@ public partial class OBSWebsocket
         var requestFields = new JObject();
         requestFields.Add("sourceName", sourceName);
 
-        var response = await SendRequestAsync("GetSourceFilters", requestFields, cancellationToken);
+        var response = await SendRequestAsync(Requests.GetSourceFilterList, requestFields, cancellationToken);
         var filters = (JArray)response["filters"];
         var getSourceFilters = new List<FilterSettings>();
         foreach (var jt in filters)
@@ -583,7 +583,7 @@ public partial class OBSWebsocket
     /// <returns>Dictionary of special inputs.</returns>
     public async Task<Dictionary<string, string>> GetSpecialInputsAsync()
     {
-        var response = await SendRequestAsync(nameof(GetSpecialInputsAsync));
+        var response = await SendRequestAsync(Requests.GetSpecialInputs);
         var sources = new Dictionary<string, string>();
         foreach (KeyValuePair<string, JToken> kvp in response)
         {
@@ -623,7 +623,7 @@ public partial class OBSWebsocket
     /// </summary>
     public async Task<OBSStats> GetStatsAsync(CancellationToken cancellationToken = default)
     {
-        JObject response = await SendRequestAsync("GetStats", cancellationToken: cancellationToken);
+        JObject response = await SendRequestAsync(Requests.GetStats, cancellationToken: cancellationToken);
         return JsonConvert.DeserializeObject<OBSStats>(response["stats"].ToString());
     }
 
@@ -633,7 +633,7 @@ public partial class OBSWebsocket
     /// <returns>An <see cref="OutputStatus"/> object describing the current outputs states</returns>
     public async Task<OutputStatus> GetStreamingStatusAsync(CancellationToken cancellationToken = default)
     {
-        JObject response = await SendRequestAsync("GetStreamingStatus", cancellationToken: cancellationToken);
+        JObject response = await SendRequestAsync(Requests.GetStreamStatus, cancellationToken: cancellationToken);
         return new OutputStatus(response);
     }
 
@@ -643,7 +643,7 @@ public partial class OBSWebsocket
     /// <returns></returns>
     public async Task<StreamingService> GetStreamSettingsAsync(CancellationToken cancellationToken = default)
     {
-        var response = await SendRequestAsync("GetStreamSettings", cancellationToken: cancellationToken);
+        var response = await SendRequestAsync(Requests.GetStreamServiceSettings, cancellationToken: cancellationToken);
         return response.ToObject<StreamingService>();
     }
 
@@ -652,7 +652,7 @@ public partial class OBSWebsocket
     /// </summary>
     public async Task<bool> GetStudioModeStatusAsync(CancellationToken cancellationToken = default)
     {
-        var response = await SendRequestAsync("GetStudioModeStatus", cancellationToken: cancellationToken);
+        var response = await SendRequestAsync(Requests.GetStudioModeEnabled, cancellationToken: cancellationToken);
         return (bool)response["studio-mode"];
     }
 
@@ -665,7 +665,7 @@ public partial class OBSWebsocket
     {
         var requestFields = new JObject();
         requestFields.Add("source", sourceName);
-        var response = await SendRequestAsync("GetSyncOffset", requestFields, cancellationToken);
+        var response = await SendRequestAsync(Requests.GetInputAudioSyncOffset, requestFields, cancellationToken);
         return (int)response["offset"];
     }
 
@@ -699,7 +699,6 @@ public partial class OBSWebsocket
     public async Task<GetTransitionListInfo> GetTransitionListAsync(CancellationToken cancellationToken = default)
     {
         var response = await SendRequestAsync("GetTransitionList", cancellationToken: cancellationToken);
-
         return JsonConvert.DeserializeObject<GetTransitionListInfo>(response.ToString());
     }
 
@@ -711,7 +710,6 @@ public partial class OBSWebsocket
     public async Task<double> GetTransitionPositionAsync(CancellationToken cancellationToken = default)
     {
         var response = await SendRequestAsync("GetTransitionPosition", cancellationToken: cancellationToken);
-
         return (double)response["position"];
     }
 
@@ -900,7 +898,7 @@ public partial class OBSWebsocket
     /// </summary>
     public async Task<StandardResponse> PauseRecordingAsync(CancellationToken cancellationToken = default)
     {
-        var response = await SendRequestAsync("PauseRecording", cancellationToken: cancellationToken);
+        var response = await SendRequestAsync(Requests.PauseRecord, cancellationToken: cancellationToken);
         return response.ToObject<StandardResponse>();
     }
 
@@ -949,7 +947,7 @@ public partial class OBSWebsocket
             { nameof(inputName), inputName }
         };
 
-        await SendRequestAsync(nameof(RemoveInputAsync), request);
+        await SendRequestAsync(Requests.RemoveInput, request);
     }
 
     /// <summary>
@@ -1018,7 +1016,7 @@ public partial class OBSWebsocket
     /// </summary>
     public async Task<StandardResponse> ResumeRecordingAsync(CancellationToken cancellationToken = default)
     {
-        var response = await SendRequestAsync("ResumeRecording", cancellationToken: cancellationToken);
+        var response = await SendRequestAsync(Requests.ResumeRecord, cancellationToken: cancellationToken);
         return response.ToObject<StandardResponse>();
     }
 
@@ -1029,7 +1027,7 @@ public partial class OBSWebsocket
     /// </summary>
     public Task SaveReplayBufferAsync(CancellationToken cancellationToken = default)
     {
-        return SendRequestAsync("SaveReplayBuffer", cancellationToken: cancellationToken);
+        return SendRequestAsync(Requests.SaveReplayBuffer, cancellationToken: cancellationToken);
     }
 
     /// <summary>
@@ -1050,7 +1048,7 @@ public partial class OBSWebsocket
         var requestFields = new JObject();
         requestFields.Add("text", text);
 
-        await SendRequestAsync("SendCaptions", requestFields, cancellationToken);
+        await SendRequestAsync(Requests.SendStreamCaption, requestFields, cancellationToken);
     }
 
     /// <summary>
@@ -1064,7 +1062,7 @@ public partial class OBSWebsocket
         request.Add("sourceName", sourceName);
         request.Add("monitorType", monitorType);
 
-        await SendRequestAsync("SetAudioMonitorType", request, cancellationToken);
+        await SendRequestAsync(Requests.SetInputAudioMonitorType, request, cancellationToken);
     }
 
     /// <summary>
@@ -1073,7 +1071,8 @@ public partial class OBSWebsocket
     /// <param name="sourceName">Source name</param>
     /// <param name="props">BrowserSource properties</param>
     /// <param name="sceneName">Optional name of a scene where the specified source can be found</param>
-    public async Task SetBrowserSourcePropertiesAsync(string sourceName, BrowserSourceProperties props, string sceneName = null, CancellationToken cancellationToken = default)
+    public async Task SetBrowserSourcePropertiesAsync(string sourceName, BrowserSourceProperties props, string sceneName = null,
+        CancellationToken cancellationToken = default)
     {
         props.Source = sourceName;
         var request = JObject.FromObject(props);
@@ -1094,7 +1093,7 @@ public partial class OBSWebsocket
         var requestFields = new JObject();
         requestFields.Add("profile-name", profileName);
 
-        await SendRequestAsync("SetCurrentProfile", requestFields, cancellationToken);
+        await SendRequestAsync(Requests.SetCurrentProfile, requestFields, cancellationToken);
     }
 
     /// <summary>
@@ -1106,7 +1105,7 @@ public partial class OBSWebsocket
         var requestFields = new JObject();
         requestFields.Add("scene-name", sceneName);
 
-        await SendRequestAsync("SetCurrentScene", requestFields, cancellationToken);
+        await SendRequestAsync(Requests.SetCurrentProgramScene, requestFields, cancellationToken);
     }
 
     /// <summary>
@@ -1118,7 +1117,7 @@ public partial class OBSWebsocket
         var requestFields = new JObject();
         requestFields.Add("sc-name", scName);
 
-        await SendRequestAsync("SetCurrentSceneCollection", requestFields, cancellationToken);
+        await SendRequestAsync(Requests.SetCurrentSceneCollection, requestFields, cancellationToken);
     }
 
     /// <summary>
@@ -1130,7 +1129,7 @@ public partial class OBSWebsocket
         var requestFields = new JObject();
         requestFields.Add("transition-name", transitionName);
 
-        await SendRequestAsync("SetCurrentTransition", requestFields, cancellationToken);
+        await SendRequestAsync(Requests.SetCurrentSceneTransition, requestFields, cancellationToken);
     }
 
     /// <summary>
@@ -1171,7 +1170,7 @@ public partial class OBSWebsocket
                 { nameof(inputAudioTracks), JObject.FromObject(inputAudioTracks) }
             };
 
-        await SendRequestAsync(nameof(SetInputAudioTracksAsync), request);
+        await SendRequestAsync(Requests.GetInputAudioTracks, request);
     }
 
     /// <summary>
@@ -1187,7 +1186,7 @@ public partial class OBSWebsocket
             { nameof(newInputName), newInputName }
         };
 
-        await SendRequestAsync(nameof(SetInputNameAsync), request);
+        await SendRequestAsync(Requests.SetInputName, request);
     }
 
     /// <summary>
