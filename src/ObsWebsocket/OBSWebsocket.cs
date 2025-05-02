@@ -291,7 +291,7 @@ public sealed partial class OBSWebsocket
 
         WSConnection = new WebSocket(_loggerWebsocket, url);
         WSConnection.WaitTime = _websocketTimeout;
-        WSConnection.OnMessageAsync = WebsocketMessageHandlerAsync;
+        WSConnection.OnMessageAsync = WebsocketMessageHandlerAsync2;
         WSConnection.OnCloseAsync = async (_, closeEvent) =>
         {
             if (DisconnectedAsync != null)
@@ -329,36 +329,6 @@ public sealed partial class OBSWebsocket
         {
             var tcs = cb.Value;
             tcs.TrySetCanceled(cancellationToken);
-        }
-    }
-
-    // This callback handles incoming JSON messages and determines if it's
-    // a request response or an event ("Update" in obs-websocket terminology)
-    private async Task WebsocketMessageHandlerAsync(object sender, MessageEventArgs message)
-    {
-        if (!message.IsText)
-            return;
-
-        var body = JObject.Parse(message.Data);
-
-        if (body["message-id"] != null)
-        {
-            // Handle a request :
-            // Find the response handler based on
-            // its associated message ID
-            string msgID = (string)body["message-id"];
-
-            if (_responseHandlers.TryRemove(msgID, out TaskCompletionSource<JObject> handler))
-            {
-                // Set the response body as Result and notify the request sender
-                handler.SetResult(body);
-            }
-        }
-        else if (body["update-type"] != null)
-        {
-            // Handle an event
-            string eventType = body["update-type"].ToString();
-            await ProcessEventTypeAsync(eventType, body);
         }
     }
 
@@ -464,6 +434,56 @@ public sealed partial class OBSWebsocket
         }
 
         return true;
+    }
+
+    // TODO
+    private void HandleHello(JObject payload)
+    {
+        if (false == WSConnection.IsConnected)
+            return;
+
+        OBSAuthInfo? authInfo = null;
+        if (payload.ContainsKey("authentication"))
+        {
+            authInfo = new OBSAuthInfo((JObject)payload["authentication"]);
+        }
+
+        //TOOD SendIdentify(connectionPassword, authInfo);
+        //TOOD connectionPassword = null;
+    }
+
+    /// <summary>
+    /// Encode a Base64-encoded SHA-256 hash
+    /// </summary>
+    /// <param name="input">source string</param>
+    /// <returns></returns>
+    private string HashEncode(string input)
+    {
+        var sha256 = new SHA256Managed();
+
+        byte[] textBytes = Encoding.ASCII.GetBytes(input);
+        byte[] hash = sha256.ComputeHash(textBytes);
+
+        return System.Convert.ToBase64String(hash);
+    }
+
+    /// <summary>
+    /// Generate a message ID
+    /// </summary>
+    /// <param name="length">(optional) message ID length</param>
+    /// <returns>A random string of alphanumerical characters</returns>
+    private string NewMessageID(int length = 16)
+    {
+        const string pool = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+        string result = "";
+        for (int i = 0; i < length; i++)
+        {
+            int index = sRandom.Next(0, pool.Length - 1);
+            result += pool[index];
+        }
+
+        return result;
     }
 
     /// <summary>
@@ -757,37 +777,85 @@ public sealed partial class OBSWebsocket
         }
     }
 
-    /// <summary>
-    /// Encode a Base64-encoded SHA-256 hash
-    /// </summary>
-    /// <param name="input">source string</param>
-    /// <returns></returns>
-    private string HashEncode(string input)
+    // This callback handles incoming JSON messages and determines if it's
+    // a request response or an event ("Update" in obs-websocket terminology)
+    private async Task WebsocketMessageHandlerAsync(object sender, MessageEventArgs message)
     {
-        var sha256 = new SHA256Managed();
+        if (false == message.IsText)
+            return;
 
-        byte[] textBytes = Encoding.ASCII.GetBytes(input);
-        byte[] hash = sha256.ComputeHash(textBytes);
+        var body = JObject.Parse(message.Data);
 
-        return System.Convert.ToBase64String(hash);
-    }
-
-    /// <summary>
-    /// Generate a message ID
-    /// </summary>
-    /// <param name="length">(optional) message ID length</param>
-    /// <returns>A random string of alphanumerical characters</returns>
-    private string NewMessageID(int length = 16)
-    {
-        const string pool = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
-        string result = "";
-        for (int i = 0; i < length; i++)
+        if (body["message-id"] != null)
         {
-            int index = sRandom.Next(0, pool.Length - 1);
-            result += pool[index];
+            // Handle a request :
+            // Find the response handler based on
+            // its associated message ID
+            var msgID = (string)body["message-id"];
+
+            if (_responseHandlers.TryRemove(msgID, out TaskCompletionSource<JObject> handler))
+            {
+                // Set the response body as Result and notify the request sender
+                handler.SetResult(body);
+            }
+
+            return;
         }
 
-        return result;
+        if (body["update-type"] != null)
+        {
+            string eventType = body["update-type"].ToString();
+            await ProcessEventTypeAsync(eventType, body);
+            return;
+        }
+    }
+
+    private async Task WebsocketMessageHandlerAsync2(object _, MessageEventArgs message)
+    {
+        if (message.IsText == false)
+            return;
+
+        var msg = JsonConvert.DeserializeObject<ServerMessage>(message.Data);
+        var body = msg.Data;
+
+        switch (msg.OperationCode)
+        {
+            case MessageTypes.Hello:
+                // First message received after connection, this may ask us for authentication
+                HandleHello(body);
+                break;
+
+            case MessageTypes.Identified:
+                Connected?.Invoke(this, EventArgs.Empty);
+                break;
+
+            case MessageTypes.RequestResponse:
+            case MessageTypes.RequestBatchResponse:
+                // Handle response to previous request
+                if (body.ContainsKey("requestId"))
+                {
+                    // Handle a request :
+                    // Find the response handler based on
+                    // its associated message ID
+                    var msgID = (string)body["requestId"];
+
+                    if (_responseHandlers.TryRemove(msgID, out TaskCompletionSource<JObject> handler))
+                    {
+                        // Set the response body as Result and notify the request sender
+                        handler.SetResult(body);
+                    }
+                }
+                break;
+
+            case MessageTypes.Event:
+                var eventType = body["eventType"].ToString();
+                await ProcessEventTypeAsync(eventType, body);
+                break;
+
+            default:
+                if (UnsupportedEventAsync != null)
+                    await UnsupportedEventAsync(new UnsupportedEventArgs(msg.OperationCode.ToString(), body));
+                break;
+        }
     }
 }

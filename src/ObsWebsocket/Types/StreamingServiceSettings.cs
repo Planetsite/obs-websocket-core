@@ -1,10 +1,9 @@
 ﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System.Collections.Generic;
 
 namespace ObsWebsocket.Types;
 
-/// <summary>
-/// Streaming server settings
-/// </summary>
 public sealed class StreamingServiceSettings
 {
     /// <summary>
@@ -22,7 +21,7 @@ public sealed class StreamingServiceSettings
     /// <summary>
     /// Indicates whether authentication should be used when connecting to the streaming server
     /// </summary>
-    [JsonProperty(PropertyName = "use-auth")]
+    [JsonProperty(PropertyName = "use_auth")]
     public bool UseAuth { set; get; }
 
     /// <summary>
@@ -36,4 +35,22 @@ public sealed class StreamingServiceSettings
     /// </summary>
     [JsonProperty(PropertyName = "password")]
     public string Password { set; get; }
+
+    /// <summary>
+    /// The service being used to stream
+    /// </summary>
+    [JsonProperty(PropertyName = "service")]
+    public string Service { get; set; }
+
+    /// <summary>
+    /// The protocol to use for the stream
+    /// </summary>
+    [JsonProperty(PropertyName = "protocol")]
+    public string Protocol { get; set; }
+
+    /// <summary>
+    /// Other values not covered by the class
+    /// </summary>
+    [JsonExtensionData]
+    public Dictionary<string, JToken> OtherValues { get; set; }
 }

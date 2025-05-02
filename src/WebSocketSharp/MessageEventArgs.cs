@@ -20,8 +20,8 @@ public sealed class MessageEventArgs : EventArgs
 {
     private string _data;
     private bool _dataSet;
-    private Opcode _opcode;
-    private byte[] _rawData;
+    private readonly Opcode _opcode;
+    private readonly byte[] _rawData;
 
     internal MessageEventArgs(WebSocketFrame frame)
     {

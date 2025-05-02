@@ -1239,10 +1239,7 @@ public sealed class WebSocket : IDisposable
                 //try {
                 //    await Task.Delay(-1, eventQueueRestartToken.Token);
                 //}
-                //catch
-                //{
-                //}
-                //
+                //{}
                 //eventQueueRestartToken = new CancellationTokenSource();
             }
 
@@ -1270,6 +1267,7 @@ public sealed class WebSocket : IDisposable
         _messageEventQueueRestart = new TaskCompletionSource<bool>();
 
 #pragma warning disable CS4014
+        // ATTENZIONE multithreading
         /*await*/
         StartReceivingAccumulatorTaskAsync(cancellationToken);
         /*await*/

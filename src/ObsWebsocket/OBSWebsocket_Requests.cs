@@ -264,6 +264,45 @@ public partial class OBSWebsocket
     }
 
     /// <summary>
+    /// Gets the enable state of all audio tracks of an input.
+    /// </summary>
+    /// <param name="inputName">Name of the input</param>
+    /// <returns>Object of audio tracks and associated enable states</returns>
+    public async Task<SourceTracks> GetInputAudioTracksAsync(string inputName)
+    {
+        var request = new JObject
+        {
+            { nameof(inputName), inputName }
+        };
+
+        var response = await SendRequestAsync(nameof(GetInputAudioTracksAsync), request);
+        return new SourceTracks(response);
+    }
+
+    /// <summary>
+    /// Gets the status of a media input.\n\nMedia States:
+    /// - `OBS_MEDIA_STATE_NONE`
+    /// - `OBS_MEDIA_STATE_PLAYING`
+    /// - `OBS_MEDIA_STATE_OPENING`
+    /// - `OBS_MEDIA_STATE_BUFFERING`
+    /// - `OBS_MEDIA_STATE_PAUSED`
+    /// - `OBS_MEDIA_STATE_STOPPED`
+    /// - `OBS_MEDIA_STATE_ENDED`
+    /// - `OBS_MEDIA_STATE_ERROR`
+    /// </summary>
+    /// <param name="inputName">Name of the media input</param>
+    /// <returns>Object containing string mediaState, int mediaDuration, int mediaCursor properties</returns>
+    public async Task<MediaInputStatus> GetMediaInputStatusAsync(string inputName)
+    {
+        var request = new JObject
+        {
+            { nameof(inputName), inputName }
+        };
+
+        return new MediaInputStatus(await SendRequestAsync(nameof(GetMediaInputStatusAsync), request));
+    }
+
+    /// <summary>
     /// Gets settings for a media source
     /// </summary>
     /// <param name="sourceName"></param>
