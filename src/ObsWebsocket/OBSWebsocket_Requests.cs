@@ -45,6 +45,38 @@ public partial class OBSWebsocket
         await SendRequestAsync("BroadcastCustomMessage", request, cancellationToken);
     }
 
+    /// <summary>
+    /// Creates a new input, adding it as a scene item to the specified scene.
+    /// </summary>
+    /// <param name="sceneName">Name of the scene to add the input to as a scene item</param>
+    /// <param name="inputName">Name of the new input to created</param>
+    /// <param name="inputKind">The kind of input to be created</param>
+    /// <param name="inputSettings">Jobject holding the settings object to initialize the input with</param>
+    /// <param name="sceneItemEnabled">Whether to set the created scene item to enabled or disabled</param>
+    /// <returns>ID of the SceneItem in the scene.</returns>
+    public async Task<int> CreateInputAsync(string sceneName, string inputName, string inputKind, JObject inputSettings, bool? sceneItemEnabled)
+    {
+        var request = new JObject
+        {
+            { nameof(sceneName), sceneName },
+            { nameof(inputName), inputName },
+            { nameof(inputKind), inputKind }
+        };
+
+        if (inputSettings != null)
+        {
+            request.Add(nameof(inputSettings), inputSettings);
+        }
+
+        if (sceneItemEnabled.HasValue)
+        {
+            request.Add(nameof(sceneItemEnabled), sceneItemEnabled.Value);
+        }
+
+        var response = await SendRequestAsync(nameof(CreateInputAsync), request);
+        return (int)response["sceneItemId"];
+    }
+
     public async Task CreateSceneAsync(string sceneName, CancellationToken cancellationToken = default)
     {
         var request = new JObject();
@@ -249,7 +281,7 @@ public partial class OBSWebsocket
     /// <returns>An <see cref="TransitionSettings"/> object with the current transition name and duration</returns>
     public async Task<TransitionSettings> GetCurrentTransitionAsync(CancellationToken cancellationToken = default)
     {
-        JObject respBody = await SendRequestAsync("GetCurrentTransition", cancellationToken: cancellationToken);
+        var respBody = await SendRequestAsync("GetCurrentTransition", cancellationToken: cancellationToken);
         return new TransitionSettings(respBody);
     }
 
@@ -259,7 +291,7 @@ public partial class OBSWebsocket
     /// <returns>Current filename formatting string</returns>
     public async Task<string> GetFilenameFormattingAsync(CancellationToken cancellationToken = default)
     {
-        JObject response = await SendRequestAsync("GetFilenameFormatting", cancellationToken: cancellationToken);
+        var response = await SendRequestAsync("GetFilenameFormatting", cancellationToken: cancellationToken);
         return (string)response["filename-formatting"];
     }
 
@@ -277,6 +309,57 @@ public partial class OBSWebsocket
 
         var response = await SendRequestAsync(nameof(GetInputAudioTracksAsync), request);
         return new SourceTracks(response);
+    }
+
+    /// <summary>
+    /// Gets an array of all available input kinds in OBS.
+    /// </summary>
+    /// <param name="unversioned">True == Return all kinds as unversioned, False == Return with version suffixes (if available)</param>
+    /// <returns>Array of input kinds</returns>
+    public async Task<ICollection<string>> GetInputKindListAsync(bool unversioned = false)
+    {
+        var request = new JObject
+        {
+            { nameof(unversioned), unversioned }
+        };
+
+        var response = unversioned is false
+            ? await SendRequestAsync(nameof(GetInputKindListAsync))
+            : await SendRequestAsync(nameof(GetInputKindListAsync), request);
+
+        return JsonConvert.DeserializeObject<ICollection<string>>(response["inputKinds"].ToString());
+    }
+
+    public async Task<ICollection<InputBasicInfo>> GetInputListAsync(string inputKind = null)
+    {
+        var request = new JObject
+        {
+            { nameof(inputKind), inputKind }
+        };
+
+        var response = inputKind is null
+            ? await SendRequestAsync(nameof(GetInputListAsync))
+            : await SendRequestAsync(nameof(GetInputListAsync), request);
+
+        return response["inputs"].Select(input => new InputBasicInfo((JObject)input)).ToArray();
+    }
+
+    /// <summary>
+    /// Gets the settings of an input.
+    /// Note: Does not include defaults. To create the entire settings object, overlay `inputSettings` over the `defaultInputSettings` provided by `GetInputDefaultSettings`.
+    /// </summary>
+    /// <param name="inputName">Name of the input to get the settings of</param>
+    /// <returns>New populated InputSettings object</returns>
+    public async Task<InputSettings> GetInputSettingsAsync(string inputName)
+    {
+        var request = new JObject
+        {
+            { nameof(inputName), inputName }
+        };
+
+        var response = await SendRequestAsync(nameof(GetInputSettingsAsync), request);
+        response.Merge(request);
+        return new InputSettings(response);
     }
 
     /// <summary>
@@ -492,6 +575,26 @@ public partial class OBSWebsocket
     {
         JObject response = await SendRequestAsync("GetSourceTypesList", cancellationToken: cancellationToken);
         return JsonConvert.DeserializeObject<List<SourceType>>(response["types"].ToString());
+    }
+
+    /// <summary>
+    /// Gets the names of all special inputs.
+    /// </summary>
+    /// <returns>Dictionary of special inputs.</returns>
+    public async Task<Dictionary<string, string>> GetSpecialInputsAsync()
+    {
+        var response = await SendRequestAsync(nameof(GetSpecialInputsAsync));
+        var sources = new Dictionary<string, string>();
+        foreach (KeyValuePair<string, JToken> kvp in response)
+        {
+            var key = kvp.Key;
+            var value = (string)kvp.Value;
+            if (key != "requestType")
+            {
+                sources.Add(key, value);
+            }
+        }
+        return sources;
     }
 
     /// <summary>
@@ -835,6 +938,21 @@ public partial class OBSWebsocket
     }
 
     /// <summary>
+    /// Removes an existing input.
+    /// Note: Will immediately remove all associated scene items.
+    /// </summary>
+    /// <param name="inputName">Name of the input to remove</param>
+    public async Task RemoveInputAsync(string inputName)
+    {
+        var request = new JObject
+        {
+            { nameof(inputName), inputName }
+        };
+
+        await SendRequestAsync(nameof(RemoveInputAsync), request);
+    }
+
+    /// <summary>
     /// Remove any transition override from a specific scene
     /// </summary>
     /// <param name="sceneName">Name of the scene to remove the transition override</param>
@@ -1038,6 +1156,55 @@ public partial class OBSWebsocket
         request.Add("enable", enable);
 
         await SendRequestAsync("SetHeartbeat", request, cancellationToken);
+    }
+
+    /// <summary>
+    /// Sets the enable state of audio tracks of an input.
+    /// </summary>
+    /// <param name="inputName">Name of the input</param>
+    /// <param name="inputAudioTracks">JObject holding track settings to apply</param>
+    public async Task SetInputAudioTracksAsync(string inputName, SourceTracks inputAudioTracks)
+    {
+        var request = new JObject
+            {
+                { nameof(inputName), inputName },
+                { nameof(inputAudioTracks), JObject.FromObject(inputAudioTracks) }
+            };
+
+        await SendRequestAsync(nameof(SetInputAudioTracksAsync), request);
+    }
+
+    /// <summary>
+    /// Sets the name of an input (rename).
+    /// </summary>
+    /// <param name="inputName">Current input name</param>
+    /// <param name="newInputName">New name for the input</param>
+    public async Task SetInputNameAsync(string inputName, string newInputName)
+    {
+        var request = new JObject
+        {
+            { nameof(inputName), inputName },
+            { nameof(newInputName), newInputName }
+        };
+
+        await SendRequestAsync(nameof(SetInputNameAsync), request);
+    }
+
+    /// <summary>
+    /// Sets the settings of an input.
+    /// </summary>
+    /// <param name="inputSettings">Object of settings to apply</param>
+    /// <param name="overlay">True == apply the settings on top of existing ones, False == reset the input to its defaults, then apply settings.</param>
+    public async Task SetInputSettingsAsync(InputSettings inputSettings, bool overlay = true)
+    {
+        var request = new JObject
+        {
+            { "InputName", inputSettings.InputName },
+            { "Settings", inputSettings.Settings },
+            { nameof(overlay), overlay }
+        };
+
+        await SendRequestAsync(nameof(SetInputSettingsAsync), request);
     }
 
     /// <summary>
@@ -1444,6 +1611,27 @@ public partial class OBSWebsocket
         await SendRequestAsync("SetVolume", requestFields, cancellationToken);
     }
 
+    /// <summary>
+    /// Sleeps for a time duration or number of frames. Only available in request batches with types `SERIAL_REALTIME` or `SERIAL_FRAME`.
+    /// </summary>
+    /// <param name="sleepMillis">Number of milliseconds to sleep for (if `SERIAL_REALTIME` mode)</param>
+    /// <param name="sleepFrames">Number of frames to sleep for (if `SERIAL_FRAME` mode)</param>
+    public async Task SleepAsync(int sleepMillis, int sleepFrames)
+    {
+        var request = new JObject
+        {
+            { nameof(sleepMillis), sleepMillis },
+            { nameof(sleepFrames), sleepFrames }
+        };
+
+        await SendRequestAsync(nameof(SleepAsync), request);
+    }
+
+    /// <summary>
+    /// Gets an array of all inputs in OBS.
+    /// </summary>
+    /// <param name="inputKind">Restrict the array to only inputs of the specified kind</param>
+    /// <returns>List of Inputs in OBS</returns>
     /// <summary>
     /// Start recording. Will trigger an error if recording is already active.
     /// </summary>

@@ -1,6 +1,6 @@
 ﻿namespace ObsWebsocket.Types;
 
-public class ChromaKeyFilter : IFilterProperties
+public sealed class ChromaKeyFilter : IFilterProperties
 {
     public float brightness;
     public float contrast;
