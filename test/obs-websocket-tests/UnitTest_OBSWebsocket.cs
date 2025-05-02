@@ -1,7 +1,7 @@
 ﻿//using Microsoft.VisualStudio.TestTools.UnitTesting;
 //using WebSocketSharp;
 
-//namespace OBSWebsocketDotNet.Tests
+//namespace OBSWebsocket.Tests
 //{
 //    [TestClass]
 //    public class UnitTest_OBSWebsocket : OBSWebsocket

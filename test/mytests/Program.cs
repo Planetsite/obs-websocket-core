@@ -109,7 +109,7 @@ class Tests
 
         try
         {
-            //var props = new OBSWebsocketDotNet.Types.TextGDIPlusProperties();
+            //var props = new OBSWebsocket.Types.TextGDIPlusProperties();
             //props.SourceName = "aaa";
             //props.TextColor = 0xCCCCCC;
             //props.Text = "T E X T";

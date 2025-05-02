@@ -1,8 +1,8 @@
 ﻿//using Microsoft.VisualStudio.TestTools.UnitTesting;
 //using Newtonsoft.Json.Linq;
-//using OBSWebsocketDotNet.Types;
+//using OBSWebsocket.Types;
 
-//namespace OBSWebsocketDotNet.Tests
+//namespace OBSWebsocket.Tests
 //{
 //    [TestClass]
 //    public class UnitTest_Types
