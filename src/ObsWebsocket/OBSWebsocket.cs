@@ -74,12 +74,12 @@ public sealed partial class OBSWebsocket
     /// <summary>
     /// Triggered when the recording output state changes
     /// </summary>
-    public event OutputStateCallback RecordingStateChanged;
+    public Func<OBSWebsocket, RecordStateChangedEventArgs, Task> RecordingStateChangedAsync;
 
     /// <summary>
     /// Triggered when state of the replay buffer changes
     /// </summary>
-    public event OutputStateCallback ReplayBufferStateChanged;
+    public Func<OBSWebsocket, ReplayBufferStateChangedEventArgs, Task> ReplayBufferStateChangedAsync;
 
     /// <summary>
     /// Triggered when switching to another scene
@@ -199,7 +199,7 @@ public sealed partial class OBSWebsocket
     /// <summary>
     /// Triggered when the streaming output state changes
     /// </summary>
-    public event OutputStateCallback StreamingStateChanged;
+    public Func<OBSWebsocket, StreamStateChangedEventArgs, Task> StreamStateChangedAsync;
 
     /// <summary>
     /// Triggered every 2 seconds while streaming is active
@@ -506,10 +506,12 @@ public sealed partial class OBSWebsocket
                 if (SceneItemVisibilityChanged != null)
                     SceneItemVisibilityChanged(this, (string)body["scene-name"], (string)body["item-name"], (bool)body["item-visible"]);
                 break;
+
             case "SceneItemLockChanged":
                 if (SceneItemLockChanged != null)
                     SceneItemLockChanged(this, (string)body["scene-name"], (string)body["item-name"], (int)body["item-id"], (bool)body["item-locked"]);
                 break;
+
             case "SceneCollectionChanged":
                 if (SceneCollectionChanged != null)
                     SceneCollectionChanged(this, EventArgs.Empty);
@@ -539,14 +541,17 @@ public sealed partial class OBSWebsocket
                 if (TransitionBegin != null)
                     TransitionBegin(this, (string)body["name"], (string)body["type"], (int)body["duration"], (string)body["from-scene"], (string)body["to-scene"]);
                 break;
+
             case "TransitionEnd":
                 if (TransitionEnd != null)
                     TransitionEnd(this, (string)body["name"], (string)body["type"], (int)body["duration"], (string)body["to-scene"]);
                 break;
+
             case "TransitionVideoEnd":
                 if (TransitionVideoEnd != null)
                     TransitionVideoEnd(this, (string)body["name"], (string)body["type"], (int)body["duration"], (string)body["from-scene"], (string)body["to-scene"]);
                 break;
+
             case "ProfileChanged":
                 if (ProfileChanged != null)
                     ProfileChanged(this, EventArgs.Empty);
@@ -558,52 +563,55 @@ public sealed partial class OBSWebsocket
                 break;
 
             case "StreamStarting":
-                if (StreamingStateChanged != null)
-                    StreamingStateChanged(this, OutputState.Starting);
+                if (StreamStateChangedAsync != null)
+                    await StreamStateChangedAsync(this, new StreamStateChangedEventArgs(new(body)));
                 break;
 
             case "StreamStarted":
-                if (StreamingStateChanged != null)
-                    StreamingStateChanged(this, OutputState.Started);
+                if (StreamStateChangedAsync != null)
+                    await StreamStateChangedAsync(this, new StreamStateChangedEventArgs(new(body)));
                 break;
 
             case "StreamStopping":
-                if (StreamingStateChanged != null)
-                    StreamingStateChanged(this, OutputState.Stopping);
+                if (StreamStateChangedAsync != null)
+                    await StreamStateChangedAsync(this, new StreamStateChangedEventArgs(new(body)));
                 break;
 
             case "StreamStopped":
-                if (StreamingStateChanged != null)
-                    StreamingStateChanged(this, OutputState.Stopped);
+                if (StreamStateChangedAsync != null)
+                    await StreamStateChangedAsync(this, new StreamStateChangedEventArgs(new(body)));
                 break;
 
             case "RecordingStarting":
-                if (RecordingStateChanged != null)
-                    RecordingStateChanged(this, OutputState.Starting);
+                if (RecordingStateChangedAsync != null)
+                    await RecordingStateChangedAsync(this, new(new(body)));
                 break;
 
             case "RecordingStarted":
-                if (RecordingStateChanged != null)
-                    RecordingStateChanged(this, OutputState.Started);
+                if (RecordingStateChangedAsync != null)
+                    await RecordingStateChangedAsync(this, new(new(body)));
                 break;
 
             case "RecordingStopping":
-                if (RecordingStateChanged != null)
-                    RecordingStateChanged(this, OutputState.Stopping);
+                if (RecordingStateChangedAsync != null)
+                    await RecordingStateChangedAsync(this, new(new(body)));
                 break;
 
             case "RecordingStopped":
-                if (RecordingStateChanged != null)
-                    RecordingStateChanged(this, OutputState.Stopped);
+                if (RecordingStateChangedAsync != null)
+                    await RecordingStateChangedAsync(this, new(new(body)));
                 break;
+
             case "RecordingPaused":
                 if (RecordingPaused != null)
                     RecordingPaused(this, EventArgs.Empty);
                 break;
+
             case "RecordingResumed":
                 if (RecordingResumed != null)
                     RecordingResumed(this, EventArgs.Empty);
                 break;
+
             case "StreamStatus":
                 if (StreamStatus != null)
                 {
@@ -623,23 +631,23 @@ public sealed partial class OBSWebsocket
                 break;
 
             case "ReplayStarting":
-                if (ReplayBufferStateChanged != null)
-                    ReplayBufferStateChanged(this, OutputState.Starting);
+                if (ReplayBufferStateChangedAsync != null)
+                    await ReplayBufferStateChangedAsync(this, new(new(body)));
                 break;
 
             case "ReplayStarted":
-                if (ReplayBufferStateChanged != null)
-                    ReplayBufferStateChanged(this, OutputState.Started);
+                if (ReplayBufferStateChangedAsync != null)
+                    await ReplayBufferStateChangedAsync(this, new(new(body)));
                 break;
 
             case "ReplayStopping":
-                if (ReplayBufferStateChanged != null)
-                    ReplayBufferStateChanged(this, OutputState.Stopping);
+                if (ReplayBufferStateChangedAsync != null)
+                    await ReplayBufferStateChangedAsync(this, new(new(body)));
                 break;
 
             case "ReplayStopped":
-                if (ReplayBufferStateChanged != null)
-                    ReplayBufferStateChanged(this, OutputState.Stopped);
+                if (ReplayBufferStateChangedAsync != null)
+                    await ReplayBufferStateChangedAsync(this, new ReplayBufferStateChangedEventArgs(new OutputStateChanged(body)));
                 break;
 
             case "Exiting":
@@ -651,34 +659,42 @@ public sealed partial class OBSWebsocket
                 if (Heartbeat != null)
                     Heartbeat(this, new Heartbeat(body));
                 break;
+
             case "SceneItemDeselected":
                 if (SceneItemDeselected != null)
                     SceneItemDeselected(this, (string)body["scene-name"], (string)body["item-name"], (string)body["item-id"]);
                 break;
+
             case "SceneItemSelected":
                 if (SceneItemSelected != null)
                     SceneItemSelected(this, (string)body["scene-name"], (string)body["item-name"], (string)body["item-id"]);
                 break;
+
             case "SceneItemTransformChanged":
                 if (SceneItemTransformChanged != null)
                     SceneItemTransformChanged(this, new SceneItemTransformInfo(body));
                 break;
+
             case "SourceAudioMixersChanged":
                 if (SourceAudioMixersChanged != null)
                     SourceAudioMixersChanged(this, new AudioMixersChangedInfo(body));
                 break;
+
             case "SourceAudioSyncOffsetChanged":
                 if (SourceAudioSyncOffsetChanged != null)
                     SourceAudioSyncOffsetChanged(this, (string)body["sourceName"], (int)body["syncOffset"]);
                 break;
+
             case "SourceCreated":
                 if (SourceCreated != null)
                     SourceCreated(this, new SourceSettings(body));
                 break;
+
             case "SourceDestroyed":
                 if (SourceDestroyed != null)
                     SourceDestroyed(this, (string)body["sourceName"], (string)body["sourceType"], (string)body["sourceKind"]);
                 break;
+
             case "SourceRenamed":
                 if (SourceRenamed != null)
                     SourceRenamed(this, (string)body["newName"], (string)body["previousName"]);
@@ -688,18 +704,22 @@ public sealed partial class OBSWebsocket
                 if (SourceMuteStateChanged != null)
                     SourceMuteStateChanged(this, (string)body["sourceName"], (bool)body["muted"]);
                 break;
+
             case "SourceVolumeChanged":
                 if (SourceVolumeChanged != null)
                     SourceVolumeChanged(this, (string)body["sourceName"], (float)body["volume"]);
                 break;
+
             case "SourceFilterAdded":
                 if (SourceFilterAdded != null)
                     SourceFilterAdded(this, (string)body["sourceName"], (string)body["filterName"], (string)body["filterType"], (JObject)body["filterSettings"]);
                 break;
+
             case "SourceFilterRemoved":
                 if (SourceFilterRemoved != null)
                     SourceFilterRemoved(this, (string)body["sourceName"], (string)body["filterName"]);
                 break;
+
             case "SourceFiltersReordered":
                 List<FilterReorderItem> filters = new List<FilterReorderItem>();
                 JsonConvert.PopulateObject(body["filters"].ToString(), filters);
@@ -707,10 +727,12 @@ public sealed partial class OBSWebsocket
                 if (SourceFiltersReordered != null)
                     SourceFiltersReordered(this, (string)body["sourceName"], filters);
                 break;
+
             case "SourceFilterVisibilityChanged":
                 if (SourceFilterVisibilityChanged != null)
                     SourceFilterVisibilityChanged(this, (string)body["sourceName"], (string)body["filterName"], (bool)body["filterEnabled"]);
                 break;
+
             case "BroadcastCustomMessage":
                 if (BroadcastCustomMessageReceived != null)
                     BroadcastCustomMessageReceived(this, (string)body["realm"], (JObject)body["data"]);

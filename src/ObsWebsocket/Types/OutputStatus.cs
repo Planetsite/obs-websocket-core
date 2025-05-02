@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace ObsWebsocket;
+namespace ObsWebsocket.Types;
 
 /// <summary>
 /// Status of streaming output and recording output

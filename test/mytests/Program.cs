@@ -59,7 +59,7 @@ class Tests
             //await so.SetCurrentProfileAsync("PROF1");
             //var gcp = await so.GetCurrentProfileAsync();
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             ;
         }
@@ -71,7 +71,7 @@ class Tests
             //await so.SetCurrentSceneAsync("Scena");
             //await so.SetCurrentSceneAsync("SCENA 2");
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             ;
         }
@@ -102,7 +102,7 @@ class Tests
             //await so.SetStreamingSettingsAsync(newsett, true);
             //var xxx = await so.StartStreamingAsync();
         }
-        catch(Exception testErr)
+        catch (Exception testErr)
         {
             ;
         }
@@ -152,7 +152,7 @@ class Tests
         await so.ConnectAsync("ws://127.0.0.1:4444");
         await so.StartAsync();
 
-        so.StreamingStateChanged += (ws, state) =>
+        so.StreamStateChangedAsync = async (ws, state) =>
         {
             Console.WriteLine("streaming state changed: " + state);
         };
@@ -173,13 +173,13 @@ class Tests
             switch (cmd)
             {
                 case "start": await so.StartStreamingAsync(); break;
-                case "stop" : await so.StopStreamingAsync(); break;
-                case "pos"  : double d = await so.GetTransitionPositionAsync(); break;
+                case "stop": await so.StopStreamingAsync(); break;
+                case "pos": double d = await so.GetTransitionPositionAsync(); break;
                 case "items": var s = await so.GetSceneListAsync(); break;
-                case "proj" : await so.OpenProjectorAsync("multiview", 1); break;
-                case "outs" : var o = await so.ListOutputsAsync(); break;
-                case "ssrc" : var a = await so.GetSpecialSourcesAsync(); break;
-                case "trns" : var t = await so.GetTransitionListAsync(); break;
+                case "proj": await so.OpenProjectorAsync("multiview", 1); break;
+                case "outs": var o = await so.ListOutputsAsync(); break;
+                case "ssrc": var a = await so.GetSpecialSourcesAsync(); break;
+                case "trns": var t = await so.GetTransitionListAsync(); break;
             }
         } while (cmd != "exit");
 

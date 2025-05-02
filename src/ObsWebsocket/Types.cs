@@ -1,6 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
 using ObsWebsocket.Types;
-using System;
 using System.Collections.Generic;
 
 namespace ObsWebsocket;
@@ -92,14 +91,6 @@ public delegate void TransitionEndCallback(OBSWebsocket sender, string transitio
 /// <param name="fromScene">Source scene of the transition</param>
 /// <param name="toScene">Destination scene of the transition</param>
 public delegate void TransitionVideoEndCallback(OBSWebsocket sender, string transitionName, string transitionType, int duration, string fromScene, string toScene);
-
-/// <summary>
-/// Called by <see cref="OBSWebsocket.StreamingStateChanged"/>, <see cref="OBSWebsocket.RecordingStateChanged"/>
-/// or <see cref="OBSWebsocket.ReplayBufferStateChanged"/>
-/// </summary>
-/// <param name="sender"><see cref="OBSWebsocket"/> instance</param>
-/// <param name="type">New output state</param>
-public delegate void OutputStateCallback(OBSWebsocket sender, OutputState type);
 
 /// <summary>
 /// Called by <see cref="OBSWebsocket.StreamStatus"/>
