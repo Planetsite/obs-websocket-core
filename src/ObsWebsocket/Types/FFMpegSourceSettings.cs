@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace ObsWebsocket;
+namespace ObsWebsocket.Types;
 
 public sealed class FFMpegSourceSettings
 {

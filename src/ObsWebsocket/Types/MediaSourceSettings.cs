@@ -1,9 +1,7 @@
 ﻿using Newtonsoft.Json;
-namespace ObsWebsocket;
 
-/// <summary>
-///
-/// </summary>
+namespace ObsWebsocket.Types;
+
 public sealed class MediaSourceSettings
 {
     /// <summary>

@@ -267,13 +267,13 @@ public sealed partial class OBSWebsocket
     }
 
     private static readonly Random sRandom = new();
-    private readonly ILogger<WebSocket> _loggerWebsocket;
+    private readonly ILogger<WebSocketSharp.WebSocket> _loggerWebsocket;
     private readonly ConcurrentDictionary<string, TaskCompletionSource<JObject>> _responseHandlers;
     private TimeSpan _websocketTimeout;
 
     private delegate void RequestCallback(OBSWebsocket sender, JObject body);
 
-    public OBSWebsocket(ILogger<WebSocket> loggerWebsocket)
+    public OBSWebsocket(ILogger<WebSocketSharp.WebSocket> loggerWebsocket)
     {
         _loggerWebsocket = loggerWebsocket;
         _responseHandlers = new ConcurrentDictionary<string, TaskCompletionSource<JObject>>();
@@ -334,12 +334,12 @@ public sealed partial class OBSWebsocket
 
     // This callback handles incoming JSON messages and determines if it's
     // a request response or an event ("Update" in obs-websocket terminology)
-    private async Task WebsocketMessageHandlerAsync(object sender, MessageEventArgs e)
+    private async Task WebsocketMessageHandlerAsync(object sender, MessageEventArgs message)
     {
-        if (!e.IsText)
+        if (!message.IsText)
             return;
 
-        var body = JObject.Parse(e.Data);
+        var body = JObject.Parse(message.Data);
 
         if (body["message-id"] != null)
         {

@@ -9,9 +9,6 @@ using System.Linq;
 
 namespace ObsWebsocket;
 
-/// <summary>
-/// Instance of a connection with an obs-websocket server
-/// </summary>
 public partial class OBSWebsocket
 {
     private const string SOURCE_TYPE_JSON_FIELD = "sourceType";
