@@ -1,5 +1,7 @@
 ﻿namespace ObsWebsocket;
 
+// UNDONE da rifare completamente per versione obs+plugin
+// da capire quale versione obs usiamo
 internal class Requests
 {
     public const string BroadcastCustomEvent = "BroadcastCustomEvent";
