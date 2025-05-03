@@ -1,6 +1,6 @@
 ﻿namespace ObsWebsocket;
 
-internal enum MessageTypes
+internal enum MessageV5Types
 {
     Hello = 0,
     Identify = 1,

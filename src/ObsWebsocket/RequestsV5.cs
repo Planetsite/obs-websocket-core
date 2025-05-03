@@ -2,7 +2,7 @@
 
 // UNDONE da rifare completamente per versione obs+plugin
 // da capire quale versione obs usiamo
-internal class Requests
+internal class RequestsV5
 {
     public const string BroadcastCustomEvent = "BroadcastCustomEvent";
     public const string CallVendorRequest = "CallVendorRequest";

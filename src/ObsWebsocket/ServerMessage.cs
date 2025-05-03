@@ -3,10 +3,10 @@ using Newtonsoft.Json;
 
 namespace ObsWebsocket;
 
-internal class ServerMessage
+internal sealed class ServerMessage
 {
     [JsonProperty(PropertyName = "op")]
-    public MessageTypes OperationCode { set; get; }
+    public MessageV5Types OperationCode { set; get; }
 
     [JsonProperty(PropertyName = "d")]
     public JObject Data { get; set; }
